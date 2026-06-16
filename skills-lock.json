@@ -7,6 +7,12 @@
       "skillPath": "address-pr-comments/SKILL.md",
       "computedHash": "0670bef9964b1f922cebd5887bfefef7763925ca85b5318254e836ee9bf2d630"
     },
+    "agents-md-improver": {
+      "source": "gannonh/skills",
+      "sourceType": "github",
+      "skillPath": "agents-md-improver/SKILL.md",
+      "computedHash": "862e6d08963862304f1e0be75f577d8dc43061162cef91461174254db04f2168"
+    },
     "babysit-pr": {
       "source": "gannonh/skills",
       "sourceType": "github",

@@ -17,11 +17,11 @@ When the selected phase is **Plan**, do not jump straight to a written spec. Pla
 
 ## Phase contracts
 
-| Phase  | Input                                                | Output                                                                                                                                                                                                    | Status                                    |
-| ------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Phase  | Input                                                | Output                                                                                                                                                             | Status                                    |
+| ------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
 | Plan   | Idea, vague request, or new build request            | Context exploration → alignment dialogue → approach approval → draft `docs/specs/YYYY-MM-DD-<topic>.md` with mandatory `## Acceptance criteria` and Build handoff → Approved after explicit user approval | `Idea` → `Aligned` → `Draft` → `Approved` |
-| Build  | Approved spec, or explicit user override             | Implemented tasks, commits, review results, Build completion report                                                                                                                                       | `Approved` → `Implemented`                |
-| Verify | Implemented spec plus completed work or Build report | Acceptance evidence and signoff recommendation                                                                                                                                                            | `Implemented` → `Verified`                |
+| Build  | Approved spec, or explicit user override             | Implemented tasks, commits, review results, Build completion report                                                                                                | `Approved` → `Implemented`                |
+| Verify | Implemented spec plus completed work or Build report | Acceptance evidence and signoff recommendation                                                                                                                     | `Implemented` → `Verified`                |
 
 Build must not start from a draft spec unless the user explicitly overrides the approval gate. Verify must not claim signoff without evidence.
 

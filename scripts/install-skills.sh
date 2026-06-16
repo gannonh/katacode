@@ -8,6 +8,7 @@ cd "${PROJECT_ROOT}"
 
 GANNONH_SKILLS=(
   address-pr-comments
+  agents-md-improver
   babysit-pr
   finalize
   fix-github-ci

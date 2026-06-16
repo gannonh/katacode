@@ -3,7 +3,7 @@ type: ADR
 title: "KataCode product identity"
 description: "npm scope @kata-sh/code, katacode CLI binary, KATACODE_* env prefix, and ~/.katacode state directory for the fork."
 tags: [fork, branding, identity, adr]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-16T22:45:00Z
 ---
 
 # ADR 0002: KataCode product identity
@@ -36,8 +36,9 @@ Shared constants live in `packages/shared/src/branding.ts`.
 ## Consequences
 
 - No wire compatibility with upstream npm `t3` package or upstream desktop update channels until explicitly chosen.
-- Existing `~/.t3` data is not auto-migrated; use `KATACODE_HOME=~/.t3` temporarily if needed.
-- CI/release workflows still largely upstream-shaped until [Phase 2](/specs/fork-setup.md#phase-2--infrastructure-split).
+- Existing `~/.t3` data is not auto-migrated; use `KATACODE_HOME=~/.t3` temporarily if needed. Server startup warns when `~/.t3` exists and `~/.katacode` does not.
+- Hosted pairing and user-facing URLs use fork domains from `packages/shared/src/branding.ts` (not upstream `app.t3.codes`).
+- Release, relay, and mobile EAS workflows are disabled under `.github/disabled/` until [Phase 2](/specs/fork-setup.md); PR CI (`ci.yml`) is active on the fork.
 
 ## Related
 

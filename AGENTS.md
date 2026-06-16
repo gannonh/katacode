@@ -4,6 +4,7 @@
 
 - `vp check` and `vp run typecheck` must pass before considering tasks completed.
   - If changing native mobile code, `vp run lint:mobile` must also pass.
+  - For CI parity before push, also run `vp run test` (matches the GitHub Actions Test job).
 - Use `vp test` for the built-in Vite+ test command and `vp run test` when you specifically need the `test` package script.
 
 ## Quick Start
@@ -33,10 +34,12 @@ maintainability is encouraged.
 ## Fork Gotchas
 
 - Do not reintroduce `@t3tools/*`, `T3CODE_*`, or upstream product strings without an explicit decision in `FORK.md`.
-- `~/.t3` data is not auto-migrated; use `KATACODE_HOME=~/.t3` temporarily if you need old state.
+- `~/.t3` data is not auto-migrated; server warns on startup. Use `KATACODE_HOME=~/.t3` temporarily if you need old state.
+- User-facing identity constants (protocols, hosted pairing, worktree prefix) live in `packages/shared/src/branding.ts` — do not hardcode upstream `app.t3.codes` or `t3code://` for product surfaces.
 - Electron `path.txt missing` after fresh install → run `ensure:electron` (see Quick Start).
 - Brand icon rasters must use ImageMagick `-background none` — run `pnpm run generate:brand-rasters` after SVG changes.
-- CI/release workflows are still largely upstream-shaped until Phase 2 (see [docs/specs/fork-setup.md](./docs/specs/fork-setup.md)).
+- **CI:** PR checks run from `.github/workflows/ci.yml`. Release, relay deploy, and mobile EAS live in `.github/disabled/` until Phase 2 — do not gate with branch-name `if:` skips; move whole workflows instead. See [docs/operations/ci.md](./docs/operations/ci.md).
+- **Fork tests:** rename product surfaces (`katacode`, `KATACODE_*`, worktree prefix `katacode/`) but keep upstream-shaped repo names in fixtures (`octocat/t3code` → clone dir `t3code`). See [fork rebrand test fixtures](./docs/operations/ci.md#fork-rebrand-test-fixtures).
 
 ## Open Knowledge Format docs
 

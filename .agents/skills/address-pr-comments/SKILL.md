@@ -11,7 +11,7 @@ Guide to find the open PR for the current branch and address its comments with g
 
 ## Preflight
 
-1. Create a structured task list of the following steps
+1. Create a structured task list of the following steps 
 2. Inform the user of what you are doing
 
 You should endeavor to run this entire workflow autonomously, only engaging the user if issues arise or uncertain how to best proceed.
@@ -22,7 +22,7 @@ You should endeavor to run this entire workflow autonomously, only engaging the 
 
 ### Step 2: Enumarate issues identified in comments and review threads
 
-- Number all the review threads and comments
+- Number all the review threads and comments 
 - Provide a short summary of each "issue candidate," including any suggested fixes from the reviewer
 
 ### Step 3: Identify actionable issues to address

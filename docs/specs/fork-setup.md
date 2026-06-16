@@ -3,7 +3,7 @@ type: Spec
 title: "KataCode fork setup"
 description: "Fork operations plan covering identity, upstream sync, release split, and intentional divergence."
 tags: [fork, roadmap, katacode]
-timestamp: 2026-06-16T00:00:00Z
+timestamp: 2026-06-16T22:45:00Z
 ---
 
 # KataCode fork setup
@@ -25,8 +25,22 @@ KataCode is a hard fork of [pingdotgg/t3code](https://github.com/pingdotgg/t3cod
 | --------------------------------------------------------- | ----------- |
 | Fork / upstream remotes                                   | Done        |
 | Phase 1 — packages, branding, `KATACODE_*`, `~/.katacode` | **Done**    |
+| Phase 1 — PR [#1](https://github.com/gannonh/katacode/pull/1) & CI gates | **Done** |
 | Phase 2 — CI / release split                              | Not started |
 | First upstream merge since `708d5383`                     | Not started |
+
+## Phase 1 delivery (PR #1)
+
+Branch `fork-setup` delivers Phase 1 identity work. GitHub Actions on [PR #1](https://github.com/gannonh/katacode/pull/1) passes: Check, Test, Test Browser, Mobile lint, and Release Smoke.
+
+**Review and hardening applied before merge:**
+
+- Hosted pairing defaults use [branding constants](../../packages/shared/src/branding.ts) (`app.katacode.sh`, `/__katacode/channel`) — no fallback to upstream `app.t3.codes`.
+- Release, relay deploy, and mobile EAS workflows moved to [`.github/disabled/`](../../.github/disabled/README.md); active CI runs from [`.github/workflows/`](../../.github/workflows/README.md) with no branch-name skip gates.
+- `~/.t3` migration warning on startup (`warnLegacyHomeDirectoryIfNeeded` in `apps/server/src/os-jank.ts`).
+- Mobile EAS preview gated on `KATACODE_EAS_PROJECT_ID`; Expo owner `gannonh`.
+
+**Test fixture rule of thumb:** rename product surfaces (`katacode` CLI, `KATACODE_*`, worktree branch prefix `katacode/`, Grok OAuth referrer) but keep upstream-shaped **repository names** in fixtures (`octocat/t3code` → clone dir `t3code`, sidebar identity from `upstream` remote). See [CI runbook](/operations/ci.md#fork-rebrand-test-fixtures).
 
 ## Phases (detail in FORK.md)
 
