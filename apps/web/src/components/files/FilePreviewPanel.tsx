@@ -31,7 +31,7 @@ interface FilePreviewPanelProps {
   onPendingChange: (relativePath: string, pending: boolean) => void;
 }
 
-const FILE_EXPLORER_STORAGE_KEY = "t3code.fileExplorerOpen";
+const FILE_EXPLORER_STORAGE_KEY = "katacode.fileExplorerOpen";
 const FILE_SAVE_DEBOUNCE_MS = 500;
 
 interface EditableFileSurfaceProps {

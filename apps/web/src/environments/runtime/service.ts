@@ -1621,7 +1621,7 @@ async function ensureSavedEnvironmentConnection(
             await removeSavedEnvironmentBearerToken(activeRecord.environmentId);
             throw new Error(
               activeCredential.current.method === "dpop"
-                ? "Managed tunnel credential expired. Connect it again from T3 Connect."
+                ? "Managed tunnel credential expired. Connect it again from KataCode Connect."
                 : "Saved environment credential expired. Pair it again.",
               {
                 cause: error,

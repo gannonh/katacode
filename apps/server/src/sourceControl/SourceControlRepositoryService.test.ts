@@ -129,7 +129,7 @@ it.effect("clones a looked-up repository into the requested destination", () =>
       assert.deepStrictEqual(cloneCalls, [
         {
           cwd: parent,
-          args: ["clone", CLONE_URLS.url, "t3code"],
+          args: ["clone", CLONE_URLS.url, "katacode"],
         },
       ]);
     }).pipe(

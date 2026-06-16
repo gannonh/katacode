@@ -255,7 +255,7 @@ function makeDesktopBridge(overrides: Partial<DesktopBridge> = {}): DesktopBridg
     setTheme: async () => undefined,
     showContextMenu: async () => null,
     openExternal: async () => true,
-    createCloudAuthRequest: async () => "t3code-dev://auth/callback?t3_state=test",
+    createCloudAuthRequest: async () => "katacode-dev://auth/callback?katacode_state=test",
     getCloudAuthToken: async () => null,
     setCloudAuthToken: async () => true,
     clearCloudAuthToken: async () => undefined,

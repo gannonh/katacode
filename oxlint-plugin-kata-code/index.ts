@@ -6,7 +6,7 @@ import noManualEffectRuntimeInTests from "./rules/no-manual-effect-runtime-in-te
 
 export default definePlugin({
   meta: {
-    name: "t3code",
+    name: "kata-code",
   },
   rules: {
     "no-global-process-runtime": noGlobalProcessRuntime,

@@ -125,8 +125,8 @@ const knownWindowsCliDirs = (env: NodeJS.ProcessEnv): ReadonlyArray<string> => [
   ),
 ];
 
-const startMarker = (name: string) => `__T3CODE_ENV_${name}_START__`;
-const endMarker = (name: string) => `__T3CODE_ENV_${name}_END__`;
+const startMarker = (name: string) => `__KATACODE_ENV_${name}_START__`;
+const endMarker = (name: string) => `__KATACODE_ENV_${name}_END__`;
 
 const capturePosixEnvironmentCommand = (names: ReadonlyArray<string>) =>
   names

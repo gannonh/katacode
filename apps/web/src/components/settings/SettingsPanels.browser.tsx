@@ -235,7 +235,7 @@ function createBaseServerConfig(): ServerConfig {
       sessionCookieName: "t3_session",
     },
     cwd: "/repo/project",
-    keybindingsConfigPath: "/repo/project/.t3code-keybindings.json",
+    keybindingsConfigPath: "/repo/project/.katacode-keybindings.json",
     keybindings: [],
     issues: [],
     providers: [],
@@ -463,7 +463,9 @@ const createDesktopBridgeStub = (overrides?: {
     setTheme: vi.fn().mockResolvedValue(undefined),
     showContextMenu: vi.fn().mockResolvedValue(null),
     openExternal: vi.fn().mockResolvedValue(true),
-    createCloudAuthRequest: vi.fn().mockResolvedValue("t3code-dev://auth/callback?t3_state=test"),
+    createCloudAuthRequest: vi
+      .fn()
+      .mockResolvedValue("katacode-dev://auth/callback?katacode_state=test"),
     getCloudAuthToken: vi.fn().mockResolvedValue(null),
     setCloudAuthToken: vi.fn().mockResolvedValue(true),
     clearCloudAuthToken: vi.fn().mockResolvedValue(undefined),
@@ -1072,7 +1074,7 @@ describe("GeneralSettingsPanel observability", () => {
     await networkAccessToggle.click();
     await expect.element(page.getByText("Enable network access?")).toBeInTheDocument();
     await expect
-      .element(page.getByText("T3 Code will restart to expose this environment over the network."))
+      .element(page.getByText("KataCode will restart to expose this environment over the network."))
       .toBeInTheDocument();
     await page.getByRole("button", { name: "Restart and enable", exact: true }).click();
     await vi.waitFor(() => {
@@ -1423,14 +1425,14 @@ describe("SourceControlSettingsPanel discovery states", () => {
           status: "available",
           version: Option.none(),
           installHint:
-            "Set T3CODE_BITBUCKET_EMAIL and T3CODE_BITBUCKET_API_TOKEN, or T3CODE_BITBUCKET_ACCESS_TOKEN.",
+            "Set KATACODE_BITBUCKET_EMAIL and KATACODE_BITBUCKET_API_TOKEN, or KATACODE_BITBUCKET_ACCESS_TOKEN.",
           detail: Option.none(),
           auth: {
             status: "unauthenticated",
             account: Option.none(),
             host: Option.some("bitbucket.org"),
             detail: Option.some(
-              "Set T3CODE_BITBUCKET_EMAIL and T3CODE_BITBUCKET_API_TOKEN, or T3CODE_BITBUCKET_ACCESS_TOKEN.",
+              "Set KATACODE_BITBUCKET_EMAIL and KATACODE_BITBUCKET_API_TOKEN, or KATACODE_BITBUCKET_ACCESS_TOKEN.",
             ),
           },
         },
@@ -1449,7 +1451,7 @@ describe("SourceControlSettingsPanel discovery states", () => {
     await expect
       .element(
         page.getByText(
-          "Available. Set T3CODE_BITBUCKET_EMAIL and T3CODE_BITBUCKET_API_TOKEN, or T3CODE_BITBUCKET_ACCESS_TOKEN.",
+          "Available. Set KATACODE_BITBUCKET_EMAIL and KATACODE_BITBUCKET_API_TOKEN, or KATACODE_BITBUCKET_ACCESS_TOKEN.",
         ),
       )
       .toBeInTheDocument();

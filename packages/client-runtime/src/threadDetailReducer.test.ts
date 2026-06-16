@@ -54,7 +54,7 @@ describe("applyThreadDetailEvent", () => {
         type: "project.created",
         payload: {
           projectId: ProjectId.make("project-1"),
-          title: "T3 Code",
+          title: "KataCode",
           workspaceRoot: "/repo",
           repositoryIdentity: null,
           defaultModelSelection: null,

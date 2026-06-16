@@ -11,11 +11,9 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Rasterize SVG with transparent corners (ImageMagick defaults to white). */
 function rasterizeSvg(svgPath, outputPath, ...extraArgs) {
-  execFileSync(
-    "magick",
-    ["-background", "none", svgPath, ...extraArgs, outputPath],
-    { stdio: "inherit" },
-  );
+  execFileSync("magick", ["-background", "none", svgPath, ...extraArgs, outputPath], {
+    stdio: "inherit",
+  });
 }
 
 function sips(...args) {
@@ -51,9 +49,18 @@ copyFileSync(sourceSvg, join(prodDir, "logo.svg"));
 
 mkdirSync(webPublicDir, { recursive: true });
 copyFileSync(join(prodDir, "t3-black-web-favicon.ico"), join(webPublicDir, "favicon.ico"));
-copyFileSync(join(prodDir, "t3-black-web-favicon-16x16.png"), join(webPublicDir, "favicon-16x16.png"));
-copyFileSync(join(prodDir, "t3-black-web-favicon-32x32.png"), join(webPublicDir, "favicon-32x32.png"));
-copyFileSync(join(prodDir, "t3-black-web-apple-touch-180.png"), join(webPublicDir, "apple-touch-icon.png"));
+copyFileSync(
+  join(prodDir, "t3-black-web-favicon-16x16.png"),
+  join(webPublicDir, "favicon-16x16.png"),
+);
+copyFileSync(
+  join(prodDir, "t3-black-web-favicon-32x32.png"),
+  join(webPublicDir, "favicon-32x32.png"),
+);
+copyFileSync(
+  join(prodDir, "t3-black-web-apple-touch-180.png"),
+  join(webPublicDir, "apple-touch-icon.png"),
+);
 copyFileSync(sourceSvg, join(webPublicDir, "logo-mark.svg"));
 
 mkdirSync(desktopResourcesDir, { recursive: true });
@@ -64,7 +71,14 @@ copyFileSync(join(prodDir, "t3-black-windows.ico"), join(desktopResourcesDir, "i
 const iconsetDir = join(repoRoot, ".tmp-icon.iconset");
 mkdirSync(iconsetDir, { recursive: true });
 for (const size of [16, 32, 128, 256, 512]) {
-  sips("-z", String(size), String(size), sourcePng, "--out", join(iconsetDir, `icon_${size}x${size}.png`));
+  sips(
+    "-z",
+    String(size),
+    String(size),
+    sourcePng,
+    "--out",
+    join(iconsetDir, `icon_${size}x${size}.png`),
+  );
   sips(
     "-z",
     String(size * 2),

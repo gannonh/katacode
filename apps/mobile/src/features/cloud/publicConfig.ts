@@ -87,7 +87,7 @@ export function hasMobileTracingPublicConfig(
 export function resolveRelayClerkTokenOptions() {
   const { jwtTemplate } = resolveCloudPublicConfig().clerk;
   if (!jwtTemplate) {
-    throw new Error("T3CODE_CLERK_JWT_TEMPLATE is not configured.");
+    throw new Error("KATACODE_CLERK_JWT_TEMPLATE is not configured.");
   }
   return relayClerkTokenOptions(jwtTemplate);
 }

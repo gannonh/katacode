@@ -8,7 +8,7 @@
 
 ## Project Snapshot
 
-KataCode is a hard fork of [T3 Code](https://github.com/pingdotgg/t3code) — a minimal
+KataCode is a hard fork of [KataCode](https://github.com/pingdotgg/t3code) — a minimal
 web GUI for using coding agents like Codex and Claude.
 
 Read [FORK.md](./FORK.md) before upstream merges, branding changes, or release/CI work.

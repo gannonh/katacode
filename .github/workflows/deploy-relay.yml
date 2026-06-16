@@ -1,4 +1,4 @@
-name: Deploy T3 Connect relay
+name: Deploy KataCode Connect relay
 
 on:
   push:

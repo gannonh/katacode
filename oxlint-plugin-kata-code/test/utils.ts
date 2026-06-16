@@ -89,7 +89,7 @@ export const createOxlintRuleHarness = (
   const run: RuleHarness["run"] = Effect.fnUntraced(function* (source: string) {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const fixtureDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-oxlint-" });
+    const fixtureDir = yield* fs.makeTempDirectoryScoped({ prefix: "katacode-oxlint-" });
     const configPath = path.join(fixtureDir, ".oxlintrc.json");
     const sourcePath = path.join(fixtureDir, options.filename ?? "fixture.ts");
     const repoRoot = path.join(import.meta.dirname, "..", "..");
@@ -106,7 +106,7 @@ export const createOxlintRuleHarness = (
     yield* fs.writeFileString(
       configPath,
       yield* encodeOxlintConfig({
-        jsPlugins: [{ name: "t3code", specifier: pluginPath }],
+        jsPlugins: [{ name: "kata-code", specifier: pluginPath }],
         rules: { [ruleName]: "error" },
       }),
     );

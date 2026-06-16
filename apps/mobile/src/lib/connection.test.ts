@@ -23,7 +23,7 @@ vi.mock("react-native", () => ({
 describe("mobile remote connection records", () => {
   it("identifies mobile token exchanges for authorized-client presentation", () => {
     expect(mobileAuthClientMetadata()).toEqual({
-      label: "T3 Code Mobile",
+      label: "KataCode Mobile",
       deviceType: "mobile",
       os: "iOS",
     });

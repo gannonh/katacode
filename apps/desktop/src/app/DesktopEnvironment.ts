@@ -58,7 +58,7 @@ export interface DesktopEnvironmentShape {
   readonly preloadPath: string;
   readonly appUpdateYmlPath: string;
   readonly devServerUrl: Option.Option<URL>;
-  readonly devRemoteT3ServerEntryPath: Option.Option<string>;
+  readonly devRemoteServerEntryPath: Option.Option<string>;
   readonly configuredBackendPort: Option.Option<number>;
   readonly commitHashOverride: Option.Option<string>;
   readonly otlpTracesUrl: Option.Option<string>;
@@ -151,17 +151,22 @@ const makeDesktopEnvironment = Effect.fn("desktop.environment.make")(function* (
       : input.platform === "darwin"
         ? path.join(homeDirectory, "Library", "Application Support")
         : Option.getOrElse(config.xdgConfigHome, () => path.join(homeDirectory, ".config"));
-  const baseDir = Option.getOrElse(config.t3Home, () => path.join(homeDirectory, ".t3"));
+  const baseDir = Option.getOrElse(config.katacodeHome, () =>
+    path.join(homeDirectory, ".katacode"),
+  );
   const rootDir = path.resolve(input.dirname, "../../..");
   const appRoot = input.isPackaged ? input.appPath : rootDir;
-  const devBundleIdSuffix = path.basename(rootDir).toLowerCase().replaceAll(/[^a-z0-9]+/g, "");
+  const devBundleIdSuffix = path
+    .basename(rootDir)
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "");
   const branding = resolveDesktopAppBranding({
     isDevelopment,
     appVersion: input.appVersion,
   });
   const displayName = branding.displayName;
   const stateDir = path.join(baseDir, isDevelopment ? "dev" : "userdata");
-  const userDataDirName = isDevelopment ? "t3code-dev" : "t3code";
+  const userDataDirName = isDevelopment ? "katacode-dev" : "katacode";
   const legacyUserDataDirName = formatAppDisplayName(
     isDevelopment ? "Dev" : isNightlyDesktopVersion(input.appVersion) ? "Nightly" : "Alpha",
   );
@@ -196,7 +201,7 @@ const makeDesktopEnvironment = Effect.fn("desktop.environment.make")(function* (
       ? path.join(resourcesPath, "app-update.yml")
       : path.join(input.appPath, "dev-app-update.yml"),
     devServerUrl,
-    devRemoteT3ServerEntryPath: config.devRemoteT3ServerEntryPath,
+    devRemoteServerEntryPath: config.devRemoteServerEntryPath,
     configuredBackendPort: config.configuredBackendPort,
     commitHashOverride: config.commitHashOverride,
     otlpTracesUrl: config.otlpTracesUrl,
@@ -204,9 +209,7 @@ const makeDesktopEnvironment = Effect.fn("desktop.environment.make")(function* (
     branding,
     displayName,
     appUserModelId: Option.getOrElse(config.appUserModelIdOverride, () =>
-      isDevelopment
-        ? `com.katacode.dev.${devBundleIdSuffix || "local"}`
-        : "com.katacode.app",
+      isDevelopment ? `com.katacode.dev.${devBundleIdSuffix || "local"}` : "com.katacode.app",
     ),
     linuxDesktopEntryName: isDevelopment ? "katacode-dev.desktop" : "katacode.desktop",
     linuxWmClass: isDevelopment ? "katacode-dev" : "katacode",

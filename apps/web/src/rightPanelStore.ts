@@ -33,7 +33,7 @@ export type RightPanelSurface =
   | { id: `file:${string}`; kind: "file"; relativePath: string }
   | { id: "plan"; kind: "plan" };
 
-const RIGHT_PANEL_STORAGE_KEY = "t3code:right-panel-state:v2";
+const RIGHT_PANEL_STORAGE_KEY = "katacode:right-panel-state:v2";
 const RIGHT_PANEL_STORAGE_VERSION = 6;
 
 export interface ThreadRightPanelState {

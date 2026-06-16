@@ -229,7 +229,7 @@ export function createWsRpcProtocolLayer(
       socket.addEventListener(
         "error",
         () => {
-          lifecycle.onError("Unable to connect to the T3 server WebSocket.");
+          lifecycle.onError("Unable to connect to the KataCode server WebSocket.");
         },
         { once: true },
       );

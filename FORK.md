@@ -9,15 +9,17 @@ decisions change.
 
 ## Current status
 
-| Item                                       | Status      | Notes                                              |
-| ------------------------------------------ | ----------- | -------------------------------------------------- |
-| Fork remote (`origin`)                     | Done        | `https://github.com/gannonh/katacode.git`          |
-| Upstream remote (`upstream`)               | Done        | `https://github.com/pingdotgg/t3code.git`          |
-| Baseline sync point                        | `708d5383`  | Last merged upstream SHA — update after each sync  |
-| Product rename (`@t3tools/*` → fork scope) | **Done** | Phase 1.1 complete on `fork-setup` |
-| Env prefix rename (`T3CODE_*`)             | Not started | See Phase 1                                        |
-| CI / release split from upstream           | Not started | See Phase 2                                        |
-| `FORK.md` divergence log                   | Started     | This file                                          |
+| Item                                       | Status      | Notes                                             |
+| ------------------------------------------ | ----------- | ------------------------------------------------- |
+| Fork remote (`origin`)                     | Done        | `https://github.com/gannonh/katacode.git`         |
+| Upstream remote (`upstream`)               | Done        | `https://github.com/pingdotgg/t3code.git`         |
+| Baseline sync point                        | `708d5383`  | Last merged upstream SHA — update after each sync |
+| Product rename (`@t3tools/*` → fork scope) | **Done**    | Phase 1.1                                         |
+| Env prefix rename (`KATACODE_*`)           | **Done**    | `~/.katacode`, protocols, storage keys            |
+| User-facing docs rebrand                   | **Done**    | README, CONTRIBUTING, quick-start                 |
+| Phase 1 verification gate                  | **Done**    | `vp check && vp run typecheck`                    |
+| CI / release split from upstream           | Not started | See Phase 2                                       |
+| `FORK.md` divergence log                   | Started     | This file                                         |
 
 Record the last successful upstream merge here:
 
@@ -42,7 +44,7 @@ Verification:       vp check && vp run typecheck
 
 - Contributing changes back upstream (upstream is not actively accepting large PRs).
 - Staying wire-compatible with upstream desktop auto-update channels or npm `t3` package.
-- Maintaining feature parity with upstream cloud/T3 Connect unless explicitly chosen.
+- Maintaining feature parity with upstream cloud/KataCode Connect unless explicitly chosen.
 
 ---
 
@@ -52,17 +54,17 @@ Decide these once, then execute Phase 1 in a single focused branch.
 
 | Upstream                 | KataCode                       | Status   |
 | ------------------------ | ------------------------------ | -------- |
-| Product name             | KataCode                       | Proposed |
+| Product name             | KataCode                       | **Done** |
 | GitHub repo              | `gannonh/katacode`             | **Done** |
 | npm scope                | `@kata-sh/code`                | **Done** |
 | CLI binary               | `katacode`                     | **Done** |
 | Monorepo root package    | `@kata-sh/code-monorepo`       | **Done** |
-| Env prefix               | `KATACODE_*`                   | Proposed |
-| State dir default        | `~/.katacode` (was `~/.t3`)    | Proposed |
-| Desktop display name     | KataCode (Dev) / KataCode      | Proposed |
-| Desktop bundle id (prod) | `com.katacode.app`             | Proposed |
-| Desktop bundle id (dev)  | `com.katacode.dev.<suffix>`    | Proposed |
-| URL protocol             | `katacode` / `katacode-dev`    | Proposed |
+| Env prefix               | `KATACODE_*`                   | **Done** |
+| State dir default        | `~/.katacode` (was `~/.t3`)    | **Done** |
+| Desktop display name     | KataCode (Dev) / KataCode      | **Done** |
+| Desktop bundle id (prod) | `com.katacode.app`             | **Done** |
+| Desktop bundle id (dev)  | `com.katacode.dev.<suffix>`    | **Done** |
+| URL protocol             | `katacode` / `katacode-dev`    | **Done** |
 | Published npm package    | `@kata-sh/code-cli` (not `t3`) | **Done** |
 
 > **CLI split:** `@kata-sh/cli` owns the `kata` binary (platform/harness). This fork
@@ -72,32 +74,32 @@ Decide these once, then execute Phase 1 in a single focused branch.
 
 Scope is `@kata-sh`; workspace packages use the `code-*` suffix:
 
-| Current (`@t3tools/*`)              | Target (`@kata-sh/*`)                |
-| --------------------------------- | ------------------------------------ |
-| `@t3tools/monorepo`               | `@kata-sh/code-monorepo`             |
-| `@t3tools/web`                    | `@kata-sh/code-web`                  |
-| `@t3tools/desktop`                | `@kata-sh/code-desktop`              |
-| `@t3tools/marketing`              | `@kata-sh/code-marketing`            |
-| `@t3tools/mobile`                 | `@kata-sh/code-mobile`               |
-| `@t3tools/contracts`              | `@kata-sh/code-contracts`            |
-| `@t3tools/shared`                 | `@kata-sh/code-shared`               |
-| `@t3tools/client-runtime`         | `@kata-sh/code-client-runtime`       |
-| `@t3tools/ssh`                    | `@kata-sh/code-ssh`                  |
-| `@t3tools/tailscale`              | `@kata-sh/code-tailscale`            |
-| `@t3tools/scripts`                | `@kata-sh/code-scripts`              |
-| `@t3tools/oxlint-plugin-t3code`   | `@kata-sh/code-oxlint-plugin`        |
-| `t3` (server, `apps/server`)      | `@kata-sh/code-cli` (`bin`: `katacode`) |
-| `@t3tools/mobile-terminal-native` | `@kata-sh/code-mobile-terminal-native` |
+| Current (`@t3tools/*`)               | Target (`@kata-sh/*`)                     |
+| ------------------------------------ | ----------------------------------------- |
+| `@t3tools/monorepo`                  | `@kata-sh/code-monorepo`                  |
+| `@t3tools/web`                       | `@kata-sh/code-web`                       |
+| `@t3tools/desktop`                   | `@kata-sh/code-desktop`                   |
+| `@t3tools/marketing`                 | `@kata-sh/code-marketing`                 |
+| `@t3tools/mobile`                    | `@kata-sh/code-mobile`                    |
+| `@t3tools/contracts`                 | `@kata-sh/code-contracts`                 |
+| `@t3tools/shared`                    | `@kata-sh/code-shared`                    |
+| `@t3tools/client-runtime`            | `@kata-sh/code-client-runtime`            |
+| `@t3tools/ssh`                       | `@kata-sh/code-ssh`                       |
+| `@t3tools/tailscale`                 | `@kata-sh/code-tailscale`                 |
+| `@t3tools/scripts`                   | `@kata-sh/code-scripts`                   |
+| `@t3tools/oxlint-plugin-t3code`      | `@kata-sh/code-oxlint-plugin`             |
+| `t3` (server, `apps/server`)         | `@kata-sh/code-cli` (`bin`: `katacode`)   |
+| `@t3tools/mobile-terminal-native`    | `@kata-sh/code-mobile-terminal-native`    |
 | `@t3tools/mobile-review-diff-native` | `@kata-sh/code-mobile-review-diff-native` |
 
 ### Brand logo marks
 
 Source SVGs (canonical — edit these, then regenerate rasters):
 
-| Asset | Path | Use |
-| ----- | ---- | --- |
-| Dark mark (black tile) | `assets/logo-square-dark.svg` | Production icons, dark UI, macOS/iOS/web favicons |
-| Light mark (white tile) | `assets/logo-square-light.svg` | Light backgrounds, marketing |
+| Asset                   | Path                           | Use                                               |
+| ----------------------- | ------------------------------ | ------------------------------------------------- |
+| Dark mark (black tile)  | `assets/logo-square-dark.svg`  | Production icons, dark UI, macOS/iOS/web favicons |
+| Light mark (white tile) | `assets/logo-square-light.svg` | Light backgrounds, marketing                      |
 
 Regenerate production PNG/ICO outputs from the dark mark:
 
@@ -116,9 +118,9 @@ This updates `assets/prod/*` (desktop, web favicons, `logo.svg`) via
 Mobile production icon composer uses `apps/mobile/assets/icon-composer-prod.icon/Assets/logo-mark.svg`
 (copied from the dark mark). Dev/nightly blueprint icons are unchanged for now.
 
-> Dev desktop bundle IDs already derive from the repo folder name (`katacode`) in
-> `apps/desktop/scripts/electron-launcher.mjs`. Production bundle id and display names
-> still use T3 branding until Phase 1.
+> Dev desktop bundle IDs derive from the repo folder name (`katacode`) in
+> `apps/desktop/scripts/electron-launcher.mjs`. Production bundle id, display names,
+> and URL protocols use KataCode branding.
 
 ---
 
@@ -155,7 +157,7 @@ Search targets (approximate counts will drop after renames):
 # from repo root
 rg -l '@t3tools/' --glob '!node_modules' --glob '!.git' --glob '!.repos'
 rg -l 't3code' --glob '!node_modules' --glob '!.git' --glob '!.repos'
-rg -l 'T3CODE_' --glob '!node_modules' --glob '!.git' --glob '!.repos'
+rg -l 'KATACODE_' --glob '!node_modules' --glob '!.git' --glob '!.repos'
 ```
 
 Primary files and directories:
@@ -183,15 +185,15 @@ High-touch paths:
 
 | File / area                                  | What changes                                          |
 | -------------------------------------------- | ----------------------------------------------------- |
-| `scripts/dev-runner.ts`                      | `T3CODE_*` env wiring, dev ports, mode flags          |
+| `scripts/dev-runner.ts`                      | `KATACODE_*` env wiring, dev ports, mode flags        |
 | `scripts/lib/public-config.ts`               | Public config env keys                                |
 | `apps/server/src/cli/`                       | CLI flags, help text, default paths                   |
 | `apps/desktop/scripts/electron-launcher.mjs` | `APP_DISPLAY_NAME`, `APP_BUNDLE_ID`, protocol schemes |
 | `apps/desktop/package.json`                  | `productName`                                         |
-| `packages/shared/`                           | Any hard-coded `~/.t3` or `T3CODE_` references        |
+| `packages/shared/`                           | Any hard-coded `~/.t3` or `KATACODE_` references      |
 
 Prefer a short compatibility shim during transition (read both `KATACODE_*` and
-`T3CODE_*`) only if you need parallel installs. Remove shims once stable.
+`KATACODE_*`) only if you need parallel installs. Remove shims once stable.
 
 ### 1.3 User-facing docs
 
@@ -203,7 +205,7 @@ Prefer a short compatibility shim during transition (read both `KATACODE_*` and
 | `docs/getting-started/quick-start.md` | Update install/run commands                        |
 | `CONTRIBUTING.md`                     | Replace with fork contribution policy              |
 
-Keep a short **Attribution** section in `README.md` crediting T3 Code (MIT).
+Keep a short **Attribution** section in `README.md` crediting KataCode (MIT).
 
 ### 1.4 Verification gate
 
@@ -240,8 +242,8 @@ Review and fork-customize:
 
 Upstream-specific — do **not** reuse without explicit intent:
 
-- Clerk / T3 Connect (`T3CODE_CLERK_*`, `docs/cloud/`)
-- Relay OTLP endpoints (`T3CODE_RELAY_*`)
+- Clerk / KataCode Connect (`KATACODE_CLERK_*`, `docs/cloud/`)
+- Relay OTLP endpoints (`KATACODE_RELAY_*`)
 - Discord release webhooks (`scripts/notify-discord-release.ts`)
 - Desktop code signing / notarization certificates
 - npm publish tokens for `t3` package

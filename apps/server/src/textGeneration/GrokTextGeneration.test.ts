@@ -26,7 +26,7 @@ function shellSingleQuote(value: string): string {
 }
 
 const GrokTextGenerationTestLayer = ServerConfig.layerTest(process.cwd(), {
-  prefix: "t3code-grok-text-generation-test-",
+  prefix: "katacode-grok-text-generation-test-",
 }).pipe(Layer.provideMerge(NodeServices.layer));
 
 function makeAcpGrokWrapper(dir: string, env: Record<string, string>): string {
