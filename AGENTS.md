@@ -8,9 +8,12 @@
 
 ## Project Snapshot
 
-T3 Code is a minimal web GUI for using coding agents like Codex and Claude.
+KataCode is a hard fork of [T3 Code](https://github.com/pingdotgg/t3code) — a minimal
+web GUI for using coding agents like Codex and Claude.
 
-This repository is a VERY EARLY WIP. Proposing sweeping changes that improve long-term maintainability is encouraged.
+Read [FORK.md](./FORK.md) before upstream merges, branding changes, or release/CI work.
+This repository is a VERY EARLY WIP. Proposing sweeping changes that improve long-term
+maintainability is encouraged.
 
 ## Core Priorities
 

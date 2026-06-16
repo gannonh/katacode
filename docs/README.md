@@ -1,5 +1,6 @@
 # Documentation
 
+- [Fork setup and upstream sync](../FORK.md)
 - [Getting started](./getting-started/quick-start.md)
 - [Architecture](./architecture/overview.md)
 - [T3 Connect](./cloud/t3-connect-clerk.md)
