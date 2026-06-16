@@ -119,7 +119,7 @@ After outputting the quality report, ask user for confirmation before updating.
 
 **Diff Format:**
 
-````markdown
+`````markdown
 ### Update: ./AGENTS.md
 
 **Why:** Build command was missing, causing confusion about how to run the project.
@@ -132,6 +132,8 @@ After outputting the quality report, ask user for confirmation before updating.
 + npm run dev  # Start development server on port 3000
 + ```
 ````
+`````
+
 ````
 
 ```
@@ -181,3 +183,4 @@ When presenting recommendations, remind users:
 - Gotchas (quirks, common mistakes)
 - Workflow (when to do what)
 ```
+````

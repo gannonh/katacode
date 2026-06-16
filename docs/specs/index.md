@@ -15,7 +15,7 @@ Work map for KataCode.
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Phase 0 — Git remotes       | [FORK.md — Phase 0](../../FORK.md#phase-0--git-remotes-complete)                                                                    |
 | Phase 1 — Branding & rename | [FORK.md — Phase 1](../../FORK.md#phase-1--branding-and-rename-do-this-first) · [ADR 0002](/adrs/0002-katacode-product-identity.md) |
-| Phase 1 — PR & CI           | [PR #1](https://github.com/gannonh/katacode/pull/1) · [fork-setup spec](/specs/fork-setup.md) · [CI runbook](/operations/ci.md)       |
+| Phase 1 — PR & CI           | [PR #1](https://github.com/gannonh/katacode/pull/1) · [fork-setup spec](/specs/fork-setup.md) · [CI runbook](/operations/ci.md)     |
 
 ## Backlog & historical plans
 

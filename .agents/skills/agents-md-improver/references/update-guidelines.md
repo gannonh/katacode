@@ -66,6 +66,7 @@ Why: Environment-specific knowledge.
 ### 1. Obvious Code Info
 
 Bad:
+
 ```markdown
 The `UserService` class handles user operations.
 ```
@@ -75,6 +76,7 @@ The class name already tells us this.
 ### 2. Generic Best Practices
 
 Bad:
+
 ```markdown
 Always write tests for new features.
 Use meaningful variable names.
@@ -85,6 +87,7 @@ This is universal advice, not project-specific.
 ### 3. One-Off Fixes
 
 Bad:
+
 ```markdown
 We fixed a bug in commit abc123 where the login button didn't work.
 ```
@@ -94,6 +97,7 @@ Won't recur; clutters the file.
 ### 4. Verbose Explanations
 
 Bad:
+
 ```markdown
 The authentication system uses JWT tokens. JWT (JSON Web Tokens) are
 an open standard (RFC 7519) that defines a compact and self-contained
@@ -102,6 +106,7 @@ object. In our implementation, we use the HS256 algorithm which...
 ```
 
 Good:
+
 ```markdown
 Auth: JWT with HS256, tokens in `Authorization: Bearer <token>` header.
 ```

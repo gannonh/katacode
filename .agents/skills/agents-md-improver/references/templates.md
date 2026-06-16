@@ -35,10 +35,10 @@ Describe the project structure so Agents understand where things live.
 
 ```markdown
 ## Architecture
-
 ```
 
 <root>/
+
   <dir>/    # <purpose>
   <dir>/    # <purpose>
   <dir>/    # <purpose>
@@ -76,10 +76,12 @@ Document required environment variables and setup.
 ## Environment
 
 Required:
+
 - `<VAR_NAME>` - <purpose>
 - `<VAR_NAME>` - <purpose>
 
 Setup:
+
 - <setup step>
 ```
 
@@ -133,7 +135,6 @@ Document development workflow patterns.
 | `<command>` | <description> |
 
 ## Architecture
-
 ```
 
 <structure>
@@ -143,7 +144,7 @@ Document development workflow patterns.
 
 - <gotcha>
 
-```
+````
 
 ---
 
@@ -162,7 +163,7 @@ Document development workflow patterns.
 
 ## Architecture
 
-```
+````
 
 <structure with descriptions>
 ```
@@ -187,7 +188,7 @@ Document development workflow patterns.
 
 - <gotcha>
 
-```
+````
 
 ---
 
@@ -202,7 +203,7 @@ For packages within a monorepo or distinct modules.
 
 ## Usage
 
-```
+````
 
 <import/usage example>
 
