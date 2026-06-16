@@ -1,11 +1,11 @@
 import {
   DesktopCloudAuthFetchInputSchema,
   DesktopCloudAuthFetchResultSchema,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 import {
   clerkFrontendApiHostnameFromPublishableKey,
   isAllowedClerkFrontendApiHostname,
-} from "@t3tools/shared/relayAuth";
+} from "@kata-sh/code-shared/relayAuth";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import { identity } from "effect/Function";

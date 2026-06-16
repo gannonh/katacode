@@ -2,7 +2,7 @@
 
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import { HostProcessPlatform } from "@kata-sh/code-shared/hostProcess";
 import { PtyAdapter } from "../Services/PTY.ts";
 import type { PtyAdapterShape, PtyExitEvent, PtyProcess } from "../Services/PTY.ts";
 

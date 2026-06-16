@@ -13,10 +13,10 @@ import {
   type TerminalAttachStreamEvent,
   type TerminalMetadataStreamEvent,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import type { ContextMenuItem } from "@t3tools/contracts";
+import type { ContextMenuItem } from "@kata-sh/code-contracts";
 
 const showContextMenuFallbackMock =
   vi.fn<

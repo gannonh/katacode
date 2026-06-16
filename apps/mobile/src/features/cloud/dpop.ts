@@ -13,7 +13,7 @@ import {
   computeDpopJwkThumbprint,
   DpopPublicJwk,
   normalizeDpopHtu,
-} from "@t3tools/shared/dpop";
+} from "@kata-sh/code-shared/dpop";
 import * as Layer from "effect/Layer";
 
 export class CloudDpopError extends Data.TaggedError("CloudDpopError")<{

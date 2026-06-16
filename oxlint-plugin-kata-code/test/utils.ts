@@ -101,7 +101,7 @@ export const createOxlintRuleHarness = (
       ".bin",
       "oxlint",
     );
-    const pluginPath = path.join(repoRoot, "oxlint-plugin-t3code", "index.ts");
+    const pluginPath = path.join(repoRoot, "oxlint-plugin-kata-code", "index.ts");
 
     yield* fs.writeFileString(
       configPath,

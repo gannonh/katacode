@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
-import { relayClerkTokenOptions } from "@t3tools/shared/relayAuth";
-import { normalizeSecureRelayUrl } from "@t3tools/shared/relayUrl";
+import { relayClerkTokenOptions } from "@kata-sh/code-shared/relayAuth";
+import { normalizeSecureRelayUrl } from "@kata-sh/code-shared/relayUrl";
 
 export interface CloudPublicConfig {
   readonly clerk: {

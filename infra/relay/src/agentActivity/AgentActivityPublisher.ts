@@ -3,7 +3,7 @@ import type {
   RelayAgentActivityState,
   RelayDeliveryResult,
   RelayPublishResponse,
-} from "@t3tools/contracts/relay";
+} from "@kata-sh/code-contracts/relay";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -39,7 +39,7 @@ export interface AgentActivityPublisherShape {
 export class AgentActivityPublisher extends Context.Service<
   AgentActivityPublisher,
   AgentActivityPublisherShape
->()("t3code-relay/agentActivity/AgentActivityPublisher") {}
+>()("@kata-sh/code-relay/agentActivity/AgentActivityPublisher") {}
 
 const make = Effect.gen(function* () {
   const rows = yield* AgentActivityRows.AgentActivityRows;

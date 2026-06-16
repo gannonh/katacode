@@ -17,7 +17,7 @@ import {
   resolveMockUpdateServerUrl,
 } from "./build-desktop-artifact.ts";
 import { BRAND_ASSET_PATHS } from "./lib/brand-assets.ts";
-import { HostProcessArchitecture, HostProcessPlatform } from "@t3tools/shared/hostProcess";
+import { HostProcessArchitecture, HostProcessPlatform } from "@kata-sh/code-shared/hostProcess";
 
 it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
   it("resolves the dedicated nightly updater channel from nightly versions", () => {
@@ -90,10 +90,10 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       resolveDesktopRuntimeDependencies(
         {
           "@effect/platform-node": "catalog:",
-          "@t3tools/contracts": "workspace:*",
-          "@t3tools/shared": "workspace:*",
-          "@t3tools/ssh": "workspace:*",
-          "@t3tools/tailscale": "workspace:*",
+          "@kata-sh/code-contracts": "workspace:*",
+          "@kata-sh/code-shared": "workspace:*",
+          "@kata-sh/code-ssh": "workspace:*",
+          "@kata-sh/code-tailscale": "workspace:*",
           effect: "catalog:",
           electron: "41.5.0",
         },

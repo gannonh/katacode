@@ -21,9 +21,9 @@ import {
   DEFAULT_SERVER_SETTINGS,
   DEFAULT_TERMINAL_ID,
   ServerConfig as ServerConfigSchema,
-} from "@t3tools/contracts";
-import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime";
-import { createModelCapabilities, createModelSelection } from "@t3tools/shared/model";
+} from "@kata-sh/code-contracts";
+import { scopedThreadKey, scopeThreadRef } from "@kata-sh/code-client-runtime";
+import { createModelCapabilities, createModelSelection } from "@kata-sh/code-shared/model";
 import { RouterProvider, createMemoryHistory } from "@tanstack/react-router";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -73,7 +73,7 @@ import { useUiStateStore } from "../uiStateStore";
 import { createAuthenticatedSessionHandlers } from "../../test/authHttpHandlers";
 import { BrowserWsRpcHarness, type NormalizedWsRpcRequestBody } from "../../test/wsRpcHarness";
 
-import { DEFAULT_CLIENT_SETTINGS } from "@t3tools/contracts/settings";
+import { DEFAULT_CLIENT_SETTINGS } from "@kata-sh/code-contracts/settings";
 
 vi.mock("../lib/vcsStatusState", () => {
   const status = {

@@ -4,8 +4,8 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { HttpClient } from "effect/unstable/http";
 
-import type { RelayAgentActivityAggregateState } from "@t3tools/contracts/relay";
-import { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import type { RelayAgentActivityAggregateState } from "@kata-sh/code-contracts/relay";
+import { EnvironmentId, ThreadId } from "@kata-sh/code-contracts";
 import * as ApnsClient from "./ApnsClient.ts";
 
 const TestLayer = ApnsClient.layer.pipe(

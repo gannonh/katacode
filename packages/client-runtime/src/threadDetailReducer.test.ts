@@ -8,8 +8,8 @@ import {
   ProviderInstanceId,
   ThreadId,
   TurnId,
-} from "@t3tools/contracts";
-import type { OrchestrationThread } from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
+import type { OrchestrationThread } from "@kata-sh/code-contracts";
 
 import { applyThreadDetailEvent } from "./threadDetailReducer.ts";
 

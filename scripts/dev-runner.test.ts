@@ -19,8 +19,8 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
       Effect.sync(() => {
         assert.deepStrictEqual(getDevRunnerModeArgs("dev:desktop"), [
           "run",
-          "--filter=@t3tools/desktop",
-          "--filter=@t3tools/web",
+          "--filter=@kata-sh/code-desktop",
+          "--filter=@kata-sh/code-web",
           "dev",
         ]);
       }),
@@ -30,9 +30,9 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
       Effect.sync(() => {
         assert.deepStrictEqual(getDevRunnerModeArgs("dev"), [
           "run",
-          "--filter=@t3tools/contracts",
-          "--filter=@t3tools/web",
-          "--filter=t3",
+          "--filter=@kata-sh/code-contracts",
+          "--filter=@kata-sh/code-web",
+          "--filter=@kata-sh/code-cli",
           "--parallel",
           "dev",
         ]);

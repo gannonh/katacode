@@ -17,9 +17,9 @@ import type {
   GitPreparePullRequestThreadInput,
   ModelSelection,
   ThreadId,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 
-import { GitCommandError, TextGenerationError } from "@t3tools/contracts";
+import { GitCommandError, TextGenerationError } from "@kata-sh/code-contracts";
 import { type GitManagerShape } from "./GitManager.ts";
 import {
   GitHubCliError,

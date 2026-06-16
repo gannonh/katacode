@@ -20,11 +20,11 @@ import type {
   ProviderOptionDescriptor,
   ServerProviderModel,
   ServerProviderSkill,
-} from "@t3tools/contracts";
-import { ServerSettingsError } from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
+import { ServerSettingsError } from "@kata-sh/code-contracts";
 
-import { createModelCapabilities } from "@t3tools/shared/model";
-import { resolveSpawnCommand } from "@t3tools/shared/shell";
+import { createModelCapabilities } from "@kata-sh/code-shared/model";
+import { resolveSpawnCommand } from "@kata-sh/code-shared/shell";
 import {
   AUTH_PROBE_TIMEOUT_MS,
   buildServerProvider,

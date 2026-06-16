@@ -1,8 +1,8 @@
 import { useAuth } from "@clerk/expo";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import type { EnvironmentId } from "@t3tools/contracts";
-import type { RelayClientEnvironmentRecord } from "@t3tools/contracts/relay";
+import type { EnvironmentId } from "@kata-sh/code-contracts";
+import type { RelayClientEnvironmentRecord } from "@kata-sh/code-contracts/relay";
 import * as Effect from "effect/Effect";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, View } from "react-native";

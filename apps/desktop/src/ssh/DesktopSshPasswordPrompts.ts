@@ -1,6 +1,6 @@
-import type { DesktopSshPasswordPromptRequest } from "@t3tools/contracts";
-import { DesktopSshPasswordPromptResolutionInputSchema } from "@t3tools/contracts";
-import type { SshPasswordRequest } from "@t3tools/ssh/auth";
+import type { DesktopSshPasswordPromptRequest } from "@kata-sh/code-contracts";
+import { DesktopSshPasswordPromptResolutionInputSchema } from "@kata-sh/code-contracts";
+import type { SshPasswordRequest } from "@kata-sh/code-ssh/auth";
 import * as Context from "effect/Context";
 import * as Crypto from "effect/Crypto";
 import * as Data from "effect/Data";
@@ -129,7 +129,7 @@ export interface DesktopSshPasswordPromptsShape {
 export class DesktopSshPasswordPrompts extends Context.Service<
   DesktopSshPasswordPrompts,
   DesktopSshPasswordPromptsShape
->()("@t3tools/desktop/ssh/DesktopSshPasswordPrompts") {}
+>()("@kata-sh/code-desktop/ssh/DesktopSshPasswordPrompts") {}
 
 interface PendingSshPasswordPrompt {
   readonly requestId: string;

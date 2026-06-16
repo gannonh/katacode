@@ -5,7 +5,7 @@ import {
   ProviderDriverKind,
   type ServerProviderModel,
   type ServerProviderSlashCommand,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -17,9 +17,9 @@ import {
   getModelSelectionStringOptionValue,
   getProviderOptionCurrentValue,
   getProviderOptionDescriptors,
-} from "@t3tools/shared/model";
-import { resolveSpawnCommand } from "@t3tools/shared/shell";
-import { compareSemverVersions } from "@t3tools/shared/semver";
+} from "@kata-sh/code-shared/model";
+import { resolveSpawnCommand } from "@kata-sh/code-shared/shell";
+import { compareSemverVersions } from "@kata-sh/code-shared/semver";
 import {
   query as claudeQuery,
   type SlashCommand as ClaudeSlashCommand,

@@ -5,7 +5,7 @@ import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 
-import { VcsDriverKind, type VcsDriverKind as VcsDriverKindType } from "@t3tools/contracts";
+import { VcsDriverKind, type VcsDriverKind as VcsDriverKindType } from "@kata-sh/code-contracts";
 
 const ProjectVcsConfig = Schema.Struct({
   vcs: Schema.optional(
@@ -38,7 +38,7 @@ export interface VcsProjectConfigShape {
 }
 
 export class VcsProjectConfig extends Context.Service<VcsProjectConfig, VcsProjectConfigShape>()(
-  "t3/vcs/VcsProjectConfig",
+  "@kata-sh/code-cli/vcs/VcsProjectConfig",
 ) {}
 
 function configuredKind(config: ProjectVcsConfigFile): VcsDriverKindType | "auto" {

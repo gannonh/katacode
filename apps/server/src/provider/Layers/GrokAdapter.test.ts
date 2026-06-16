@@ -20,7 +20,7 @@ import {
   ThreadId,
   ProviderInstanceId,
   type ProviderRuntimeEvent,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 
 import { ServerConfig } from "../../config.ts";
 import { makeGrokAdapter } from "./GrokAdapter.ts";

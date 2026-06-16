@@ -21,7 +21,7 @@ export interface DesktopApplicationMenuShape {
 export class DesktopApplicationMenu extends Context.Service<
   DesktopApplicationMenu,
   DesktopApplicationMenuShape
->()("@t3tools/desktop/window/DesktopApplicationMenu") {}
+>()("@kata-sh/code-desktop/window/DesktopApplicationMenu") {}
 
 type DesktopApplicationMenuRuntimeServices =
   | DesktopUpdates.DesktopUpdates

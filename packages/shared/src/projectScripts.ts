@@ -1,4 +1,4 @@
-import type { ProjectScript } from "@t3tools/contracts";
+import type { ProjectScript } from "@kata-sh/code-contracts";
 
 interface ProjectScriptRuntimeEnvInput {
   project: {

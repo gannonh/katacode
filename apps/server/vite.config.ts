@@ -6,7 +6,7 @@ import { loadRepoEnv } from "../../scripts/lib/public-config.ts";
 
 const bundledPackagePrefixes = [
   "@pierre/diffs",
-  "@t3tools/",
+  "@kata-sh/",
   "effect-acp",
   "effect-codex-app-server",
 ];
@@ -24,7 +24,7 @@ export default mergeConfig(
       tasks: {
         build: {
           command: "node scripts/cli.ts build",
-          dependsOn: ["@t3tools/web#build"],
+          dependsOn: ["@kata-sh/code-web#build"],
           cache: false,
         },
       },

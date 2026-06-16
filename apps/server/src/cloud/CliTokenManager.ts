@@ -60,7 +60,7 @@ export interface CloudCliTokenManagerShape {
 export class CloudCliTokenManager extends Context.Service<
   CloudCliTokenManager,
   CloudCliTokenManagerShape
->()("t3/cloud/CliTokenManager/CloudCliTokenManager") {}
+>()("@kata-sh/code-cli/cloud/CliTokenManager/CloudCliTokenManager") {}
 
 const wrapError =
   (message: string) =>

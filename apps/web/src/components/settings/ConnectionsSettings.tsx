@@ -28,9 +28,9 @@ import {
   type DesktopSshEnvironmentTarget,
   type DesktopServerExposureState,
   type EnvironmentId,
-} from "@t3tools/contracts";
-import { WsRpcClient } from "@t3tools/client-runtime";
-import type { RelayClientEnvironmentRecord } from "@t3tools/contracts/relay";
+} from "@kata-sh/code-contracts";
+import { WsRpcClient } from "@kata-sh/code-client-runtime";
+import type { RelayClientEnvironmentRecord } from "@kata-sh/code-contracts/relay";
 import * as DateTime from "effect/DateTime";
 
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";

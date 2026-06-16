@@ -3,7 +3,7 @@ import { pipe } from "effect/Function";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as SecureStore from "expo-secure-store";
-import { EnvironmentId, OrchestrationShellSnapshot } from "@t3tools/contracts";
+import { EnvironmentId, OrchestrationShellSnapshot } from "@kata-sh/code-contracts";
 
 import {
   isRelayManagedConnection,

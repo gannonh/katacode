@@ -1,5 +1,5 @@
 import { SymbolView } from "expo-symbols";
-import type { EnvironmentId } from "@t3tools/contracts";
+import type { EnvironmentId } from "@kata-sh/code-contracts";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";

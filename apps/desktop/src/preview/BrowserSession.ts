@@ -28,7 +28,7 @@ export interface BrowserSessionShape {
 }
 
 export class BrowserSession extends Context.Service<BrowserSession, BrowserSessionShape>()(
-  "@t3tools/desktop/preview/BrowserSession",
+  "@kata-sh/code-desktop/preview/BrowserSession",
 ) {}
 
 const make = Effect.gen(function* BrowserSessionMake() {

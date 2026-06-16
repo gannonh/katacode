@@ -1,5 +1,5 @@
-import { clerkFrontendApiUrlFromPublishableKey } from "@t3tools/shared/relayAuth";
-import { normalizeSecureRelayUrl } from "@t3tools/shared/relayUrl";
+import { clerkFrontendApiUrlFromPublishableKey } from "@kata-sh/code-shared/relayAuth";
+import { normalizeSecureRelayUrl } from "@kata-sh/code-shared/relayUrl";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";

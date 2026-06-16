@@ -1,5 +1,5 @@
-import type { PreviewSessionSnapshot } from "@t3tools/contracts";
-import { getTerminalLabel } from "@t3tools/shared/terminalLabels";
+import type { PreviewSessionSnapshot } from "@kata-sh/code-contracts";
+import { getTerminalLabel } from "@kata-sh/code-shared/terminalLabels";
 import { ClipboardList, FileDiff, Files, Globe2, Plus, TerminalSquare, X } from "lucide-react";
 import { type ReactElement, type ReactNode, useEffect, useRef, useState } from "react";
 

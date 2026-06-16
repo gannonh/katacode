@@ -48,7 +48,7 @@ export interface DesktopCloudAuthShape {
 }
 
 export class DesktopCloudAuth extends Context.Service<DesktopCloudAuth, DesktopCloudAuthShape>()(
-  "@t3tools/desktop/app/DesktopCloudAuth",
+  "@kata-sh/code-desktop/app/DesktopCloudAuth",
 ) {}
 
 export function resolveCloudAuthCallbackScheme(input: { readonly isDevelopment: boolean }): string {

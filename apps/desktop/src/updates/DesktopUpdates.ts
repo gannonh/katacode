@@ -4,7 +4,7 @@ import type {
   DesktopUpdateChannel,
   DesktopUpdateCheckResult,
   DesktopUpdateState,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Data from "effect/Data";
@@ -100,7 +100,7 @@ export interface DesktopUpdatesShape {
 }
 
 export class DesktopUpdates extends Context.Service<DesktopUpdates, DesktopUpdatesShape>()(
-  "@t3tools/desktop/updates/DesktopUpdates",
+  "@kata-sh/code-desktop/updates/DesktopUpdates",
 ) {}
 
 const {

@@ -1,4 +1,4 @@
-import type { AuthClientPresentationMetadata } from "@t3tools/contracts";
+import type { AuthClientPresentationMetadata } from "@kata-sh/code-contracts";
 import { Platform } from "react-native";
 
 export function mobileAuthClientMetadata(): AuthClientPresentationMetadata {

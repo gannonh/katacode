@@ -522,7 +522,7 @@ export interface RelayClientPrincipalShape {
 export class RelayClientPrincipal extends Context.Service<
   RelayClientPrincipal,
   RelayClientPrincipalShape
->()("@t3tools/contracts/relay/RelayClientPrincipal") {}
+>()("@kata-sh/code-contracts/relay/RelayClientPrincipal") {}
 
 export interface RelayEnvironmentPrincipalShape {
   readonly environmentId: string;
@@ -532,7 +532,7 @@ export interface RelayEnvironmentPrincipalShape {
 export class RelayEnvironmentPrincipal extends Context.Service<
   RelayEnvironmentPrincipal,
   RelayEnvironmentPrincipalShape
->()("@t3tools/contracts/relay/RelayEnvironmentPrincipal") {}
+>()("@kata-sh/code-contracts/relay/RelayEnvironmentPrincipal") {}
 
 const RelayClientBearerAuthorization = HttpApiSecurity.http({ scheme: "bearer" }).pipe(
   HttpApiSecurity.annotate(

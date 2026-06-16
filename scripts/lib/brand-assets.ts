@@ -1,4 +1,7 @@
 export const BRAND_ASSET_PATHS = {
+  logoMarkDarkSvg: "assets/logo-square-dark.svg",
+  logoMarkLightSvg: "assets/logo-square-light.svg",
+
   productionMacIconPng: "assets/prod/black-macos-1024.png",
   productionLinuxIconPng: "assets/prod/black-universal-1024.png",
   productionWindowsIconIco: "assets/prod/t3-black-windows.ico",

@@ -11,7 +11,7 @@ import {
   EnvironmentHttpInternalServerError,
   EnvironmentHttpUnauthorizedError,
   EnvironmentId,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 import {
   RelayEnvironmentConnectScope,
   type RelayClientDeviceRecord,
@@ -20,7 +20,7 @@ import {
   type RelayClientEnvironmentRecord,
   type RelayProtectedError as RelayProtectedErrorType,
   type RelayManagedEndpointProviderKind,
-} from "@t3tools/contracts/relay";
+} from "@kata-sh/code-contracts/relay";
 import {
   exchangeRemoteDpopAccessToken,
   fetchRemoteEnvironmentDescriptor,
@@ -28,8 +28,8 @@ import {
   ManagedRelayClient,
   ManagedRelayDpopSigner,
   type WsRpcClient,
-} from "@t3tools/client-runtime";
-import { withRelayClientTracing } from "@t3tools/shared/relayTracing";
+} from "@kata-sh/code-client-runtime";
+import { withRelayClientTracing } from "@kata-sh/code-shared/relayTracing";
 
 import { ensureLocalApi } from "../localApi";
 import {

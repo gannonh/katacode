@@ -10,10 +10,10 @@ import {
   type SourceControlProviderAuth,
   type SourceControlRepositoryCloneUrls,
   type SourceControlRepositoryVisibility,
-} from "@t3tools/contracts";
+} from "@kata-sh/code-contracts";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
-import { sanitizeBranchFragment } from "@t3tools/shared/git";
-import { detectSourceControlProviderFromRemoteUrl } from "@t3tools/shared/sourceControl";
+import { sanitizeBranchFragment } from "@kata-sh/code-shared/git";
+import { detectSourceControlProviderFromRemoteUrl } from "@kata-sh/code-shared/sourceControl";
 
 import * as BitbucketPullRequests from "./bitbucketPullRequests.ts";
 import * as SourceControlProvider from "./SourceControlProvider.ts";
@@ -154,7 +154,7 @@ export interface BitbucketApiShape {
 }
 
 export class BitbucketApi extends Context.Service<BitbucketApi, BitbucketApiShape>()(
-  "t3/sourceControl/BitbucketApi",
+  "@kata-sh/code-cli/sourceControl/BitbucketApi",
 ) {}
 
 function nonEmpty(value: string | undefined): Option.Option<string> {

@@ -9,15 +9,15 @@ decisions change.
 
 ## Current status
 
-| Item | Status | Notes |
-|------|--------|-------|
-| Fork remote (`origin`) | Done | `https://github.com/gannonh/katacode.git` |
-| Upstream remote (`upstream`) | Done | `https://github.com/pingdotgg/t3code.git` |
-| Baseline sync point | `708d5383` | Last merged upstream SHA — update after each sync |
-| Product rename (`@t3tools/*` → fork scope) | Not started | See Phase 1 |
-| Env prefix rename (`T3CODE_*`) | Not started | See Phase 1 |
-| CI / release split from upstream | Not started | See Phase 2 |
-| `FORK.md` divergence log | Started | This file |
+| Item                                       | Status      | Notes                                              |
+| ------------------------------------------ | ----------- | -------------------------------------------------- |
+| Fork remote (`origin`)                     | Done        | `https://github.com/gannonh/katacode.git`          |
+| Upstream remote (`upstream`)               | Done        | `https://github.com/pingdotgg/t3code.git`          |
+| Baseline sync point                        | `708d5383`  | Last merged upstream SHA — update after each sync  |
+| Product rename (`@t3tools/*` → fork scope) | **Done** | Phase 1.1 complete on `fork-setup` |
+| Env prefix rename (`T3CODE_*`)             | Not started | See Phase 1                                        |
+| CI / release split from upstream           | Not started | See Phase 2                                        |
+| `FORK.md` divergence log                   | Started     | This file                                          |
 
 Record the last successful upstream merge here:
 
@@ -46,25 +46,71 @@ Verification:       vp check && vp run typecheck
 
 ---
 
-## Recommended identity map
+## Identity map
 
-Decide these once, then execute Phase 1 in a single focused branch. Suggested defaults
-for this fork:
+Decide these once, then execute Phase 1 in a single focused branch.
 
-| Upstream | KataCode (proposed) |
-|----------|---------------------|
-| Product name | KataCode |
-| GitHub repo | `gannonh/katacode` |
-| npm scope | `@katacode/*` |
-| CLI binary | `kata` (package name e.g. `@katacode/cli` or `katacode`) |
-| Monorepo root package | `@katacode/monorepo` |
-| Env prefix | `KATACODE_*` (keep `T3CODE_*` aliases temporarily if needed) |
-| State dir default | `~/.katacode` (was `~/.t3`) |
-| Desktop display name | KataCode (Dev) / KataCode |
-| Desktop bundle id (prod) | `com.katacode.app` |
-| Desktop bundle id (dev) | `com.katacode.dev.<worktree-suffix>` (mirror `electron-launcher.mjs` pattern) |
-| URL protocol | `katacode` / `katacode-dev` |
-| Published npm package | `@katacode/cli` or `katacode` (do **not** publish as `t3`) |
+| Upstream                 | KataCode                       | Status   |
+| ------------------------ | ------------------------------ | -------- |
+| Product name             | KataCode                       | Proposed |
+| GitHub repo              | `gannonh/katacode`             | **Done** |
+| npm scope                | `@kata-sh/code`                | **Done** |
+| CLI binary               | `katacode`                     | **Done** |
+| Monorepo root package    | `@kata-sh/code-monorepo`       | **Done** |
+| Env prefix               | `KATACODE_*`                   | Proposed |
+| State dir default        | `~/.katacode` (was `~/.t3`)    | Proposed |
+| Desktop display name     | KataCode (Dev) / KataCode      | Proposed |
+| Desktop bundle id (prod) | `com.katacode.app`             | Proposed |
+| Desktop bundle id (dev)  | `com.katacode.dev.<suffix>`    | Proposed |
+| URL protocol             | `katacode` / `katacode-dev`    | Proposed |
+| Published npm package    | `@kata-sh/code-cli` (not `t3`) | **Done** |
+
+> **CLI split:** `@kata-sh/cli` owns the `kata` binary (platform/harness). This fork
+> ships `@kata-sh/code-cli` with binary `katacode` — do not reuse `kata`.
+
+### npm package naming (`@kata-sh/code`)
+
+Scope is `@kata-sh`; workspace packages use the `code-*` suffix:
+
+| Current (`@t3tools/*`)              | Target (`@kata-sh/*`)                |
+| --------------------------------- | ------------------------------------ |
+| `@t3tools/monorepo`               | `@kata-sh/code-monorepo`             |
+| `@t3tools/web`                    | `@kata-sh/code-web`                  |
+| `@t3tools/desktop`                | `@kata-sh/code-desktop`              |
+| `@t3tools/marketing`              | `@kata-sh/code-marketing`            |
+| `@t3tools/mobile`                 | `@kata-sh/code-mobile`               |
+| `@t3tools/contracts`              | `@kata-sh/code-contracts`            |
+| `@t3tools/shared`                 | `@kata-sh/code-shared`               |
+| `@t3tools/client-runtime`         | `@kata-sh/code-client-runtime`       |
+| `@t3tools/ssh`                    | `@kata-sh/code-ssh`                  |
+| `@t3tools/tailscale`              | `@kata-sh/code-tailscale`            |
+| `@t3tools/scripts`                | `@kata-sh/code-scripts`              |
+| `@t3tools/oxlint-plugin-t3code`   | `@kata-sh/code-oxlint-plugin`        |
+| `t3` (server, `apps/server`)      | `@kata-sh/code-cli` (`bin`: `katacode`) |
+| `@t3tools/mobile-terminal-native` | `@kata-sh/code-mobile-terminal-native` |
+| `@t3tools/mobile-review-diff-native` | `@kata-sh/code-mobile-review-diff-native` |
+
+### Brand logo marks
+
+Source SVGs (canonical — edit these, then regenerate rasters):
+
+| Asset | Path | Use |
+| ----- | ---- | --- |
+| Dark mark (black tile) | `assets/logo-square-dark.svg` | Production icons, dark UI, macOS/iOS/web favicons |
+| Light mark (white tile) | `assets/logo-square-light.svg` | Light backgrounds, marketing |
+
+Regenerate production PNG/ICO outputs from the dark mark:
+
+```bash
+pnpm run generate:brand-rasters
+```
+
+This updates `assets/prod/*` (desktop, web favicons, `logo.svg`) via
+`scripts/generate-prod-brand-rasters.mjs`. Paths are declared in
+`scripts/lib/brand-assets.ts`.
+
+Mobile production icon composer uses `apps/mobile/assets/icon-composer-prod.icon/Assets/logo-mark.svg`
+(copied from the dark mark). Dev/nightly blueprint icons are unchanged for now.
 
 > Dev desktop bundle IDs already derive from the repo folder name (`katacode`) in
 > `apps/desktop/scripts/electron-launcher.mjs`. Production bundle id and display names
@@ -110,48 +156,48 @@ rg -l 'T3CODE_' --glob '!node_modules' --glob '!.git' --glob '!.repos'
 
 Primary files and directories:
 
-| Area | Paths |
-|------|-------|
-| Workspace | `package.json`, `pnpm-workspace.yaml`, all `apps/*/package.json`, all `packages/*/package.json` |
-| Server CLI | `apps/server/package.json` (`name`, `bin`, `repository`) |
-| Oxlint plugin | `oxlint-plugin-t3code/` → rename dir + package to `oxlint-plugin-katacode` |
-| Relay infra | `infra/relay/package.json`, `infra/relay/README.md` |
-| Import paths | Every `from "@t3tools/..."` across `apps/`, `packages/`, `scripts/` |
-| VP filters | Root `package.json` scripts using `--filter @t3tools/...` |
+| Area          | Paths                                                                                           |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| Workspace     | `package.json`, `pnpm-workspace.yaml`, all `apps/*/package.json`, all `packages/*/package.json` |
+| Server CLI    | `apps/server/package.json` (`name`, `bin`, `repository`)                                        |
+| Oxlint plugin | `oxlint-plugin-kata-code/` → rename dir + package to `oxlint-plugin-kata-code`                  |
+| Relay infra   | `infra/relay/package.json`, `infra/relay/README.md`                                             |
+| Import paths  | Every `from "@t3tools/..."` across `apps/`, `packages/`, `scripts/`                             |
+| VP filters    | Root `package.json` scripts using `--filter @t3tools/...`                                       |
 
 Suggested approach:
 
 1. Rename package `name` fields and `pnpm-workspace.yaml` entries.
 2. Run `vp i` and fix broken workspace links.
-3. Bulk-replace import specifiers (`@t3tools/` → `@katacode/`).
-4. Rename `oxlint-plugin-t3code` directory and update lint config references.
+3. Bulk-replace import specifiers (`@t3tools/` → `@kata-sh/code-*` per table above).
+4. Rename `oxlint-plugin-kata-code` directory and update lint config references.
 5. `vp check && vp run typecheck`
 
 ### 1.2 Runtime env and state dirs
 
 High-touch paths:
 
-| File / area | What changes |
-|-------------|--------------|
-| `scripts/dev-runner.ts` | `T3CODE_*` env wiring, dev ports, mode flags |
-| `scripts/lib/public-config.ts` | Public config env keys |
-| `apps/server/src/cli/` | CLI flags, help text, default paths |
+| File / area                                  | What changes                                          |
+| -------------------------------------------- | ----------------------------------------------------- |
+| `scripts/dev-runner.ts`                      | `T3CODE_*` env wiring, dev ports, mode flags          |
+| `scripts/lib/public-config.ts`               | Public config env keys                                |
+| `apps/server/src/cli/`                       | CLI flags, help text, default paths                   |
 | `apps/desktop/scripts/electron-launcher.mjs` | `APP_DISPLAY_NAME`, `APP_BUNDLE_ID`, protocol schemes |
-| `apps/desktop/package.json` | `productName` |
-| `packages/shared/` | Any hard-coded `~/.t3` or `T3CODE_` references |
+| `apps/desktop/package.json`                  | `productName`                                         |
+| `packages/shared/`                           | Any hard-coded `~/.t3` or `T3CODE_` references        |
 
 Prefer a short compatibility shim during transition (read both `KATACODE_*` and
 `T3CODE_*`) only if you need parallel installs. Remove shims once stable.
 
 ### 1.3 User-facing docs
 
-| File | Action |
-|------|--------|
-| `README.md` | Rewrite for KataCode; link to upstream attribution |
-| `AGENTS.md` | Update project snapshot; link to this file |
-| `docs/README.md` | Add fork docs link |
-| `docs/getting-started/quick-start.md` | Update install/run commands |
-| `CONTRIBUTING.md` | Replace with fork contribution policy |
+| File                                  | Action                                             |
+| ------------------------------------- | -------------------------------------------------- |
+| `README.md`                           | Rewrite for KataCode; link to upstream attribution |
+| `AGENTS.md`                           | Update project snapshot; link to this file         |
+| `docs/README.md`                      | Add fork docs link                                 |
+| `docs/getting-started/quick-start.md` | Update install/run commands                        |
+| `CONTRIBUTING.md`                     | Replace with fork contribution policy              |
 
 Keep a short **Attribution** section in `README.md` crediting T3 Code (MIT).
 
@@ -159,7 +205,7 @@ Keep a short **Attribution** section in `README.md` crediting T3 Code (MIT).
 
 ```bash
 vp i
-vp run --filter @t3tools/desktop ensure:electron   # update filter after rename
+vp run --filter @kata-sh/code-desktop ensure:electron   # update filter after rename
 vp check
 vp run typecheck
 pnpm run dev          # web
@@ -176,15 +222,15 @@ Decouple fork CI/CD and distribution from upstream.
 
 Review and fork-customize:
 
-| Workflow | Purpose | Action |
-|----------|---------|--------|
-| `.github/workflows/ci.yml` | PR checks | Keep; remove upstream-only secrets |
-| `.github/workflows/release.yml` | Desktop/npm releases | Point artifacts to `gannonh/katacode`; new signing credentials |
-| `.github/workflows/deploy-relay.yml` | Relay deploy | Disable or re-point to fork infra |
-| `.github/workflows/mobile-eas-preview.yml` | Mobile | Disable until fork mobile signing exists |
-| `.github/workflows/pr-vouch.yml` | Upstream trust labels | Remove or replace |
-| `.github/workflows/pr-size.yml` | Size labels | Optional keep |
-| `.github/workflows/issue-labels.yml` | Automation | Review |
+| Workflow                                   | Purpose               | Action                                                         |
+| ------------------------------------------ | --------------------- | -------------------------------------------------------------- |
+| `.github/workflows/ci.yml`                 | PR checks             | Keep; remove upstream-only secrets                             |
+| `.github/workflows/release.yml`            | Desktop/npm releases  | Point artifacts to `gannonh/katacode`; new signing credentials |
+| `.github/workflows/deploy-relay.yml`       | Relay deploy          | Disable or re-point to fork infra                              |
+| `.github/workflows/mobile-eas-preview.yml` | Mobile                | Disable until fork mobile signing exists                       |
+| `.github/workflows/pr-vouch.yml`           | Upstream trust labels | Remove or replace                                              |
+| `.github/workflows/pr-size.yml`            | Size labels           | Optional keep                                                  |
+| `.github/workflows/issue-labels.yml`       | Automation            | Review                                                         |
 
 ### 2.2 Secrets and cloud config
 
@@ -242,7 +288,7 @@ vp run sync:repos
 
 # 5. Reinstall and verify
 vp i
-vp run --filter @katacode/desktop ensure:electron
+vp run --filter @kata-sh/code-desktop ensure:electron
 vp check
 vp run typecheck
 vp test
@@ -259,16 +305,16 @@ git push origin main
 
 Expect conflicts where both fork and upstream edit the same surfaces:
 
-| Zone | Why |
-|------|-----|
-| `packages/contracts/` | Protocol/schema changes ripple everywhere |
-| `packages/shared/` | Shared runtime utilities |
-| `apps/server/` | Provider wiring, CLI, session lifecycle |
-| `apps/web/` | UI state, WebSocket client, session UX |
-| `apps/desktop/` | Electron main, backend manager, branding |
-| `scripts/dev-runner.ts` | Dev env and ports |
-| `pnpm-lock.yaml` | Always regenerate with `vp i` after merge |
-| `package.json` (root + apps) | Scripts, filters, version bumps |
+| Zone                         | Why                                       |
+| ---------------------------- | ----------------------------------------- |
+| `packages/contracts/`        | Protocol/schema changes ripple everywhere |
+| `packages/shared/`           | Shared runtime utilities                  |
+| `apps/server/`               | Provider wiring, CLI, session lifecycle   |
+| `apps/web/`                  | UI state, WebSocket client, session UX    |
+| `apps/desktop/`              | Electron main, backend manager, branding  |
+| `scripts/dev-runner.ts`      | Dev env and ports                         |
+| `pnpm-lock.yaml`             | Always regenerate with `vp i` after merge |
+| `package.json` (root + apps) | Scripts, filters, version bumps           |
 
 **Low-conflict strategy:** keep fork-only features in new modules/packages where
 possible instead of editing upstream core files.
@@ -293,6 +339,7 @@ If you intentionally skip an upstream feature, log it:
 
 ```markdown
 ### Rejected upstream
+
 - `<sha>` — <reason> — <date>
 ```
 
@@ -304,12 +351,12 @@ Structure fork-specific work to reduce merge cost.
 
 ### Put fork-only code here
 
-| Prefer | Avoid |
-|--------|-------|
-| New package under `packages/kata-*` | Sprinkling `if (katacode)` in upstream core |
-| New app under `apps/kata-*` | Editing `packages/contracts` for fork-only fields |
-| Adapter layer at provider boundary | Renaming upstream types in place |
-| `docs/fork/` for fork docs | Rewriting upstream architecture docs in place |
+| Prefer                              | Avoid                                             |
+| ----------------------------------- | ------------------------------------------------- |
+| New package under `packages/kata-*` | Sprinkling `if (katacode)` in upstream core       |
+| New app under `apps/kata-*`         | Editing `packages/contracts` for fork-only fields |
+| Adapter layer at provider boundary  | Renaming upstream types in place                  |
+| `docs/fork/` for fork docs          | Rewriting upstream architecture docs in place     |
 
 ### Vendored reference repos (`.repos/`)
 
