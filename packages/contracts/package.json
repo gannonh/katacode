@@ -18,6 +18,14 @@
     "./relay": {
       "types": "./src/relay.ts",
       "import": "./src/relay.ts"
+    },
+    "./wireIdentity": {
+      "types": "./src/wireIdentity.ts",
+      "import": "./src/wireIdentity.ts"
+    },
+    "./productIdentity": {
+      "types": "./src/productIdentity.ts",
+      "import": "./src/productIdentity.ts"
     }
   },
   "scripts": {

@@ -18,18 +18,18 @@ The fork must be distinguishable from upstream T3 Code in package names, CLI, en
 
 ## Decision
 
-| Surface | KataCode value |
-| ------- | -------------- |
-| Product name | KataCode |
-| GitHub | `gannonh/katacode` |
-| npm scope | `@kata-sh/code-*` |
-| CLI package | `@kata-sh/code-cli` |
-| CLI binary | `katacode` (not `kata`, not `t3`) |
-| Env prefix | `KATACODE_*` |
-| Default state dir | `~/.katacode` |
-| URL protocols | `katacode` / `katacode-dev` |
-| Desktop bundle ID (prod) | `com.katacode.app` |
-| Desktop bundle ID (dev) | `com.katacode.dev.<suffix>` |
+| Surface                  | KataCode value                    |
+| ------------------------ | --------------------------------- |
+| Product name             | KataCode                          |
+| GitHub                   | `gannonh/katacode`                |
+| npm scope                | `@kata-sh/code-*`                 |
+| CLI package              | `@kata-sh/code-cli`               |
+| CLI binary               | `katacode` (not `kata`, not `t3`) |
+| Env prefix               | `KATACODE_*`                      |
+| Default state dir        | `~/.katacode`                     |
+| URL protocols            | `katacode` / `katacode-dev`       |
+| Desktop bundle ID (prod) | `com.katacode.app`                |
+| Desktop bundle ID (dev)  | `com.katacode.dev.<suffix>`       |
 
 Shared constants live in `packages/shared/src/branding.ts`.
 

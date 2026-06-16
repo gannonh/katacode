@@ -36,7 +36,8 @@
     "release:smoke": "node scripts/release-smoke.ts",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist apps/*/dist-electron packages/*/dist .vite-plus apps/*/.vite-plus packages/*/.vite-plus",
     "sync:repos": "node scripts/sync-reference-repos.ts",
-    "generate:brand-rasters": "node scripts/generate-prod-brand-rasters.mjs"
+    "generate:brand-rasters": "node scripts/generate-prod-brand-rasters.mjs",
+    "check:okf": "node scripts/check-okf.mjs"
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx": "7.28.6",

@@ -106,7 +106,7 @@ const EnvServerConfig = Config.all({
     Config.withDefault(10_000),
   ),
   otlpServiceName: Config.string("KATACODE_OTLP_SERVICE_NAME").pipe(
-    Config.withDefault("t3-server"),
+    Config.withDefault("katacode-server"),
   ),
   mode: Config.schema(RuntimeMode, "KATACODE_MODE").pipe(
     Config.option,

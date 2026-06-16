@@ -105,6 +105,7 @@ const withIdentity = <A, E, R>(
     readonly calls?: ElectronAppCalls;
     readonly environment?: TestEnvironmentInput;
     readonly legacyPathExists?: boolean;
+    readonly legacyPathName?: string;
     readonly packageJson?: string;
     readonly pngIconPath?: Option.Option<string>;
   } = {},
@@ -114,6 +115,7 @@ const withIdentity = <A, E, R>(
     setDockIcon: [],
     setName: [],
   };
+  const legacyPathName = input.legacyPathName ?? "KataCode (Alpha)";
 
   return effect.pipe(
     Effect.provide(
@@ -121,7 +123,7 @@ const withIdentity = <A, E, R>(
         Layer.provideMerge(
           FileSystem.layerNoop({
             exists: (path) =>
-              Effect.succeed(input.legacyPathExists === true && path.includes("KataCode (Alpha)")),
+              Effect.succeed(input.legacyPathExists === true && path.includes(legacyPathName)),
             readFileString: () =>
               Effect.succeed(input.packageJson ?? '{"katacodeCommitHash":"abcdef1234567890"}'),
           }),
@@ -144,6 +146,18 @@ describe("DesktopAppIdentity", () => {
         assert.equal(userDataPath, "/Users/alice/Library/Application Support/KataCode (Alpha)");
       }),
       { legacyPathExists: true },
+    ),
+  );
+
+  it.effect("migrates from upstream T3 Code userData folders", () =>
+    withIdentity(
+      Effect.gen(function* () {
+        const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
+        const userDataPath = yield* identity.resolveUserDataPath;
+
+        assert.equal(userDataPath, "/Users/alice/Library/Application Support/T3 Code (Alpha)");
+      }),
+      { legacyPathExists: true, legacyPathName: "T3 Code (Alpha)" },
     ),
   );
 

@@ -4,10 +4,10 @@ Agent provider setup and usage.
 
 ## Documents
 
-| Document | Summary |
-| -------- | ------- |
-| [Codex](/providers/codex.md) | OpenAI Codex CLI |
-| [Claude](/providers/claude.md) | Claude Code |
+| Document                       | Summary          |
+| ------------------------------ | ---------------- |
+| [Codex](/providers/codex.md)   | OpenAI Codex CLI |
+| [Claude](/providers/claude.md) | Claude Code      |
 
 ## Related
 

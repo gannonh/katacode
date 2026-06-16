@@ -11,13 +11,18 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 
-import { APP_BASE_NAME, formatAppDisplayName } from "@kata-sh/code-shared/branding";
+import {
+  formatAppDisplayName,
+  type AppStageLabel,
+  resolveAppBranding,
+  resolveDefaultKatacodeHome,
+  resolveLegacyUserDataDirNames,
+} from "@kata-sh/code-shared/branding";
 import {
   type DesktopSettings,
   resolveDefaultDesktopSettings,
 } from "../settings/DesktopAppSettings.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
-import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
 
 export interface MakeDesktopEnvironmentInput {
   readonly dirname: string;
@@ -69,7 +74,7 @@ export interface DesktopEnvironmentShape {
   readonly linuxDesktopEntryName: string;
   readonly linuxWmClass: string;
   readonly userDataDirName: string;
-  readonly legacyUserDataDirName: string;
+  readonly legacyUserDataDirNames: readonly string[];
   readonly defaultDesktopSettings: DesktopSettings;
   readonly runtimeInfo: DesktopRuntimeInfo;
   readonly resolvePickFolderDefaultPath: (rawOptions: unknown) => Option.Option<string>;
@@ -82,24 +87,24 @@ export class DesktopEnvironment extends Context.Service<
   DesktopEnvironmentShape
 >()("@kata-sh/code-desktop/app/DesktopEnvironment") {}
 
-function resolveDesktopAppStageLabel(input: {
-  readonly isDevelopment: boolean;
-  readonly appVersion: string;
-}): DesktopAppStageLabel {
-  if (input.isDevelopment) {
-    return "Dev";
+function toDesktopStageLabel(stageLabel: AppStageLabel): DesktopAppStageLabel {
+  switch (stageLabel) {
+    case "Dev":
+    case "Nightly":
+      return stageLabel;
+    default:
+      return "Alpha";
   }
-
-  return isNightlyDesktopVersion(input.appVersion) ? "Nightly" : "Alpha";
 }
 
 function resolveDesktopAppBranding(input: {
   readonly isDevelopment: boolean;
   readonly appVersion: string;
 }): DesktopAppBranding {
-  const stageLabel = resolveDesktopAppStageLabel(input);
+  const branding = resolveAppBranding(input);
+  const stageLabel = toDesktopStageLabel(branding.stageLabel);
   return {
-    baseName: APP_BASE_NAME,
+    baseName: branding.baseName,
     stageLabel,
     displayName: formatAppDisplayName(stageLabel),
   };
@@ -152,7 +157,7 @@ const makeDesktopEnvironment = Effect.fn("desktop.environment.make")(function* (
         ? path.join(homeDirectory, "Library", "Application Support")
         : Option.getOrElse(config.xdgConfigHome, () => path.join(homeDirectory, ".config"));
   const baseDir = Option.getOrElse(config.katacodeHome, () =>
-    path.join(homeDirectory, ".katacode"),
+    resolveDefaultKatacodeHome(homeDirectory),
   );
   const rootDir = path.resolve(input.dirname, "../../..");
   const appRoot = input.isPackaged ? input.appPath : rootDir;
@@ -167,9 +172,10 @@ const makeDesktopEnvironment = Effect.fn("desktop.environment.make")(function* (
   const displayName = branding.displayName;
   const stateDir = path.join(baseDir, isDevelopment ? "dev" : "userdata");
   const userDataDirName = isDevelopment ? "katacode-dev" : "katacode";
-  const legacyUserDataDirName = formatAppDisplayName(
-    isDevelopment ? "Dev" : isNightlyDesktopVersion(input.appVersion) ? "Nightly" : "Alpha",
-  );
+  const legacyUserDataDirNames = resolveLegacyUserDataDirNames({
+    isDevelopment,
+    appVersion: input.appVersion,
+  });
   const resourcesPath = input.resourcesPath;
 
   return DesktopEnvironment.of({
@@ -214,7 +220,7 @@ const makeDesktopEnvironment = Effect.fn("desktop.environment.make")(function* (
     linuxDesktopEntryName: isDevelopment ? "katacode-dev.desktop" : "katacode.desktop",
     linuxWmClass: isDevelopment ? "katacode-dev" : "katacode",
     userDataDirName,
-    legacyUserDataDirName,
+    legacyUserDataDirNames,
     defaultDesktopSettings: resolveDefaultDesktopSettings(input.appVersion),
     runtimeInfo: resolveDesktopRuntimeInfo({
       platform: input.platform,

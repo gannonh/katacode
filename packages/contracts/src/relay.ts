@@ -10,6 +10,13 @@ import * as OpenApi from "effect/unstable/httpapi/OpenApi";
 
 import { EnvironmentId, ThreadId, TrimmedNonEmptyString } from "./baseSchemas.ts";
 import { ExecutionEnvironmentDescriptor } from "./environment.ts";
+import { CLOUD_PRODUCT_NAME } from "./productIdentity.ts";
+import {
+  WIRE_MOBILE_CLIENT_ID,
+  WIRE_RELAY_PROVIDER_KIND,
+  WIRE_RELAY_PUBLIC_CLIENT_IDS,
+  WIRE_WEB_CLIENT_ID,
+} from "./wireIdentity.ts";
 
 export const RelayAgentAwarenessPlatform = Schema.Literal("ios");
 export type RelayAgentAwarenessPlatform = typeof RelayAgentAwarenessPlatform.Type;
@@ -122,7 +129,7 @@ export type RelayAgentActivityAggregateState = typeof RelayAgentActivityAggregat
 export const RelayManagedEndpointProviderKind = Schema.Literals([
   "manual",
   "cloudflare_tunnel",
-  "t3_relay",
+  WIRE_RELAY_PROVIDER_KIND,
 ]);
 export type RelayManagedEndpointProviderKind = typeof RelayManagedEndpointProviderKind.Type;
 
@@ -625,10 +632,10 @@ export const RelayDpopTokenExchangeGrantType =
   "urn:ietf:params:oauth:grant-type:token-exchange" as const;
 export const RelayJwtSubjectTokenType = "urn:ietf:params:oauth:token-type:jwt" as const;
 export const RelayAccessTokenType = "urn:ietf:params:oauth:token-type:access_token" as const;
-export const RelayPublicClientId = Schema.Literals(["t3-mobile", "t3-web"]);
+export const RelayPublicClientId = Schema.Literals([...WIRE_RELAY_PUBLIC_CLIENT_IDS]);
 export type RelayPublicClientId = typeof RelayPublicClientId.Type;
-export const RelayMobileClientId = "t3-mobile" as const;
-export const RelayWebClientId = "t3-web" as const;
+export const RelayMobileClientId = WIRE_MOBILE_CLIENT_ID;
+export const RelayWebClientId = WIRE_WEB_CLIENT_ID;
 
 export const RelayDpopAccessTokenRequest = Schema.Struct({
   grant_type: Schema.Literal(RelayDpopTokenExchangeGrantType),
@@ -1010,6 +1017,6 @@ export const RelayApi = HttpApi.make("RelayApi")
   .annotate(OpenApi.Version, "1.0.0")
   .annotate(
     OpenApi.Description,
-    "Control-plane API for linking T3 environments, connecting authorized clients, and publishing agent activity.",
+    `Control-plane API for ${CLOUD_PRODUCT_NAME}: linking environments, connecting authorized clients, and publishing agent activity.`,
   );
 export type RelayApi = typeof RelayApi;

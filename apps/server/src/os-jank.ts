@@ -1,3 +1,4 @@
+import { resolveDefaultKatacodeHome } from "@kata-sh/code-shared/branding";
 import { HostProcessEnvironment, HostProcessPlatform } from "@kata-sh/code-shared/hostProcess";
 import {
   listLoginShellCandidates,
@@ -84,9 +85,9 @@ export const expandHomePath = Effect.fn(function* (input: string) {
 });
 
 export const resolveBaseDir = Effect.fn(function* (raw: string | undefined) {
-  const { join, resolve } = yield* Path.Path;
+  const { resolve } = yield* Path.Path;
   if (!raw || raw.trim().length === 0) {
-    return join(NodeOS.homedir(), ".katacode");
+    return resolveDefaultKatacodeHome(NodeOS.homedir());
   }
   return resolve(yield* expandHomePath(raw.trim()));
 });

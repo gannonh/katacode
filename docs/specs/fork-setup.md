@@ -21,12 +21,12 @@ KataCode is a hard fork of [pingdotgg/t3code](https://github.com/pingdotgg/t3cod
 
 ## Current status
 
-| Item | Status |
-| ---- | ------ |
-| Fork / upstream remotes | Done |
-| Phase 1 — packages, branding, `KATACODE_*`, `~/.katacode` | **Done** |
-| Phase 2 — CI / release split | Not started |
-| First upstream merge since `708d5383` | Not started |
+| Item                                                      | Status      |
+| --------------------------------------------------------- | ----------- |
+| Fork / upstream remotes                                   | Done        |
+| Phase 1 — packages, branding, `KATACODE_*`, `~/.katacode` | **Done**    |
+| Phase 2 — CI / release split                              | Not started |
+| First upstream merge since `708d5383`                     | Not started |
 
 ## Phases (detail in FORK.md)
 

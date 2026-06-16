@@ -29,18 +29,18 @@ rasterizeSvg(sourceSvg, join(prodDir, "black-macos-1024.png"), "-resize", "1024x
 rasterizeSvg(sourceSvg, join(prodDir, "black-ios-1024.png"), "-resize", "1024x1024");
 rasterizeSvg(sourceSvg, join(prodDir, "black-universal-1024.png"), "-resize", "1024x1024");
 
-rasterizeSvg(sourceSvg, join(prodDir, "t3-black-web-apple-touch-180.png"), "-resize", "180x180");
-rasterizeSvg(sourceSvg, join(prodDir, "t3-black-web-favicon-32x32.png"), "-resize", "32x32");
-rasterizeSvg(sourceSvg, join(prodDir, "t3-black-web-favicon-16x16.png"), "-resize", "16x16");
+rasterizeSvg(sourceSvg, join(prodDir, "katacode-web-apple-touch-180.png"), "-resize", "180x180");
+rasterizeSvg(sourceSvg, join(prodDir, "katacode-web-favicon-32x32.png"), "-resize", "32x32");
+rasterizeSvg(sourceSvg, join(prodDir, "katacode-web-favicon-16x16.png"), "-resize", "16x16");
 rasterizeSvg(
   sourceSvg,
-  join(prodDir, "t3-black-web-favicon.ico"),
+  join(prodDir, "katacode-web-favicon.ico"),
   "-define",
   "icon:auto-resize=256,128,64,48,32,16",
 );
 rasterizeSvg(
   sourceSvg,
-  join(prodDir, "t3-black-windows.ico"),
+  join(prodDir, "katacode-windows.ico"),
   "-define",
   "icon:auto-resize=256,128,64,48,32,16",
 );
@@ -48,17 +48,17 @@ rasterizeSvg(
 copyFileSync(sourceSvg, join(prodDir, "logo.svg"));
 
 mkdirSync(webPublicDir, { recursive: true });
-copyFileSync(join(prodDir, "t3-black-web-favicon.ico"), join(webPublicDir, "favicon.ico"));
+copyFileSync(join(prodDir, "katacode-web-favicon.ico"), join(webPublicDir, "favicon.ico"));
 copyFileSync(
-  join(prodDir, "t3-black-web-favicon-16x16.png"),
+  join(prodDir, "katacode-web-favicon-16x16.png"),
   join(webPublicDir, "favicon-16x16.png"),
 );
 copyFileSync(
-  join(prodDir, "t3-black-web-favicon-32x32.png"),
+  join(prodDir, "katacode-web-favicon-32x32.png"),
   join(webPublicDir, "favicon-32x32.png"),
 );
 copyFileSync(
-  join(prodDir, "t3-black-web-apple-touch-180.png"),
+  join(prodDir, "katacode-web-apple-touch-180.png"),
   join(webPublicDir, "apple-touch-icon.png"),
 );
 copyFileSync(sourceSvg, join(webPublicDir, "logo-mark.svg"));
@@ -66,7 +66,7 @@ copyFileSync(sourceSvg, join(webPublicDir, "logo-mark.svg"));
 mkdirSync(desktopResourcesDir, { recursive: true });
 const sourcePng = join(prodDir, "black-macos-1024.png");
 copyFileSync(sourcePng, join(desktopResourcesDir, "icon.png"));
-copyFileSync(join(prodDir, "t3-black-windows.ico"), join(desktopResourcesDir, "icon.ico"));
+copyFileSync(join(prodDir, "katacode-windows.ico"), join(desktopResourcesDir, "icon.ico"));
 
 const iconsetDir = join(repoRoot, ".tmp-icon.iconset");
 mkdirSync(iconsetDir, { recursive: true });

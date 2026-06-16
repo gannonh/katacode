@@ -8,15 +8,15 @@ Open Knowledge Format (OKF) documentation for the [KataCode](https://github.com/
 
 ## Start here
 
-| Section | Purpose |
-| ------- | ------- |
-| [Specs roadmap](/specs/index.md) | Active, planned, blocked, and completed work |
+| Section                                | Purpose                                             |
+| -------------------------------------- | --------------------------------------------------- |
+| [Specs roadmap](/specs/index.md)       | Active, planned, blocked, and completed work        |
 | [Architecture](/architecture/index.md) | System map, runtime modes, providers, remote access |
-| [Guides](/guides/index.md) | Setup, user workflows, integrations, providers |
-| [Runbooks](/runbooks/index.md) | CI, release, observability, operations |
-| [Reference](/reference/index.md) | Scripts, workspace layout, encyclopedia |
-| [ADRs](/adrs/index.md) | Durable architecture decisions |
-| [Fork operations](../../FORK.md) | Upstream sync, identity, divergence (repo root) |
+| [Guides](/guides/index.md)             | Setup, user workflows, integrations, providers      |
+| [Runbooks](/runbooks/index.md)         | CI, release, observability, operations              |
+| [Reference](/reference/index.md)       | Scripts, workspace layout, encyclopedia             |
+| [ADRs](/adrs/index.md)                 | Durable architecture decisions                      |
+| [Fork operations](../../FORK.md)       | Upstream sync, identity, divergence (repo root)     |
 
 ## Fork status (summary)
 

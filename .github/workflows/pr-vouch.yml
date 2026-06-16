@@ -20,6 +20,10 @@ permissions:
 jobs:
   collect-targets:
     name: Collect PR targets
+    if: |
+      !(
+        (github.event_name == 'pull_request_target' && github.event.pull_request.head.ref == 'fork-setup')
+      )
     runs-on: ubuntu-24.04
     outputs:
       targets: ${{ steps.collect.outputs.targets }}

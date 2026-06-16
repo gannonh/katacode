@@ -192,7 +192,7 @@ High-touch paths:
 | `apps/desktop/package.json`                  | `productName`                                         |
 | `packages/shared/`                           | Any hard-coded `~/.t3` or `KATACODE_` references      |
 
-Prefer a short compatibility shim during transition (read both `KATACODE_*` and
+Prefer a short compatibility shim during transition (read both `T3CODE_*` and
 `KATACODE_*`) only if you need parallel installs. Remove shims once stable.
 
 ### 1.3 User-facing docs
@@ -415,6 +415,15 @@ Record intentional permanent differences from upstream.
 ### Rejected upstream
 
 _(none yet)_
+
+### Deferred upstream wire compatibility (Phase 2)
+
+Until relay/mobile hosted infra splits, these wire identifiers stay upstream-shaped. See `packages/contracts/src/wireIdentity.ts`:
+
+- Relay provider kind `t3_relay`
+- OAuth client IDs `t3-mobile`, `t3-web`
+- Environment well-known path `/.well-known/t3/environment`
+- Connect API prefix `/api/t3-connect`
 
 ### Fork-only features
 

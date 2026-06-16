@@ -4,8 +4,8 @@ Third-party platform integrations.
 
 ## Documents
 
-| Document | Summary |
-| -------- | ------- |
+| Document                                                              | Summary                                 |
+| --------------------------------------------------------------------- | --------------------------------------- |
 | [Source control providers](/integrations/source-control-providers.md) | GitHub, GitLab, Bitbucket, Azure DevOps |
 
 ## History

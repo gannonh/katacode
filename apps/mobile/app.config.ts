@@ -28,14 +28,14 @@ const VARIANT_CONFIG: Record<
   },
   preview: {
     appName: "KataCode Preview",
-    scheme: "t3code-preview",
+    scheme: "katacode-preview",
     iosIcon: "./assets/icon-composer-prod.icon",
     iosBundleIdentifier: "com.katacode.preview",
     androidPackage: "com.katacode.preview",
   },
   production: {
     appName: "KataCode",
-    scheme: "t3code",
+    scheme: "katacode",
     iosIcon: "./assets/icon-composer-prod.icon",
     iosBundleIdentifier: "com.katacode.app",
     androidPackage: "com.katacode.app",
@@ -57,7 +57,7 @@ const variant = VARIANT_CONFIG[APP_VARIANT];
 
 const config: ExpoConfig = {
   name: variant.appName,
-  slug: "t3-code",
+  slug: "katacode",
   platforms: ["ios", "android"],
   scheme: variant.scheme,
   version: "0.1.0",

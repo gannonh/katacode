@@ -4,12 +4,12 @@ System design and runtime structure for KataCode.
 
 ## Documents
 
-| Document | Summary |
-| -------- | ------- |
-| [Overview](/architecture/overview.md) | Server, WebSocket, orchestration, providers |
-| [Runtime modes](/architecture/runtime-modes.md) | Web vs desktop vs mobile |
-| [Remote access](/architecture/remote.md) | SSH, tunnels, remote environments |
-| [Providers](/architecture/providers.md) | Codex, Claude, Cursor, OpenCode, Grok |
+| Document                                        | Summary                                     |
+| ----------------------------------------------- | ------------------------------------------- |
+| [Overview](/architecture/overview.md)           | Server, WebSocket, orchestration, providers |
+| [Runtime modes](/architecture/runtime-modes.md) | Web vs desktop vs mobile                    |
+| [Remote access](/architecture/remote.md)        | SSH, tunnels, remote environments           |
+| [Providers](/architecture/providers.md)         | Codex, Claude, Cursor, OpenCode, Grok       |
 
 ## Related
 

@@ -4,6 +4,7 @@ import * as NodeOS from "node:os";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import { resolveDefaultKatacodeHome } from "@kata-sh/code-shared/branding";
 import * as NetService from "@kata-sh/code-shared/Net";
 import { HostProcessEnvironment } from "@kata-sh/code-shared/hostProcess";
 import { resolveSpawnCommand } from "@kata-sh/code-shared/shell";
@@ -30,8 +31,8 @@ const MAX_PORT = 65535;
 const DESKTOP_DEV_LOOPBACK_HOST = "127.0.0.1";
 const DEV_PORT_PROBE_HOSTS = ["127.0.0.1", "0.0.0.0", "::1", "::"] as const;
 
-export const DEFAULT_KATACODE_HOME = Effect.map(Effect.service(Path.Path), (path) =>
-  path.join(NodeOS.homedir(), ".katacode"),
+export const DEFAULT_KATACODE_HOME = Effect.map(Effect.service(Path.Path), (_path) =>
+  resolveDefaultKatacodeHome(NodeOS.homedir()),
 );
 
 const MODE_ARGS = {

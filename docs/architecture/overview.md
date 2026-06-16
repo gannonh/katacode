@@ -16,7 +16,7 @@ KataCode runs as a **Node.js WebSocket server** that wraps `codex app-server` (J
 │  wsTransport (state machine)    │
 │  Typed push decode at boundary  │
 └──────────┬──────────────────────┘
-           │ ws://localhost:3773
+           │ ws://localhost:13773
 ┌──────────▼──────────────────────┐
 │  apps/server (Node.js)          │
 │  WebSocket + HTTP static server │

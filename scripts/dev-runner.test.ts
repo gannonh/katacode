@@ -74,7 +74,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
   });
 
   describe("createDevRunnerEnv", () => {
-    it.effect("defaults KATACODE_HOME to ~/.t3 when not provided", () =>
+    it.effect("defaults KATACODE_HOME to ~/.katacode when not provided", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const env = yield* createDevRunnerEnv({

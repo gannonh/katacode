@@ -1,4 +1,4 @@
-// This file mostly exists because we want dev mode to say "KataCode (Dev)" instead of "electron"
+import { resolveAppBranding } from "../../../packages/shared/src/branding.ts";
 
 import { spawnSync } from "node:child_process";
 import {
@@ -26,7 +26,11 @@ const repoRoot = resolve(desktopDir, "..", "..");
 const devBundleIdSuffix = basename(repoRoot)
   .toLowerCase()
   .replaceAll(/[^a-z0-9]+/g, "");
-export const APP_DISPLAY_NAME = isDevelopment ? "KataCode (Dev)" : "KataCode (Alpha)";
+const devBranding = resolveAppBranding({
+  isDevelopment,
+  appVersion: process.env.npm_package_version ?? "0.0.0-dev",
+});
+export const APP_DISPLAY_NAME = devBranding.displayName;
 export const APP_BUNDLE_ID = isDevelopment
   ? `com.katacode.dev.${devBundleIdSuffix || "local"}`
   : "com.katacode.app";
