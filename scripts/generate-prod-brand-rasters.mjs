@@ -9,8 +9,13 @@ const LOGO_MARK_DARK_SVG = "assets/logo-square-dark.svg";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-function magick(...args) {
-  execFileSync("magick", args, { stdio: "inherit" });
+/** Rasterize SVG with transparent corners (ImageMagick defaults to white). */
+function rasterizeSvg(svgPath, outputPath, ...extraArgs) {
+  execFileSync(
+    "magick",
+    ["-background", "none", svgPath, ...extraArgs, outputPath],
+    { stdio: "inherit" },
+  );
 }
 
 function sips(...args) {
@@ -22,24 +27,24 @@ const prodDir = join(repoRoot, "assets/prod");
 const webPublicDir = join(repoRoot, "apps/web/public");
 const desktopResourcesDir = join(repoRoot, "apps/desktop/resources");
 
-magick(sourceSvg, "-resize", "1024x1024", join(prodDir, "black-macos-1024.png"));
-magick(sourceSvg, "-resize", "1024x1024", join(prodDir, "black-ios-1024.png"));
-magick(sourceSvg, "-resize", "1024x1024", join(prodDir, "black-universal-1024.png"));
+rasterizeSvg(sourceSvg, join(prodDir, "black-macos-1024.png"), "-resize", "1024x1024");
+rasterizeSvg(sourceSvg, join(prodDir, "black-ios-1024.png"), "-resize", "1024x1024");
+rasterizeSvg(sourceSvg, join(prodDir, "black-universal-1024.png"), "-resize", "1024x1024");
 
-magick(sourceSvg, "-resize", "180x180", join(prodDir, "t3-black-web-apple-touch-180.png"));
-magick(sourceSvg, "-resize", "32x32", join(prodDir, "t3-black-web-favicon-32x32.png"));
-magick(sourceSvg, "-resize", "16x16", join(prodDir, "t3-black-web-favicon-16x16.png"));
-magick(
+rasterizeSvg(sourceSvg, join(prodDir, "t3-black-web-apple-touch-180.png"), "-resize", "180x180");
+rasterizeSvg(sourceSvg, join(prodDir, "t3-black-web-favicon-32x32.png"), "-resize", "32x32");
+rasterizeSvg(sourceSvg, join(prodDir, "t3-black-web-favicon-16x16.png"), "-resize", "16x16");
+rasterizeSvg(
   sourceSvg,
-  "-define",
-  "icon:auto-resize=256,128,64,48,32,16",
   join(prodDir, "t3-black-web-favicon.ico"),
-);
-magick(
-  sourceSvg,
   "-define",
   "icon:auto-resize=256,128,64,48,32,16",
+);
+rasterizeSvg(
+  sourceSvg,
   join(prodDir, "t3-black-windows.ico"),
+  "-define",
+  "icon:auto-resize=256,128,64,48,32,16",
 );
 
 copyFileSync(sourceSvg, join(prodDir, "logo.svg"));

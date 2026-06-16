@@ -105,6 +105,10 @@ Regenerate production PNG/ICO outputs from the dark mark:
 pnpm run generate:brand-rasters
 ```
 
+Rasterization uses ImageMagick with `-background none` so corners outside the
+rounded tile stay transparent (the default white matte causes white halos in
+macOS/Electron app icons).
+
 This updates `assets/prod/*` (desktop, web favicons, `logo.svg`) via
 `scripts/generate-prod-brand-rasters.mjs`. Paths are declared in
 `scripts/lib/brand-assets.ts`.
