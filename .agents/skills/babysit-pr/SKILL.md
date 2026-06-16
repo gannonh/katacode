@@ -6,6 +6,7 @@ description: Babysit a GitHub pull request after creation by continuously pollin
 # PR Babysitter
 
 ## Objective
+
 Babysit a PR persistently until one of these terminal outcomes occurs:
 
 - The PR is merged or closed.
@@ -15,6 +16,7 @@ Babysit a PR persistently until one of these terminal outcomes occurs:
 Do not stop merely because a single snapshot returns `idle` while checks are still pending.
 
 ## Inputs
+
 Accept any of the following:
 
 - No PR argument: infer the PR from the current branch (`--pr auto`)
@@ -78,6 +80,7 @@ python3 <path-to-agent-skills-directory>/address-pr-comments/scripts/fetch_comme
 Use this inventory to confirm resolved/outdated state, see all comments in a thread, and avoid missing existing review feedback that predates the watcher state file.
 
 ## CI Failure Classification
+
 Use `gh` commands to inspect failed runs before deciding to rerun.
 
 - `gh run view <run-id> --json jobs,name,workflowName,conclusion,status,url,headSha`
@@ -98,6 +101,7 @@ If classification is ambiguous, perform one manual diagnosis attempt before choo
 Read `<path-to-agent-skills-directory>/babysit-pr/references/heuristics.md` for a concise checklist.
 
 ## Review Comment Handling
+
 The watcher surfaces review items from:
 
 - PR issue comments
@@ -156,11 +160,11 @@ output.
 
 Unless explicitly asked, do not:
 
-* comment on other humans' review threads, communicate with the user in chat instead
-* resolve review threads from humans other than the user
-* interact with humans other than the user
-* mark PRs as drafts or ready for review
-* close or reopen PRs
+- comment on other humans' review threads, communicate with the user in chat instead
+- resolve review threads from humans other than the user
+- interact with humans other than the user
+- mark PRs as drafts or ready for review
+- close or reopen PRs
 
 In general, never act on GitHub in ways that would make it hard to tell whether you or the user did
 something visible to other humans. When in doubt, ask the user for clarification in chat.
@@ -182,6 +186,7 @@ Commit message defaults:
 - `codex: address PR review feedback (#<n>)`
 
 ## Monitoring Loop Pattern
+
 Use this loop in a live Codex session:
 
 1. Run `--once`.
@@ -204,6 +209,7 @@ Do not hand control back to the user after a review-fix push just because a new 
 If a `--watch` process is still running and no strict stop condition has been reached, the babysitting task is still in progress; keep streaming/consuming watcher output instead of ending the turn.
 
 ## Polling Cadence
+
 Keep review polling aggressive and continue monitoring even after CI turns green:
 
 - While CI is not green (pending/running/queued or failing): poll every 1 minute.
@@ -213,6 +219,7 @@ Keep review polling aggressive and continue monitoring even after CI turns green
 - If any poll shows the PR is merged or otherwise closed: stop polling immediately and report the terminal state.
 
 ## Stop Conditions (Strict)
+
 Stop only when one of the following is true:
 
 - PR merged or closed (stop as soon as a poll/snapshot confirms this).
@@ -228,6 +235,7 @@ Keep polling when:
 - The PR is green but blocked on review approval (`REVIEW_REQUIRED` / similar); continue polling at the base cadence and surface any new review comments without asking for confirmation to keep watching.
 
 ## Output Expectations
+
 Provide concise progress updates while monitoring and a final summary that includes:
 
 - During long unchanged monitoring periods, avoid emitting a full update on every poll; summarize only status changes plus occasional heartbeat updates.

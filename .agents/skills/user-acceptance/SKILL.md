@@ -66,14 +66,14 @@ If the requested target is outside this list, ask whether to proceed with a best
 
 Load and use the best available skill or CLI for the target. If a required skill or CLI is unavailable, install it with `npx agents install <skill-name>`, then follow that skill's installation instructions for its underlying CLI.
 
-| Target | Preferred tools | Evidence to capture |
-| --- | --- | --- |
-| Web app | `agent-browser`; `playwright` when the repo already uses Playwright or traces are useful; `chrome-cdp` only for an already-open Chrome page with user approval | Video, screenshots, DOM/accessibility snapshots, console/network notes |
-| CLI app | Shell commands, `script`, generated output files; `/computer-use` skill (if available) for terminal video/GIF when visual proof helps | Terminal transcript, exit codes, output files, JSON, screenshots/video for interactive flows |
-| TUI app | `/computer-use` skill (if available) for terminal recording or screenshots; terminal transcript where possible | Video/GIF, screenshots, transcript, config/output files |
-| API | `curl`, HTTP client, repo scripts, logs | Request/response JSON, status codes, logs, saved payloads |
-| SDK | Minimal runnable example in the target language, repo examples/tests only as supplement | Source snippet, command output, generated files, logs |
-| Native app, including Electron-type | `/computer-use` skill if available for app-window driving, interaction, accessibility inspection, screenshots, and recording; `agent_browser` Electron/CDP automation when the app exposes useful browser automation or CDP proof is needed | Window video, screenshots, accessibility snapshots, logs |
+| Target                              | Preferred tools                                                                                                                                                                                                                             | Evidence to capture                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Web app                             | `agent-browser`; `playwright` when the repo already uses Playwright or traces are useful; `chrome-cdp` only for an already-open Chrome page with user approval                                                                              | Video, screenshots, DOM/accessibility snapshots, console/network notes                       |
+| CLI app                             | Shell commands, `script`, generated output files; `/computer-use` skill (if available) for terminal video/GIF when visual proof helps                                                                                                       | Terminal transcript, exit codes, output files, JSON, screenshots/video for interactive flows |
+| TUI app                             | `/computer-use` skill (if available) for terminal recording or screenshots; terminal transcript where possible                                                                                                                              | Video/GIF, screenshots, transcript, config/output files                                      |
+| API                                 | `curl`, HTTP client, repo scripts, logs                                                                                                                                                                                                     | Request/response JSON, status codes, logs, saved payloads                                    |
+| SDK                                 | Minimal runnable example in the target language, repo examples/tests only as supplement                                                                                                                                                     | Source snippet, command output, generated files, logs                                        |
+| Native app, including Electron-type | `/computer-use` skill if available for app-window driving, interaction, accessibility inspection, screenshots, and recording; `agent_browser` Electron/CDP automation when the app exposes useful browser automation or CDP proof is needed | Window video, screenshots, accessibility snapshots, logs                                     |
 
 Installation checks:
 
@@ -135,14 +135,14 @@ A minimal `evidence.json` should include:
   "timestamp": "ISO-8601",
   "git_commit": "short sha",
   "artifacts": [
-    {"type": "video|screenshot|json|log|output", "path": "relative/path", "description": "what it proves"}
+    {
+      "type": "video|screenshot|json|log|output",
+      "path": "relative/path",
+      "description": "what it proves"
+    }
   ],
-  "commands": [
-    {"command": "command run", "exit_code": 0, "output_path": "logs/example.log"}
-  ],
-  "slices": [
-    {"name": "slice name", "result": "Pass|Fail", "evidence": ["relative/path"]}
-  ]
+  "commands": [{ "command": "command run", "exit_code": 0, "output_path": "logs/example.log" }],
+  "slices": [{ "name": "slice name", "result": "Pass|Fail", "evidence": ["relative/path"] }]
 }
 ```
 
@@ -219,15 +219,19 @@ UAT Scope: <scope>
 Target: <web|cli|tui|api|sdk|native|electron|mixed>
 
 Slice-by-slice result:
+
 - Pass/Fail: <slice> - <one-line evidence summary>
 
 Evidence:
+
 - <artifact path> - <what it proves>
 
 Adversarial Review:
+
 - Pass/Fail: <criterion> - <artifact-backed reason>
 
 Manual Run Instructions:
+
 1. <human step or command>
    Expected: <visible result or output>
 

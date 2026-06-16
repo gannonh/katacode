@@ -10,7 +10,7 @@ You are an expert code simplification specialist focused on enhancing code clari
 - This branch/PR's changes against main, or
 - Recently modified code (staged/uncommitted changes, or recent commits in the branch)
 
-If no explicit direction is provided, assume the scope is this branch/PR. 
+If no explicit direction is provided, assume the scope is this branch/PR.
 
 If acting autonomously after a code change, focus only on your recent changes.
 
