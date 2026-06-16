@@ -2,7 +2,6 @@
 
 name: Deploy KataCode Connect relay
 
-# Phase 2: auto-deploy on main push is disabled until fork relay infra is split.
 on:
   workflow_dispatch:
 

@@ -1,13 +1,27 @@
 # Disabled GitHub Actions workflows
 
-Workflows in this directory are **not executed** by GitHub Actions (only `.github/workflows/` is scanned).
+GitHub only runs YAML under [`.github/workflows/`](../workflows/). **Nothing in this directory runs.**
 
-They are kept here until [Phase 2 — infrastructure split](../../FORK.md#phase-2--infrastructure-split) provisions fork-owned release, relay, and mobile signing infrastructure.
+Workflows land here until [Phase 2 — infrastructure split](../../FORK.md#phase-2--infrastructure-split) (fork signing, release channels, relay, hosted web, mobile EAS).
 
-| Workflow                 | Disabled reason                                                       |
-| ------------------------ | --------------------------------------------------------------------- |
-| `release.yml`            | Upstream-shaped signing, Vercel deploy, npm publish, and relay config |
-| `deploy-relay.yml`       | Fork relay infra not split from upstream                              |
-| `mobile-eas-preview.yml` | Fork Expo project / EAS credentials not configured                    |
+## What runs today
 
-Restore a workflow by moving it back to `.github/workflows/` after fork infra is ready.
+| Path                         | Role                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `workflows/ci.yml`           | `vp check`, typecheck, test, browser tests, mobile lint, release smoke |
+| `workflows/pr-size.yml`      | PR size labels                                                         |
+| `workflows/pr-vouch.yml`     | PR vouch labels                                                        |
+| `workflows/issue-labels.yml` | Issue label sync                                                       |
+
+## What is disabled (this directory)
+
+| File                     | Blocked until Phase 2                                           |
+| ------------------------ | --------------------------------------------------------------- |
+| `release.yml`            | Fork signing, npm publish, desktop artifacts, hosted web deploy |
+| `deploy-relay.yml`       | Fork relay infra and secrets                                    |
+| `mobile-eas-preview.yml` | Fork Expo project (`KATACODE_EAS_PROJECT_ID`, `EXPO_OWNER`)     |
+
+## Policy
+
+- **Do not** gate workflows with branch-name `if:` skips (e.g. `head_ref != 'fork-setup'`). Move the whole file here instead.
+- **To enable:** move the file back to `.github/workflows/`, wire fork secrets/vars, run a dry-run, update [docs/operations/release.md](../../docs/operations/release.md).

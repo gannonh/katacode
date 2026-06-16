@@ -224,6 +224,8 @@ pnpm run dev:desktop  # electron
 
 Decouple fork CI/CD and distribution from upstream.
 
+**Workflow policy:** inactive workflows live in `.github/disabled/` (GitHub does not run them). Active workflows are in `.github/workflows/` with no branch-name skip gates. See [`.github/disabled/README.md`](../.github/disabled/README.md).
+
 ### 2.1 GitHub Actions
 
 Review and fork-customize:
