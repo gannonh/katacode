@@ -6,14 +6,37 @@
   - If changing native mobile code, `vp run lint:mobile` must also pass.
 - Use `vp test` for the built-in Vite+ test command and `vp run test` when you specifically need the `test` package script.
 
+## Quick Start
+
+```bash
+vp i
+vp run --filter @kata-sh/code-desktop ensure:electron   # first time / fresh worktree
+pnpm run dev              # web (contracts + web + server)
+pnpm run dev:desktop      # Electron desktop
+```
+
+Default dev ports: web `5733`, server `13773`. Offset with `KATACODE_DEV_INSTANCE` or `KATACODE_PORT_OFFSET`.
+
 ## Project Snapshot
 
-KataCode is a hard fork of [KataCode](https://github.com/pingdotgg/t3code) — a minimal
+KataCode is a hard fork of [T3 Code](https://github.com/pingdotgg/t3code) — a minimal
 web GUI for using coding agents like Codex and Claude.
+
+- **Repo:** `gannonh/katacode` · **npm scope:** `@kata-sh/code-*` · **CLI:** `katacode` (`@kata-sh/code-cli`)
+- **Env prefix:** `KATACODE_*` · **State dir:** `~/.katacode` (override with `KATACODE_HOME`)
+- **Protocols:** `katacode://` / `katacode-dev://` · **Desktop bundle:** `com.katacode.app`
 
 Read [FORK.md](./FORK.md) before upstream merges, branding changes, or release/CI work.
 This repository is a VERY EARLY WIP. Proposing sweeping changes that improve long-term
 maintainability is encouraged.
+
+## Fork Gotchas
+
+- Do not reintroduce `@t3tools/*`, `T3CODE_*`, or upstream product strings without an explicit decision in `FORK.md`.
+- `~/.t3` data is not auto-migrated; use `KATACODE_HOME=~/.t3` temporarily if you need old state.
+- Electron `path.txt missing` after fresh install → run `ensure:electron` (see Quick Start).
+- Brand icon rasters must use ImageMagick `-background none` — run `pnpm run generate:brand-rasters` after SVG changes.
+- CI/release workflows are still largely upstream-shaped until Phase 2 (see [docs/specs/fork-setup.md](./docs/specs/fork-setup.md)).
 
 ## Open Knowledge Format docs
 
@@ -41,11 +64,14 @@ Long term maintainability is a core priority. If you add new functionality, firs
 
 ## Package Roles
 
-- `apps/server`: Node.js WebSocket server. Wraps Codex app-server (JSON-RPC over stdio), serves the React web app, and manages provider sessions.
+- `apps/server`: Node.js WebSocket server. Wraps Codex app-server (JSON-RPC over stdio), serves the React web app, and manages provider sessions. CLI entry: `katacode`.
 - `apps/web`: React/Vite UI. Owns session UX, conversation/event rendering, and client-side state. Connects to the server via WebSocket.
+- `apps/desktop`: Electron shell; spawns embedded server in dev. Branding constants in `packages/shared/src/branding.ts`.
+- `apps/mobile`: Expo/React Native client (shares `packages/client-runtime`).
 - `packages/contracts`: Shared effect/Schema schemas and TypeScript contracts for provider events, WebSocket protocol, and model/session types. Keep this package schema-only — no runtime logic.
-- `packages/shared`: Shared runtime utilities consumed by both server and client applications. Uses explicit subpath exports (e.g. `@kata-sh/code-shared/git`) — no barrel index.
+- `packages/shared`: Shared runtime utilities consumed by both server and client applications. Uses explicit subpath exports (e.g. `@kata-sh/code-shared/git`, `@kata-sh/code-shared/branding`) — no barrel index.
 - `packages/client-runtime`: Shared runtime package for sharing client code across web and mobile.
+- `oxlint-plugin-kata-code`: Custom oxlint rules (`kata-code/*`); referenced from root `vite.config.ts`.
 
 ## Reference Repos
 
