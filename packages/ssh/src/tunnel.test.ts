@@ -89,14 +89,15 @@ function commandArgs(command: ChildProcess.Command): ReadonlyArray<string> {
 }
 
 describe("ssh tunnel scripts", () => {
-  it("builds the remote t3 runner with npx and npm fallbacks", () => {
+  it("builds the remote katacode runner with npx and npm fallbacks", () => {
     const script = buildRemoteT3RunnerScript({ nodeEngineRange: TEST_NODE_ENGINE_RANGE });
 
     assert.include(script, "T3_NODE_SCRIPT_PATH=''");
-    assert.include(script, 'exec t3 "$@"');
-    assert.include(script, "exec npx --yes 't3@latest' \"$@\"");
-    assert.include(script, "exec npm exec --yes 't3@latest' -- \"$@\"");
-    assert.include(script, "could not install 't3@latest'");
+    assert.include(script, 'exec katacode "$@"');
+    assert.notInclude(script, 'exec t3 "$@"');
+    assert.include(script, "exec npx --yes '@kata-sh/code-cli@latest' \"$@\"");
+    assert.include(script, "exec npm exec --yes '@kata-sh/code-cli@latest' -- \"$@\"");
+    assert.include(script, "could not install '@kata-sh/code-cli@latest'");
     assert.include(script, 'prepend_path_if_dir "$HOME/.local/bin"');
     assert.include(script, `T3_NODE_ENGINE_RANGE='${TEST_NODE_ENGINE_RANGE}'`);
     assert.include(script, "remote_node_satisfies_engine()");
@@ -120,14 +121,23 @@ describe("ssh tunnel scripts", () => {
     assert.notInclude(script, TEST_NODE_ENGINE_RANGE);
   });
 
-  it("shell-quotes package specs in the remote t3 runner", () => {
+  it("shell-quotes package specs in the remote katacode runner", () => {
     const script = buildRemoteT3RunnerScript({
-      packageSpec: "t3@nightly; touch /tmp/t3-owned",
+      packageSpec: "@kata-sh/code-cli@nightly; touch /tmp/katacode-owned",
     });
 
-    assert.include(script, "exec npx --yes 't3@nightly; touch /tmp/t3-owned' \"$@\"");
-    assert.include(script, "exec npm exec --yes 't3@nightly; touch /tmp/t3-owned' -- \"$@\"");
-    assert.notInclude(script, "exec npx --yes t3@nightly; touch /tmp/t3-owned");
+    assert.include(
+      script,
+      "exec npx --yes '@kata-sh/code-cli@nightly; touch /tmp/katacode-owned' \"$@\"",
+    );
+    assert.include(
+      script,
+      "exec npm exec --yes '@kata-sh/code-cli@nightly; touch /tmp/katacode-owned' -- \"$@\"",
+    );
+    assert.notInclude(
+      script,
+      "exec npx --yes @kata-sh/code-cli@nightly; touch /tmp/katacode-owned",
+    );
   });
 
   it("builds the remote t3 runner with a node script override", () => {
@@ -171,14 +181,20 @@ describe("ssh tunnel scripts", () => {
     assert.include(buildRemoteLaunchScript(), '--base-dir "$DEFAULT_SERVER_HOME"');
     assert.notInclude(buildRemoteLaunchScript(), "server-home");
     assert.include(buildRemoteLaunchScript(), "Remote KataCode server did not become ready");
-    assert.include(buildRemoteLaunchScript({ packageSpec: "t3@nightly" }), "t3@nightly");
+    assert.include(
+      buildRemoteLaunchScript({ packageSpec: "@kata-sh/code-cli@nightly" }),
+      "@kata-sh/code-cli@nightly",
+    );
     assert.include(
       buildRemotePairingScript(target),
       '"$RUNNER_FILE" auth pairing create --base-dir "$PAIRING_BASE_DIR" --json',
     );
     assert.include(buildRemotePairingScript(target), 'PAIRING_BASE_DIR="$DEFAULT_SERVER_HOME"');
     assert.notInclude(buildRemotePairingScript(target), "server-home");
-    assert.include(buildRemotePairingScript(target, { packageSpec: "t3@nightly" }), "t3@nightly");
+    assert.include(
+      buildRemotePairingScript(target, { packageSpec: "@kata-sh/code-cli@nightly" }),
+      "@kata-sh/code-cli@nightly",
+    );
     assert.include(
       buildRemoteStopScript(target),
       'if [ "$REMOTE_MANAGED" != "external" ] && [ -n "$REMOTE_PID" ]',

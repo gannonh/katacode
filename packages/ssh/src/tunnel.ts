@@ -32,6 +32,7 @@ import {
   baseSshArgs,
   buildSshHostSpecEffect,
   collectProcessOutput,
+  DEFAULT_REMOTE_CLI_PACKAGE_SPEC,
   getLastNonEmptyOutputLine,
   remoteStateKey,
   resolveSshCommand,
@@ -445,8 +446,8 @@ if [ -n "$T3_NODE_SCRIPT_PATH" ]; then
   fi
   exec node "$T3_NODE_SCRIPT_PATH" "$@"
 fi
-if command -v t3 >/dev/null 2>&1; then
-  exec t3 "$@"
+if command -v katacode >/dev/null 2>&1; then
+  exec katacode "$@"
 fi
 if command -v npx >/dev/null 2>&1; then
   exec npx --yes @@T3_PACKAGE_SPEC@@ "$@"
@@ -454,7 +455,7 @@ fi
 if command -v npm >/dev/null 2>&1; then
   exec npm exec --yes @@T3_PACKAGE_SPEC@@ -- "$@"
 fi
-printf 'Remote host is missing the t3 CLI and could not install @@T3_PACKAGE_SPEC@@ because node/npm/npx are unavailable on PATH. Install Node or configure a supported version manager for non-interactive shells.\\n' >&2
+printf 'Remote host is missing the katacode CLI and could not install @@T3_PACKAGE_SPEC@@ because node/npm/npx are unavailable on PATH. Install Node or configure a supported version manager for non-interactive shells.\\n' >&2
 exit 1
 `;
 
@@ -654,7 +655,9 @@ fi
 `;
 
 export function buildRemoteT3RunnerScript(input?: RemoteT3RunnerOptions): string {
-  const packageSpec = shellSingleQuote(input?.packageSpec?.trim() || "t3@latest");
+  const packageSpec = shellSingleQuote(
+    input?.packageSpec?.trim() || DEFAULT_REMOTE_CLI_PACKAGE_SPEC,
+  );
   const nodeScriptPath = input?.nodeScriptPath?.trim() || "";
   return stripTrailingNewlines(
     applyScriptPlaceholders(REMOTE_RUNNER_SCRIPT, {

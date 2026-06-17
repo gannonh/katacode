@@ -15,7 +15,8 @@ import { buildSshChildEnvironment, type SshAuthOptions } from "./auth.ts";
 import { SshCommandError, SshInvalidTargetError } from "./errors.ts";
 
 const PUBLISHABLE_CLI_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u;
-const REMOTE_CLI_PACKAGE_NAME = "@kata-sh/code-cli";
+export const REMOTE_CLI_PACKAGE_NAME = "@kata-sh/code-cli" as const;
+export const DEFAULT_REMOTE_CLI_PACKAGE_SPEC = `${REMOTE_CLI_PACKAGE_NAME}@latest` as const;
 const DEFAULT_SSH_COMMAND_TIMEOUT_MS = 60_000;
 const MAX_SSH_ERROR_OUTPUT_LENGTH = 4_000;
 
