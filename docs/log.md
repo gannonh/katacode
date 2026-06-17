@@ -1,5 +1,11 @@
 # OKF bundle log
 
+## 2026-06-17
+
+- Added [diagrams](/diagrams/index.md) section with interactive [hosted web & remote stack](/diagrams/hosted-remote-stack.html) map (`app.kata.sh`, `katacode serve`, Connect vs manual pairing).
+- Updated bundle [index](/index.md) and [architecture index](/architecture/index.md) cross-links.
+- Rewrote [provider architecture](/architecture/providers.md) for multi-driver server design (no longer Codex-only).
+
 ## 2026-06-16 (Phase 1 CI)
 
 - Documented Phase 1 PR [#1](https://github.com/gannonh/katacode/pull/1) CI green and review hardening in [fork-setup spec](/specs/fork-setup.md).

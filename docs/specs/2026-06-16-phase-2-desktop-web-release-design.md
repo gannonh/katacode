@@ -4,7 +4,7 @@ title: "Phase 2 desktop and web release split"
 description: "Design for re-enabling fork-owned desktop and web releases with CI macOS signing and notarization."
 tags: [fork, release, desktop, web, ci, signing]
 timestamp: 2026-06-16T23:30:00Z
-status: Approved
+status: Implemented
 ---
 
 # Phase 2 desktop and web release split
@@ -217,3 +217,20 @@ Required Build outcomes:
 5. Verification evidence includes local quality gates and a signing-aware workflow dry-run or dispatch.
 
 Build should stop and ask before enabling mobile, marketing, relay/cloud VM deploys, or any release path that requires unprovided external credentials.
+
+## Build completion report
+
+- **Spec path:** `docs/specs/2026-06-16-phase-2-desktop-web-release-design.md`
+- **Base SHA:** `7ebc32172316409d5a6ceabdc4756302eb1d4e90`
+- **Tasks completed:**
+  - Activated `.github/workflows/release.yml` with fork-owned desktop/web release path
+  - macOS CI requires `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` (fails before unsigned mac builds)
+  - Replaced relay deploy dependency with optional `resolve_public_config` job
+  - Hosted web deploy defaults to KataCode domains (no `app.t3.codes` fallback)
+  - Added `dry_run` workflow dispatch and `signing_gate` job
+  - Added `scripts/lib/macos-release-signing.ts`, `scripts/lib/hosted-web-release-domains.ts`, and `scripts/check-macos-release-signing.ts`
+  - Updated release runbook, CI docs, and workflow READMEs
+- **Review gates:** Single-agent path (no subagent dispatch); TDD for signing/domain modules; written spec compliance and code quality review performed in-agent
+- **Approved deviations:** Phase 1 signing prep (GitHub secret provisioning) remains a maintainer manual step documented in the runbook; live notarization evidence requires a workflow run with secrets configured
+- **Known follow-up:** Configure repository secrets and run `dry_run` workflow dispatch on GitHub to produce signing-gate evidence; relay deploy and mobile EAS remain disabled
+- **Verification:** `vp check` pass, `vp run typecheck` pass, `vp run release:smoke` pass; `vp run test` reports 2 unrelated failures in `apps/web/src/assets/AssetAccess.test.ts` (pre-existing/environmental, not introduced by this build)

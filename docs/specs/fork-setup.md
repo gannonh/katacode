@@ -35,7 +35,7 @@ Branch `fork-setup` delivers Phase 1 identity work. GitHub Actions on [PR #1](ht
 
 **Review and hardening applied before merge:**
 
-- Hosted pairing defaults use [branding constants](../../packages/shared/src/branding.ts) (`app.katacode.sh`, `/__katacode/channel`) — no fallback to upstream `app.t3.codes`.
+- Hosted pairing defaults use [branding constants](../../packages/shared/src/branding.ts) (`app.kata.sh`, `/__katacode/channel`) — no fallback to upstream `app.t3.codes`.
 - Release, relay deploy, and mobile EAS workflows moved to [`.github/disabled/`](../../.github/disabled/README.md); active CI runs from [`.github/workflows/`](../../.github/workflows/README.md) with no branch-name skip gates.
 - `~/.t3` migration warning on startup (`warnLegacyHomeDirectoryIfNeeded` in `apps/server/src/os-jank.ts`).
 - Mobile EAS preview gated on `KATACODE_EAS_PROJECT_ID`; Expo owner `gannonh`.

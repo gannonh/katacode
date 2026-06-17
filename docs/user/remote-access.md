@@ -38,11 +38,11 @@ The default endpoint controls the QR code and primary copy action for pairing li
 When no user default is saved, the app uses the built-in LAN endpoint for pairing links when
 available. You can set another endpoint as the default from the expanded endpoint list.
 
-- HTTPS/WSS-compatible endpoints work from the hosted web app (`https://app.katacode.sh` once fork hosting is live), but are not made the default automatically.
+- HTTPS/WSS-compatible endpoints work from the hosted web app (`https://app.kata.sh` once fork hosting is live), but are not made the default automatically.
 - Non-loopback HTTP endpoints are useful for direct LAN pairing.
 - Loopback-only endpoints are not useful for another device unless that device is the same machine.
 
-If the copied link points directly at `http://192.168.x.y:3773`, open it from a client that can reach that LAN address. If it points at a hosted pairing URL such as `https://app.katacode.sh/pair?...`, the hosted web app will save the environment and connect directly to the backend URL in the link.
+If the copied link points directly at `http://192.168.x.y:3773`, open it from a client that can reach that LAN address. If it points at a hosted pairing URL such as `https://app.kata.sh/pair?...`, the hosted web app will save the environment and connect directly to the backend URL in the link.
 
 ### Tailscale Endpoints
 
@@ -173,10 +173,10 @@ After pairing, future access is session-based. You do not need to keep reusing t
 
 ## Hosted Web App Pairing
 
-The hosted web app at `https://app.katacode.sh` (fork hosting — Phase 2) can save a remote backend in browser local storage from a URL like:
+The hosted web app at `https://app.kata.sh` (fork hosting — Phase 2) can save a remote backend in browser local storage from a URL like:
 
 ```text
-https://app.katacode.sh/pair?host=https://backend.example.com:3773#token=PAIRCODE
+https://app.kata.sh/pair?host=https://backend.example.com:3773#token=PAIRCODE
 ```
 
 Use hosted pairing when the backend is reachable from the browser over HTTPS/WSS. This includes a backend behind a trusted HTTPS tunnel or another HTTPS endpoint you operate.

@@ -22,7 +22,7 @@ describe("branding", () => {
     assert.equal(LEGACY_HOME_DIR_NAME, ".t3");
     assert.equal(ENV_PREFIX, "KATACODE_");
     assert.equal(WORKTREE_BRANCH_PREFIX, "katacode");
-    assert.equal(DEFAULT_HOSTED_APP_ORIGIN, "https://app.katacode.sh");
+    assert.equal(DEFAULT_HOSTED_APP_ORIGIN, "https://app.kata.sh");
     assert.equal(HOSTED_WEB_CHANNEL_PATH, "/__katacode/channel");
     assert.equal(envKey("HOME"), "KATACODE_HOME");
   });

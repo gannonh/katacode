@@ -25,7 +25,8 @@ for skill in "${GANNONH_SKILLS[@]}"; do
 done
 
 echo "==> Installing sother skills"
-# npx skills add https://github.com/shadcn/ui --skill shadcn -y
+npx skills add https://github.com/mattpocock/skills --skill tdd -y
+npx skills add plannotator/effective-html -y
 
 echo "==> Done. Installed skills:"
 npx skills ls --json 2>/dev/null || npx skills ls

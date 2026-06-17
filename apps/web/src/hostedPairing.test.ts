@@ -32,7 +32,7 @@ describe("hostedPairing", () => {
   });
 
   it("prefers hash tokens so generated hosted links do not put credentials in search params", () => {
-    vi.stubEnv("VITE_HOSTED_APP_URL", "https://preview.katacode.sh");
+    vi.stubEnv("VITE_HOSTED_APP_URL", "https://preview.kata.sh");
 
     const url = new URL(
       buildHostedPairingUrl({
@@ -42,7 +42,7 @@ describe("hostedPairing", () => {
       }),
     );
 
-    expect(url.origin).toBe("https://preview.katacode.sh");
+    expect(url.origin).toBe("https://preview.kata.sh");
     expect(url.pathname).toBe("/pair");
     expect(url.searchParams.get("host")).toBe("https://backend.example.com:3773");
     expect(url.searchParams.get("label")).toBe("Workstation");
@@ -81,16 +81,16 @@ describe("hostedPairing", () => {
   });
 
   it("detects the hosted static app only when no backend URL is configured", () => {
-    vi.stubEnv("VITE_HOSTED_APP_URL", "https://preview.katacode.sh");
+    vi.stubEnv("VITE_HOSTED_APP_URL", "https://preview.kata.sh");
     vi.stubEnv("VITE_HTTP_URL", "");
     vi.stubEnv("VITE_WS_URL", "");
 
-    expect(isHostedStaticApp(new URL("https://preview.katacode.sh/"))).toBe(true);
-    expect(isHostedStaticApp(new URL("https://preview.katacode.sh/pair"))).toBe(true);
+    expect(isHostedStaticApp(new URL("https://preview.kata.sh/"))).toBe(true);
+    expect(isHostedStaticApp(new URL("https://preview.kata.sh/pair"))).toBe(true);
     expect(isHostedStaticApp(new URL("https://backend.example.com/"))).toBe(false);
 
     vi.stubEnv("VITE_HTTP_URL", "https://backend.example.com");
-    expect(isHostedStaticApp(new URL("https://preview.katacode.sh/"))).toBe(false);
+    expect(isHostedStaticApp(new URL("https://preview.kata.sh/"))).toBe(false);
   });
 
   it("detects hosted channel aliases as static apps", () => {

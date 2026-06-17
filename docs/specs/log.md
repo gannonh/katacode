@@ -1,5 +1,9 @@
 # Specs log
 
+## 2026-06-16 (Phase 2 desktop/web release build)
+
+- Implemented [Phase 2 desktop/web release split](/specs/2026-06-16-phase-2-desktop-web-release-design.md): activated [release workflow](/.github/workflows/release.yml), macOS Apple ID notarization gate, KataCode hosted web domains, and [release runbook](/operations/release.md).
+
 ## 2026-06-16 (Phase 2 desktop/web release design)
 
 - Added [Phase 2 desktop/web release split design](/specs/2026-06-16-phase-2-desktop-web-release-design.md) focused on desktop CI signing/notarization and hosted `apps/web`; explicitly deferred mobile, marketing, and relay/cloud VM deploys.

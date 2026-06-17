@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KataCode — Hosted web &amp; remote stack</title>
+    <script>
+      (function () {
+        const saved = localStorage.getItem("theme");
+        const dark = saved ? saved === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.classList.toggle("dark", dark);
+      })();
+    </script>
+    <style>
+      :root {
+        --bg: #faf9f5;
+        --surface: #ffffff;
+        --surface2: #f0eee6;
+        --ink: #141413;
+        --body: #3d3d3a;
+        --muted: #87867f;
+        --line: #d1cfc5;
+        --line-soft: #e6e3da;
+        --clay: #d97757;
+        --clay-soft: rgba(217, 119, 87, 0.1);
+        --olive: #788c5d;
+        --olive-soft: rgba(120, 140, 93, 0.12);
+        --gold: #c9a45c;
+        --blue: #5b7e96;
+        --violet: #7b6b9e;
+        --zone: rgba(20, 20, 19, 0.025);
+        --zone-line: #d1cfc5;
+        --serif: ui-serif, Georgia, "Times New Roman", serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      html.dark {
+        --bg: #141413;
+        --surface: #1f1f1d;
+        --surface2: #2a2a28;
+        --ink: #faf9f5;
+        --body: #d1cfc5;
+        --muted: #87867f;
+        --line: #3d3d3a;
+        --line-soft: #2a2a28;
+        --clay: #e48a6e;
+        --clay-soft: rgba(228, 138, 110, 0.14);
+        --olive: #9db07c;
+        --olive-soft: rgba(157, 176, 124, 0.16);
+        --gold: #d4b36f;
+        --blue: #7fa3bc;
+        --violet: #a898c8;
+        --zone: rgba(250, 249, 245, 0.03);
+        --zone-line: #3d3d3a;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--body);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--line-soft);
+        flex: none;
+      }
+      .bar h1 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 19px;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .bar .sub {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        padding: 5px 11px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .chip:hover {
+        color: var(--ink);
+        border-color: var(--muted);
+      }
+      .chip.on {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--bg);
+      }
+      #themeToggle {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 5px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      #themeToggle:hover {
+        color: var(--ink);
+        border-color: var(--muted);
+      }
+      .stage {
+        flex: 1;
+        position: relative;
+        min-height: 0;
+      }
+      .stage svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .zone rect {
+        fill: var(--zone);
+        stroke: var(--zone-line);
+        stroke-width: 1;
+        stroke-dasharray: 5 5;
+        rx: 16;
+      }
+      .zone .ztitle {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        fill: var(--muted);
+      }
+      .zone .zsub {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        fill: var(--muted);
+        opacity: 0.75;
+      }
+      .zone.deferred {
+        opacity: 0.55;
+      }
+      .node {
+        cursor: pointer;
+      }
+      .node rect {
+        fill: var(--surface);
+        stroke: var(--line);
+        stroke-width: 1.5;
+        rx: 10;
+        transition: stroke 0.15s ease;
+      }
+      .node:hover rect {
+        stroke: var(--muted);
+      }
+      .node.sel rect {
+        stroke: var(--clay) !important;
+        stroke-width: 2;
+      }
+      .node .t {
+        font-family: var(--sans);
+        font-size: 14px;
+        font-weight: 600;
+        fill: var(--ink);
+        pointer-events: none;
+      }
+      .node .m {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        fill: var(--muted);
+        pointer-events: none;
+      }
+      .node .k {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        fill: var(--clay);
+        pointer-events: none;
+      }
+      .node.hosted rect {
+        fill: var(--blue);
+        fill-opacity: 0.12;
+        stroke: var(--blue);
+      }
+      .node.runtime rect {
+        fill: var(--olive-soft);
+        stroke: var(--olive);
+      }
+      .node.cloud rect {
+        fill: var(--violet);
+        fill-opacity: 0.1;
+        stroke: var(--violet);
+        stroke-dasharray: 6 3;
+      }
+      .node.store rect {
+        fill: var(--surface2);
+      }
+      .node.gate rect {
+        fill: var(--clay-soft);
+        stroke: var(--clay);
+      }
+      .edge {
+        stroke: var(--muted);
+        stroke-width: 1.6;
+        fill: none;
+        marker-end: url(#a-mut);
+        transition:
+          opacity 0.2s ease,
+          stroke 0.2s ease;
+      }
+      .edge.dash {
+        stroke-dasharray: 5 4;
+        marker-end: url(#a-mut-dash);
+      }
+      .edge.ws {
+        stroke-width: 2.2;
+      }
+      .edge.hot {
+        stroke-width: 2.4;
+      }
+      .elbl {
+        font-family: var(--mono);
+        font-size: 10px;
+        fill: var(--muted);
+        transition: opacity 0.2s ease;
+      }
+      .stage.flowing .edge {
+        opacity: 0.12;
+      }
+      .stage.flowing .elbl {
+        opacity: 0.12;
+      }
+      .stage.flowing .node {
+        opacity: 0.28;
+      }
+      .stage.flowing .zone {
+        opacity: 0.4;
+      }
+      .stage.flowing .edge.lit {
+        opacity: 1;
+        stroke: var(--clay);
+        marker-end: url(#a-clay);
+        stroke-dasharray: 7 5;
+        animation: march 0.9s linear infinite;
+      }
+      .stage.flowing .edge.lit.ws {
+        stroke-width: 2.6;
+      }
+      .stage.flowing .elbl.lit {
+        opacity: 1;
+        fill: var(--clay);
+      }
+      .stage.flowing .node.lit {
+        opacity: 1;
+      }
+      .stage.flowing .node.lit rect {
+        stroke: var(--clay);
+      }
+      @keyframes march {
+        to {
+          stroke-dashoffset: -12;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .stage.flowing .edge.lit {
+          animation: none;
+        }
+      }
+      .card {
+        position: absolute;
+        max-width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+      }
+      #detail {
+        right: 16px;
+        bottom: 16px;
+        width: 360px;
+      }
+      #detail h3 {
+        font-family: var(--serif);
+        font-weight: 500;
+        font-size: 17px;
+        color: var(--ink);
+        margin-bottom: 2px;
+      }
+      #detail .meta {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      #detail p {
+        font-size: 12.5px;
+        line-height: 1.55;
+      }
+      #detail p code,
+      #flowcap code {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--clay);
+      }
+      #flowcap {
+        left: 16px;
+        bottom: 16px;
+        max-width: 480px;
+        display: none;
+      }
+      #flowcap.show {
+        display: block;
+      }
+      #flowcap .fname {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--clay);
+        margin-bottom: 6px;
+      }
+      #flowcap ol {
+        margin-left: 18px;
+      }
+      #flowcap li {
+        font-size: 12.5px;
+        line-height: 1.55;
+        margin-bottom: 4px;
+      }
+      .src {
+        position: absolute;
+        top: 10px;
+        right: 16px;
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--muted);
+        opacity: 0.8;
+      }
+      .legend {
+        position: absolute;
+        top: 10px;
+        left: 16px;
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .legend span {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
+      .legend .l-hot {
+        background: var(--olive);
+      }
+      .legend .l-cloud {
+        background: var(--violet);
+        opacity: 0.6;
+      }
+      @media (max-width: 900px) {
+        body {
+          overflow: auto;
+        }
+        .stage {
+          min-height: 75vh;
+        }
+        #detail,
+        #flowcap {
+          position: static;
+          width: auto;
+          margin: 10px 16px 16px;
+        }
+        .legend {
+          position: static;
+          margin: 8px 16px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <div>
+        <h1>KataCode — hosted web &amp; remote stack</h1>
+        <div class="sub">
+          static client on kata.sh · daemon server on your infra · connect is optional glue
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="chips" id="chips">
+        <button class="chip on" data-flow="all">Overview</button>
+        <button class="chip" data-flow="manual">Add environment</button>
+        <button class="chip" data-flow="desktop">Desktop local</button>
+        <button class="chip" data-flow="connect">KataCode Connect</button>
+        <button class="chip" data-flow="hot">Hot path (agent traffic)</button>
+        <button class="chip" data-flow="release">Release deploy</button>
+      </div>
+      <button id="themeToggle" type="button">Theme</button>
+    </div>
+
+    <div class="stage" id="stage">
+      <svg
+        viewBox="0 0 1680 1040"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="KataCode hosted web and remote architecture"
+      >
+        <defs>
+          <marker
+            id="a-mut"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6.5"
+            markerHeight="6.5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)" />
+          </marker>
+          <marker
+            id="a-mut-dash"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6.5"
+            markerHeight="6.5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)" />
+          </marker>
+          <marker
+            id="a-clay"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6.5"
+            markerHeight="6.5"
+            orient="auto-start-reverse"
+          >
+            <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)" />
+          </marker>
+        </defs>
+
+        <!-- zones -->
+        <g class="zone" id="z-clients">
+          <rect x="36" y="100" width="268" height="520" />
+          <text class="ztitle" x="56" y="130">Clients</text>
+          <text class="zsub" x="56" y="148">UI shells — no agent runtime</text>
+        </g>
+        <g class="zone" id="z-vercel">
+          <rect x="340" y="100" width="400" height="300" />
+          <text class="ztitle" x="360" y="130">Vercel · kata.sh</text>
+          <text class="zsub" x="360" y="148">hosted static apps/web build</text>
+        </g>
+        <g class="zone" id="z-runtime">
+          <rect x="340" y="440" width="520" height="380" />
+          <text class="ztitle" x="360" y="470">Your infrastructure</text>
+          <text class="zsub" x="360" y="488">laptop · VM · tailnet · home server</text>
+        </g>
+        <g class="zone" id="z-connect">
+          <rect x="900" y="100" width="360" height="340" />
+          <text class="ztitle" x="920" y="130">KataCode Connect</text>
+          <text class="zsub" x="920" y="148">optional · control plane only</text>
+        </g>
+        <g class="zone deferred" id="z-deferred">
+          <rect x="900" y="480" width="360" height="160" />
+          <text class="ztitle" x="920" y="510">Deferred (fork Phase 2+)</text>
+          <text class="zsub" x="920" y="528">not required for hosted web signoff</text>
+        </g>
+        <g class="zone" id="z-ci">
+          <rect x="1300" y="100" width="340" height="200" />
+          <text class="ztitle" x="1320" y="130">CI release</text>
+          <text class="zsub" x="1320" y="148">GitHub Actions</text>
+        </g>
+
+        <!-- edges -->
+        <path class="edge ws hot" id="e-browser-serve" d="M 170,220 C 280,220 300,520 400,560" />
+        <path class="edge ws hot" id="e-desktop-serve" d="M 170,360 L 400,580" />
+        <path class="edge ws hot" id="e-mobile-serve" d="M 170,500 C 260,500 320,620 400,640" />
+        <path class="edge" id="e-browser-router" d="M 170,220 C 250,200 300,180 360,200" />
+        <path class="edge dash" id="e-router-latest" d="M 540,200 L 620,200" />
+        <path class="edge dash" id="e-router-nightly" d="M 540,250 L 620,250" />
+        <path class="edge" id="e-serve-codex" d="M 560,600 L 560,680" />
+        <path class="edge" id="e-codex-repos" d="M 620,760 L 720,760" />
+        <path class="edge dash" id="e-addenv-store" d="M 480,240 C 420,280 400,300 400,320" />
+        <path class="edge dash" id="e-clerk-browser" d="M 620,160 C 750,150 850,150 920,170" />
+        <path class="edge dash" id="e-relay-link" d="M 620,620 C 780,620 860,380 920,320" />
+        <path class="edge dash" id="e-relay-list" d="M 1020,250 C 900,300 400,340 400,360" />
+        <path class="edge dash" id="e-tunnel-serve" d="M 1080,400 C 900,480 700,540 620,560" />
+        <path class="edge" id="e-ci-vercel" d="M 1320,220 C 1200,220 900,220 740,220" />
+        <path class="edge" id="e-ci-ghrel" d="M 1470,220 L 1470,320" />
+        <path class="edge dash" id="e-pair-url" d="M 480,200 C 350,210 250,215 170,220" />
+
+        <text class="elbl" data-e="e-browser-serve" x="220" y="380">
+          WSS · sessions · chat · terminals
+        </text>
+        <text class="elbl" data-e="e-browser-router" x="248" y="188">loads UI shell</text>
+        <text class="elbl" data-e="e-addenv-store" x="410" y="290">host + pairing code</text>
+        <text class="elbl" data-e="e-serve-codex" x="572" y="648">stdio JSON-RPC</text>
+        <text class="elbl" data-e="e-clerk-browser" x="760" y="138">sign-in / waitlist</text>
+        <text class="elbl" data-e="e-relay-link" x="800" y="500">link environment</text>
+        <text class="elbl" data-e="e-relay-list" x="700" y="310">list linked envs</text>
+        <text class="elbl" data-e="e-tunnel-serve" x="820" y="460">optional HTTPS URL</text>
+        <text class="elbl" data-e="e-ci-vercel" x="1020" y="208">deploy apps/web</text>
+        <text class="elbl" data-e="e-pair-url" x="300" y="198">/pair?host=…#token=…</text>
+
+        <!-- clients -->
+        <g class="node" data-k="browser">
+          <rect x="56" y="178" width="220" height="88" />
+          <text class="t" x="76" y="206">Browser</text>
+          <text class="m" x="76" y="226">app.kata.sh · apps/web</text>
+          <text class="m" x="76" y="244">localStorage environments</text>
+        </g>
+        <g class="node" data-k="desktop">
+          <rect x="56" y="318" width="220" height="88" />
+          <text class="t" x="76" y="346">Desktop (Electron)</text>
+          <text class="m" x="76" y="366">embeds same apps/web UI</text>
+          <text class="m" x="76" y="384">spawns local server in dev</text>
+        </g>
+        <g class="node" data-k="mobile">
+          <rect x="56" y="458" width="220" height="88" />
+          <text class="t" x="76" y="486">Mobile (Expo)</text>
+          <text class="m" x="76" y="506">shared client-runtime</text>
+          <text class="m" x="76" y="524">pairing + Connect</text>
+        </g>
+
+        <!-- vercel -->
+        <g class="node hosted" data-k="router">
+          <rect x="360" y="168" width="180" height="72" />
+          <text class="t" x="380" y="196">app.kata.sh</text>
+          <text class="m" x="380" y="216">router · channel cookie</text>
+        </g>
+        <g class="node hosted" data-k="latest">
+          <rect x="620" y="168" width="100" height="48" />
+          <text class="t" x="632" y="198">latest.*</text>
+        </g>
+        <g class="node hosted" data-k="nightly">
+          <rect x="620" y="228" width="100" height="48" />
+          <text class="t" x="632" y="258">nightly.*</text>
+        </g>
+        <g class="node hosted" data-k="webbuild">
+          <rect x="360" y="268" width="360" height="100" />
+          <text class="t" x="380" y="298">apps/web static build</text>
+          <text class="m" x="380" y="320">React + Vite · NOT Next.js</text>
+          <text class="m" x="380" y="338">no codex · no repos · no agents</text>
+          <text class="k" x="380" y="356">hosted client only</text>
+        </g>
+        <g class="node gate" data-k="addenviron">
+          <rect x="400" y="320" width="200" height="64" opacity="0" />
+          <text class="t" x="420" y="348" opacity="0">Add Environment</text>
+        </g>
+
+        <!-- runtime -->
+        <g class="node runtime" data-k="serve">
+          <rect x="400" y="520" width="320" height="120" />
+          <text class="t" x="420" y="552">katacode serve</text>
+          <text class="m" x="420" y="574">apps/server · long-running process</text>
+          <text class="m" x="420" y="592">HTTP + WebSocket API</text>
+          <text class="m" x="420" y="610">pairing tokens · sessions · orchestration</text>
+          <text class="k" x="420" y="628">execution boundary</text>
+        </g>
+        <g class="node runtime" data-k="codex">
+          <rect x="460" y="680" width="200" height="72" />
+          <text class="t" x="480" y="708">codex app-server</text>
+          <text class="m" x="480" y="728">child process · stdio</text>
+        </g>
+        <g class="node store" data-k="repos">
+          <rect x="720" y="720" width="120" height="64" />
+          <text class="t" x="736" y="748">Your repos</text>
+          <text class="m" x="736" y="766">filesystem</text>
+        </g>
+        <g class="node" data-k="environment">
+          <rect x="400" y="440" width="200" height="56" />
+          <text class="t" x="420" y="468">Environment record</text>
+          <text class="m" x="420" y="486">host URL + label in client</text>
+        </g>
+
+        <!-- connect -->
+        <g class="node cloud" data-k="clerk">
+          <rect x="920" y="158" width="320" height="72" />
+          <text class="t" x="940" y="186">Clerk</text>
+          <text class="m" x="940" y="206">identity · waitlist · sign-in</text>
+        </g>
+        <g class="node cloud" data-k="relay">
+          <rect x="920" y="258" width="320" height="100" />
+          <text class="t" x="940" y="286">Relay (infra/relay)</text>
+          <text class="m" x="940" y="306">link envs · list devices</text>
+          <text class="m" x="940" y="324">short-lived connect creds</text>
+          <text class="k" x="940" y="342">not in hot path</text>
+        </g>
+        <g class="node cloud" data-k="tunnel">
+          <rect x="920" y="378" width="320" height="72" />
+          <text class="t" x="940" y="406">Managed tunnel (optional)</text>
+          <text class="m" x="940" y="426">Cloudflare → your serve port</text>
+        </g>
+
+        <!-- deferred -->
+        <g class="node cloud" data-k="marketing">
+          <rect x="920" y="508" width="150" height="56" />
+          <text class="t" x="936" y="536">apps/marketing</text>
+          <text class="m" x="936" y="552">deferred</text>
+        </g>
+        <g class="node cloud" data-k="relaydeploy">
+          <rect x="1090" y="508" width="150" height="56" />
+          <text class="t" x="1104" y="536">relay deploy</text>
+          <text class="m" x="1104" y="552">deferred</text>
+        </g>
+
+        <!-- ci -->
+        <g class="node" data-k="gha">
+          <rect x="1320" y="148" width="300" height="72" />
+          <text class="t" x="1340" y="176">release.yml workflow</text>
+          <text class="m" x="1340" y="196">preflight · desktop · npm CLI</text>
+        </g>
+        <g class="node" data-k="ghrelease">
+          <rect x="1320" y="320" width="300" height="64" />
+          <text class="t" x="1340" y="348">GitHub Release</text>
+          <text class="m" x="1340" y="366">signed desktop artifacts</text>
+        </g>
+
+        <!-- annotation -->
+        <text x="400" y="900" font-family="var(--mono)" font-size="11" fill="var(--muted)">
+          Solid WSS = agent traffic (client ↔ katacode serve). Dashed = setup, auth, or discovery —
+          not session streaming.
+        </text>
+        <text x="400" y="920" font-family="var(--mono)" font-size="11" fill="var(--muted)">
+          T3 Connect ≠ hosted backends. You still run katacode serve somewhere you control.
+        </text>
+      </svg>
+
+      <div class="legend">
+        <div><span class="l-hot"></span> hot path (sessions)</div>
+        <div><span class="l-cloud"></span> Connect (optional glue)</div>
+      </div>
+      <div class="src">docs/diagrams · branding: app.kata.sh</div>
+
+      <div class="card" id="flowcap">
+        <div class="fname" id="f-name"></div>
+        <ol id="f-steps"></ol>
+      </div>
+
+      <div class="card" id="detail">
+        <h3 id="d-title">Click any box</h3>
+        <div class="meta" id="d-meta">architecture map</div>
+        <p id="d-body">
+          Use the flow chips to animate paths. <b>Add environment</b> is manual remote pairing.
+          <b>KataCode Connect</b> is optional cloud discovery — not where agents run.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const DETAIL = {
+        browser: {
+          t: "Browser @ app.kata.sh",
+          m: "client · apps/web",
+          b: "Hosted static React UI on Vercel (<code>kata.sh</code>). Stores <b>environment records</b> (host URL + pairing state) in browser storage. Opens WebSocket sessions to <code>katacode serve</code> — never runs agents itself.",
+        },
+        desktop: {
+          t: "Desktop (Electron)",
+          m: "client · local or remote",
+          b: "Same <code>apps/web</code> UI in a native shell. Typically talks to a <b>local</b> embedded server; can also connect to remote environments like the browser.",
+        },
+        mobile: {
+          t: "Mobile (Expo)",
+          m: "client · shared runtime",
+          b: "Uses <code>packages/client-runtime</code>. Supports manual pairing URLs and KataCode Connect when cloud config is enabled.",
+        },
+        router: {
+          t: "app.kata.sh",
+          m: "Vercel router",
+          b: "Entry hostname. Sets a channel cookie and routes to <code>latest.app.kata.sh</code> or <code>nightly.app.kata.sh</code> for stable vs nightly web builds.",
+        },
+        latest: {
+          t: "latest.app.kata.sh",
+          m: "stable channel",
+          b: "Production-alias deployment of the hosted web client. Mapped by the release workflow after a stable tag.",
+        },
+        nightly: {
+          t: "nightly.app.kata.sh",
+          m: "nightly channel",
+          b: "Prerelease web client deployment for nightly desktop/CLI releases.",
+        },
+        webbuild: {
+          t: "apps/web static build",
+          m: "Vercel · React+Vite",
+          b: "The <b>hosted front end only</b>. Ships HTML/JS/CSS. Does not include <code>apps/server</code>, codex, or your repositories. This is how cloud deployment works for the <em>client shell</em>.",
+        },
+        environment: {
+          t: "Environment record",
+          m: "client-side bookmark",
+          b: "What <b>Add Environment</b> creates: a saved reference to where <code>katacode serve</code> is reachable (host + pairing credentials). Not a copy of the server — just connection metadata.",
+        },
+        serve: {
+          t: "katacode serve",
+          m: "apps/server · daemon-like",
+          b: "Long-running Node process: HTTP + WebSocket API, session orchestration, pairing, terminals, git. This is the <b>execution environment</b>. Run it on your laptop, a VM, or a home server. Not serverless.",
+        },
+        codex: {
+          t: "codex app-server",
+          m: "child process",
+          b: "Spawned by the server. JSON-RPC over stdio. Runs the actual coding agent / provider session work.",
+        },
+        repos: {
+          t: "Your repositories",
+          m: "local filesystem",
+          b: "Where the agent reads and writes code. Lives on the same machine (or mounted volume) as <code>katacode serve</code>.",
+        },
+        clerk: {
+          t: "Clerk",
+          m: "KataCode Connect identity",
+          b: "Powers sign-in and the waitlist modal you saw on upstream. Answers <em>who is this user?</em> — not where agents execute.",
+        },
+        relay: {
+          t: "Relay control plane",
+          m: "infra/relay · optional",
+          b: "Cloud API for linking environments to an account, listing them on other devices, issuing short-lived connect credentials, and mobile push. <b>Not in the hot path</b> — after connect, traffic is client ↔ your server.",
+        },
+        tunnel: {
+          t: "Managed tunnel",
+          m: "optional · Cloudflare",
+          b: "When enabled, gives your <b>local</b> <code>katacode serve</code> a public HTTPS URL. Still runs on your hardware — the tunnel only exposes it.",
+        },
+        marketing: {
+          t: "apps/marketing",
+          m: "deferred",
+          b: "Marketing/download site. Out of scope for Phase 2 desktop/web release. Not the same as <code>apps/web</code>.",
+        },
+        relaydeploy: {
+          t: "Relay production deploy",
+          m: "deferred",
+          b: "Alchemy/Cloudflare deploy for fork-owned relay. Separate from hosting the web client on Vercel.",
+        },
+        gha: {
+          t: "GitHub Actions release",
+          m: ".github/workflows/release.yml",
+          b: "Preflight gates, signed macOS desktop builds, npm CLI publish, and Vercel deploy of <code>apps/web</code> to <code>kata.sh</code> domains.",
+        },
+        ghrelease: {
+          t: "GitHub Release",
+          m: "desktop artifacts",
+          b: "DMG/AppImage/NSIS assets. Independent from the hosted web deploy — same workflow, different outputs.",
+        },
+      };
+
+      const FLOWS = {
+        manual: {
+          name: "Add Environment — manual remote pairing",
+          edges: ["e-browser-router", "e-pair-url", "e-addenv-store", "e-browser-serve"],
+          nodes: ["browser", "router", "webbuild", "environment", "serve", "codex"],
+          steps: [
+            "Open <code>app.kata.sh</code> — loads static <code>apps/web</code>",
+            "<b>Add Environment</b>: paste host (where <code>katacode serve</code> runs) + pairing code",
+            "Client saves an environment record — a bookmark, not a deployed server",
+            "Browser opens <b>WebSocket directly</b> to your server for sessions/agent work",
+            "No Clerk sign-in required for this path",
+          ],
+        },
+        desktop: {
+          name: "Desktop local — default dev experience",
+          edges: ["e-desktop-serve", "e-serve-codex", "e-codex-repos"],
+          nodes: ["desktop", "serve", "codex", "repos"],
+          steps: [
+            "Electron loads <code>apps/web</code> and spawns embedded <code>katacode serve</code>",
+            "WebSocket to <code>localhost</code> (or configured port)",
+            "Server spawns <code>codex app-server</code> for provider sessions",
+            "Agent reads/writes repos on the local filesystem",
+          ],
+        },
+        connect: {
+          name: "KataCode Connect — optional cloud glue",
+          edges: [
+            "e-clerk-browser",
+            "e-relay-link",
+            "e-relay-list",
+            "e-tunnel-serve",
+            "e-browser-serve",
+          ],
+          nodes: ["browser", "clerk", "relay", "tunnel", "serve", "environment"],
+          steps: [
+            "Sign in via Clerk (waitlist in private beta upstream)",
+            "Toggle <b>Connect</b> on a running backend → relay links env to your account",
+            "Optional: relay provisions a managed HTTPS tunnel to your <code>serve</code> port",
+            "On another device, pick the linked environment instead of pasting host + code",
+            "After setup, session traffic is still <b>direct WSS</b> to your server",
+          ],
+        },
+        hot: {
+          name: "Hot path — where agent traffic actually flows",
+          edges: [
+            "e-browser-serve",
+            "e-desktop-serve",
+            "e-mobile-serve",
+            "e-serve-codex",
+            "e-codex-repos",
+          ],
+          nodes: ["browser", "desktop", "mobile", "serve", "codex", "repos"],
+          steps: [
+            "Any client UI talks WebSocket/HTTP to <code>katacode serve</code>",
+            "Server orchestrates sessions and spawns codex app-server",
+            "Relay, Clerk, and Vercel are <b>not</b> in this streaming path",
+            "Connect only helps you discover credentials and URLs",
+          ],
+        },
+        release: {
+          name: "Release deploy — what CI publishes",
+          edges: ["e-ci-vercel", "e-router-latest", "e-ci-ghrel"],
+          nodes: ["gha", "router", "latest", "ghrelease", "webbuild"],
+          steps: [
+            "<code>release.yml</code> runs check, typecheck, test, release:smoke",
+            "Desktop matrix builds signed artifacts → GitHub Release",
+            "<code>deploy_web</code> pushes <code>apps/web</code> to Vercel @ <code>kata.sh</code>",
+            "Does <b>not</b> deploy <code>katacode serve</code> — users still run their own backends",
+          ],
+        },
+      };
+
+      const stage = document.getElementById("stage");
+      const nodes = document.querySelectorAll(".node");
+      const edges = document.querySelectorAll(".edge");
+      const elbls = document.querySelectorAll(".elbl");
+      const chips = document.querySelectorAll(".chip");
+      const fcap = document.getElementById("flowcap");
+
+      function setFlow(key) {
+        chips.forEach((c) => c.classList.toggle("on", c.dataset.flow === key));
+        edges.forEach((e) => e.classList.remove("lit"));
+        elbls.forEach((l) => l.classList.remove("lit"));
+        nodes.forEach((n) => n.classList.remove("lit"));
+        if (key === "all") {
+          stage.classList.remove("flowing");
+          fcap.classList.remove("show");
+          return;
+        }
+        const f = FLOWS[key];
+        if (!f) return;
+        stage.classList.add("flowing");
+        f.edges.forEach((id) => document.getElementById(id)?.classList.add("lit"));
+        elbls.forEach((l) => {
+          if (f.edges.includes(l.dataset.e)) l.classList.add("lit");
+        });
+        f.nodes.forEach((k) =>
+          document.querySelector(`.node[data-k="${k}"]`)?.classList.add("lit"),
+        );
+        document.getElementById("f-name").textContent = f.name;
+        document.getElementById("f-steps").innerHTML = f.steps.map((s) => `<li>${s}</li>`).join("");
+        fcap.classList.add("show");
+      }
+      chips.forEach((c) => c.addEventListener("click", () => setFlow(c.dataset.flow)));
+
+      nodes.forEach((n) =>
+        n.addEventListener("click", () => {
+          nodes.forEach((x) => x.classList.remove("sel"));
+          n.classList.add("sel");
+          const d = DETAIL[n.dataset.k];
+          if (!d) return;
+          document.getElementById("d-title").textContent = d.t;
+          document.getElementById("d-meta").textContent = d.m;
+          document.getElementById("d-body").innerHTML = d.b;
+        }),
+      );
+
+      document.getElementById("themeToggle").addEventListener("click", () => {
+        const dark = !document.documentElement.classList.contains("dark");
+        document.documentElement.classList.toggle("dark", dark);
+        localStorage.setItem("theme", dark ? "dark" : "light");
+      });
+    </script>
+  </body>
+</html>

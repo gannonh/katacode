@@ -230,15 +230,15 @@ Decouple fork CI/CD and distribution from upstream.
 
 Review and fork-customize:
 
-| Workflow                                  | Purpose               | Action                                                                    |
-| ----------------------------------------- | --------------------- | ------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`                | PR checks             | Keep; remove upstream-only secrets                                        |
-| `.github/disabled/release.yml`            | Desktop/npm releases  | **Disabled** — move back to `workflows/` when fork signing/channels ready |
-| `.github/disabled/deploy-relay.yml`       | Relay deploy          | **Disabled** — re-point to fork infra in Phase 2                          |
-| `.github/disabled/mobile-eas-preview.yml` | Mobile                | **Disabled** — requires fork Expo project (`KATACODE_EAS_PROJECT_ID`)     |
-| `.github/workflows/pr-vouch.yml`          | Upstream trust labels | Remove or replace                                                         |
-| `.github/workflows/pr-size.yml`           | Size labels           | Optional keep                                                             |
-| `.github/workflows/issue-labels.yml`      | Automation            | Review                                                                    |
+| Workflow                                  | Purpose               | Action                                                                |
+| ----------------------------------------- | --------------------- | --------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`                | PR checks             | Keep; remove upstream-only secrets                                    |
+| `.github/workflows/release.yml`           | Desktop/npm releases  | **Active** — fork signing, GitHub Release, hosted web deploy          |
+| `.github/disabled/deploy-relay.yml`       | Relay deploy          | **Disabled** — re-point to fork infra in Phase 2                      |
+| `.github/disabled/mobile-eas-preview.yml` | Mobile                | **Disabled** — requires fork Expo project (`KATACODE_EAS_PROJECT_ID`) |
+| `.github/workflows/pr-vouch.yml`          | Upstream trust labels | Remove or replace                                                     |
+| `.github/workflows/pr-size.yml`           | Size labels           | Optional keep                                                         |
+| `.github/workflows/issue-labels.yml`      | Automation            | Review                                                                |
 
 ### 2.2 Secrets and cloud config
 
