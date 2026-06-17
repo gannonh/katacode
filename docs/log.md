@@ -5,6 +5,7 @@
 - Added [diagrams](/diagrams/index.md) section with interactive [hosted web & remote stack](/diagrams/hosted-remote-stack.html) map (`app.kata.sh`, `katacode serve`, Connect vs manual pairing).
 - Updated bundle [index](/index.md) and [architecture index](/architecture/index.md) cross-links.
 - Rewrote [provider architecture](/architecture/providers.md) for multi-driver server design (no longer Codex-only).
+- Updated [architecture overview](/architecture/overview.md) for provider-agnostic stack diagram and turn flow.
 
 ## 2026-06-16 (Phase 1 CI)
 
