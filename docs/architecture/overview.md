@@ -1,45 +1,46 @@
 ---
 type: Architecture Note
 title: "Architecture"
-description: "KataCode runs as a **Node.js WebSocket server** that wraps `codex app-server` (JSON-RPC over stdio) and serves a React web app."
+description: "KataCode is a Node.js WebSocket server that orchestrates sessions, git, and terminals while routing turns to pluggable agent provider drivers."
 tags: [architecture, architecture-note]
-timestamp: 2026-06-16T17:10:05Z
+timestamp: 2026-06-17T03:00:00Z
 ---
 
 # Architecture
 
-KataCode runs as a **Node.js WebSocket server** that wraps `codex app-server` (JSON-RPC over stdio) and serves a React web app.
+KataCode is a **Node.js WebSocket server** (`apps/server`) that serves the React web app, orchestrates chat/git/terminal state, and routes agent work to **pluggable provider drivers** (Codex, Claude, Cursor, Grok, OpenCode). Clients use one typed API; each driver wraps its own agent runtime.
+
+For driver details, see [provider architecture](/architecture/providers.md). For hosted clients vs where the server runs, see the [hosted web diagram](/diagrams/hosted-remote-stack.html).
 
 ```
 ┌─────────────────────────────────┐
-│  Browser (React + Vite)         │
-│  wsTransport (state machine)    │
-│  Typed push decode at boundary  │
+│  Client (apps/web)              │
+│  wsTransport · wsNativeApi      │
 └──────────┬──────────────────────┘
-           │ ws://localhost:13773
+           │ WebSocket (NativeApi)
 ┌──────────▼──────────────────────┐
-│  apps/server (Node.js)          │
-│  WebSocket + HTTP static server │
-│  ServerPushBus (ordered pushes) │
-│  ServerReadiness (startup gate) │
+│  apps/server                    │
+│  WebSocket + HTTP               │
+│  ServerPushBus · ServerReadiness│
 │  OrchestrationEngine            │
 │  ProviderService                │
 │  CheckpointReactor              │
 │  RuntimeReceiptBus              │
 └──────────┬──────────────────────┘
-           │ JSON-RPC over stdio
-┌──────────▼──────────────────────┐
-│  codex app-server               │
-└─────────────────────────────────┘
+           │ per provider instance
+     ┌─────┴─────┬─────────┬──────────┐
+     ▼           ▼         ▼          ▼
+ codex      claudeAgent  cursor/   opencode
+ app-server    SDK       grok ACP   server
 ```
 
 ## Components
 
-- **Browser app**: The React app renders session state, owns the client-side WebSocket transport, and treats typed push events as the boundary between server runtime details and UI state.
+- **Client app** (`apps/web`, plus desktop/mobile shells): Renders session state, owns the WebSocket transport, and treats typed push events as the boundary between server runtime details and UI state.
 
-- **Server**: `apps/server` is the main coordinator. It serves the web app, accepts WebSocket requests, waits for startup readiness before welcoming clients, and sends all outbound pushes through a single ordered push path.
+- **Server** (`apps/server`): Main coordinator. Serves the web app when embedded, accepts WebSocket requests, waits for startup readiness before welcoming clients, and sends all outbound pushes through a single ordered push path.
 
-- **Provider runtime**: `codex app-server` does the actual provider/session work. The server talks to it over JSON-RPC on stdio and translates those runtime events into the app's orchestration model.
+- **Provider layer**: `ProviderService` routes `providers.*` calls to a **provider instance adapter** selected by thread/settings. Built-in drivers include Codex (`codex app-server` over stdio), Claude Agent SDK, Cursor/Grok (ACP subprocesses), and OpenCode. Adapters emit canonical `ProviderRuntimeEvent` streams consumed by orchestration. See [provider architecture](/architecture/providers.md).
 
 - **Background workers**: Long-running async flows such as runtime ingestion, command reaction, and checkpoint processing run as queue-backed workers. This keeps work ordered, reduces timing races, and gives tests a deterministic way to wait for the system to go idle.
 
@@ -82,16 +83,18 @@ sequenceDiagram
     participant Transport as WsTransport
     participant Server as wsServer
     participant Provider as ProviderService
-    participant Codex as codex app-server
+    participant Adapter as Provider adapter
+    participant Runtime as Agent runtime
     participant Ingest as ProviderRuntimeIngestion
     participant Engine as OrchestrationEngine
     participant Push as ServerPushBus
 
     Browser->>Transport: Send user action
     Transport->>Server: Typed WebSocket request
-    Server->>Provider: Route request
-    Provider->>Codex: JSON-RPC over stdio
-    Codex-->>Ingest: Provider runtime events
+    Server->>Provider: Route providers.* request
+    Provider->>Adapter: startSession / sendTurn / …
+    Adapter->>Runtime: Provider-native protocol
+    Runtime-->>Ingest: Provider runtime events
     Ingest->>Engine: Normalize into orchestration events
     Engine-->>Server: Domain events
     Server->>Push: Publish orchestration.domainEvent
@@ -100,7 +103,7 @@ sequenceDiagram
 
 1. A user action in the browser becomes a typed request through [`WsTransport`][1] and the browser API layer in [`nativeApi`][12].
 2. [`wsServer`][3] decodes that request using the shared WebSocket contracts in [`ws.ts`][6] and routes it to the right service.
-3. [`ProviderService`][8] starts or resumes a session and talks to `codex app-server` over JSON-RPC on stdio.
+3. [`ProviderService`][8] resolves the thread's **provider instance** and delegates to that instance's adapter (Codex app-server, Claude SDK, ACP CLI, OpenCode, …).
 4. Provider-native events are pulled back into the server by [`ProviderRuntimeIngestion`][9], which converts them into orchestration events.
 5. [`OrchestrationEngine`][10] persists those events, updates the read model, and exposes them as domain events.
 6. [`wsServer`][3] pushes those updates to the browser through [`ServerPushBus`][5] on channels defined in [`orchestration.ts`][11].
@@ -132,6 +135,12 @@ sequenceDiagram
 3. When a milestone completes, the server emits a typed receipt on [`RuntimeReceiptBus`][15], such as checkpoint completion or turn quiescence.
 4. Tests and orchestration code wait on those receipts instead of polling git state, projections, or timers.
 5. Any user-visible state changes produced by that async work still go back through [`wsServer`][3] and [`ServerPushBus`][5].
+
+## Related
+
+- [Provider architecture](/architecture/providers.md) — drivers, instances, adapters, built-in runtimes
+- [Remote architecture](/architecture/remote.md) — where `katacode serve` runs vs client shells
+- [Hosted web diagram](/diagrams/hosted-remote-stack.html)
 
 [1]: ../apps/web/src/wsTransport.ts
 [2]: ../apps/web/src/wsNativeApi.ts

@@ -14,14 +14,14 @@ export const WORKTREE_BRANCH_PREFIX = "katacode" as const;
 /** Legacy upstream state directory name (`~/.t3`). */
 export const LEGACY_HOME_DIR_NAME = ".t3" as const;
 
-/** Hosted web router host until fork infra is provisioned (Phase 2). */
-export const HOSTED_WEB_ROUTER_HOST = "app.katacode.sh" as const;
+/** Hosted web router host (Vercel). */
+export const HOSTED_WEB_ROUTER_HOST = "app.kata.sh" as const;
 
 export const DEFAULT_HOSTED_APP_ORIGIN = `https://${HOSTED_WEB_ROUTER_HOST}` as const;
 
-export const HOSTED_WEB_LATEST_ORIGIN = "https://latest.app.katacode.sh" as const;
+export const HOSTED_WEB_LATEST_ORIGIN = "https://latest.app.kata.sh" as const;
 
-export const HOSTED_WEB_NIGHTLY_ORIGIN = "https://nightly.app.katacode.sh" as const;
+export const HOSTED_WEB_NIGHTLY_ORIGIN = "https://nightly.app.kata.sh" as const;
 
 export const HOSTED_WEB_CHANNEL_PATH = "/__katacode/channel" as const;
 

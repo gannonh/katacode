@@ -12,6 +12,7 @@ Open Knowledge Format (OKF) documentation for the [KataCode](https://github.com/
 | -------------------------------------- | --------------------------------------------------- |
 | [Specs roadmap](/specs/index.md)       | Active, planned, blocked, and completed work        |
 | [Architecture](/architecture/index.md) | System map, runtime modes, providers, remote access |
+| [Diagrams](/diagrams/index.md)         | Interactive architecture visuals                    |
 | [Guides](/guides/index.md)             | Setup, user workflows, integrations, providers      |
 | [Runbooks](/runbooks/index.md)         | CI, release, observability, operations              |
 | [Reference](/reference/index.md)       | Scripts, workspace layout, encyclopedia             |
@@ -20,7 +21,7 @@ Open Knowledge Format (OKF) documentation for the [KataCode](https://github.com/
 
 ## Fork status (summary)
 
-Phase 1 (package rename, branding, `KATACODE_*`, `~/.katacode`) is **complete** on branch `fork-setup` ([PR #1](https://github.com/gannonh/katacode/pull/1)); GitHub Actions quality gates are **green**. Phase 2 (CI/release split from upstream) is **not started**. See [fork setup spec](/specs/fork-setup.md) and [FORK.md](../../FORK.md).
+Phase 1 (package rename, branding, `KATACODE_*`, `~/.katacode`) is **complete** ([PR #1](https://github.com/gannonh/katacode/pull/1)). Phase 2 desktop/web release is **ready to merge** on [PR #2](https://github.com/gannonh/katacode/pull/2) (`feat/phase-2-desktop-and-web-ci`). See [fork setup spec](/specs/fork-setup.md) and [FORK.md](../../FORK.md).
 
 ## Package map (quick)
 

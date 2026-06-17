@@ -156,20 +156,24 @@ describe("serializeRelayClientTracingEnvironment", () => {
 });
 
 describe("release workflow tracing config propagation", () => {
-  it.effect("uses an artifact instead of a masked cross-job token output", () =>
+  it.effect("does not depend on relay deploy jobs for desktop/web release", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const workflowPath = yield* path.fromFileUrl(
-        new URL("../../../.github/disabled/release.yml", import.meta.url),
+        new URL("../../../.github/workflows/release.yml", import.meta.url),
       );
       const workflow = yield* fileSystem.readFileString(workflowPath);
 
       expect(workflow).not.toContain("client_tracing_token:");
       expect(workflow).not.toContain("needs.relay_public_config.outputs.client_tracing_token");
-      expect(workflow).toContain('--github-env-file "$RUNNER_TEMP/relay-client-tracing.env"');
-      expect(workflow).toContain("name: relay-client-tracing-config");
-      expect(workflow).toContain('cat "$config_path" >> "$GITHUB_ENV"');
+      expect(workflow).not.toContain("@kata-sh/code-relay deploy");
+      expect(workflow).not.toContain("relay-client-tracing-config");
+      expect(workflow).toContain("resolve_public_config:");
+      expect(workflow).toContain("node scripts/check-macos-release-signing.ts");
+      expect(workflow).toContain("DISPATCH_DRY_RUN:");
+      expect(workflow).toContain('raw="0.0.0-dryrun.${NIGHTLY_RUN_NUMBER}"');
+      expect(workflow).toContain("cli_dist_tag=next");
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

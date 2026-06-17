@@ -11,7 +11,7 @@ Agent provider setup and usage.
 
 ## Related
 
-- [Architecture — providers](/architecture/providers.md)
+- [Architecture — providers](/architecture/providers.md) — driver/instance model and built-in runtimes
 - [Getting started — Codex prerequisites](/getting-started/codex-prerequisites.md)
 
 ## History

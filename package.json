@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prepare": "effect-tsgo patch",
+    "prepare": "effect-tsgo patch && husky",
     "dev": "node scripts/dev-runner.ts dev",
     "dev:server": "node scripts/dev-runner.ts dev:server",
     "dev:web": "node scripts/dev-runner.ts dev:web",
@@ -45,6 +45,7 @@
     "@oxlint/plugins": "^1.63.0",
     "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
+    "husky": "^9.1.7",
     "vite-plus": "catalog:"
   },
   "engines": {

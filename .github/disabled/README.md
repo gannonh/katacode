@@ -2,24 +2,26 @@
 
 GitHub only runs YAML under [`.github/workflows/`](../workflows/). **Nothing in this directory runs.**
 
-Workflows land here until [Phase 2 — infrastructure split](../../FORK.md#phase-2--infrastructure-split) (fork signing, release channels, relay, hosted web, mobile EAS).
+Workflows land here until [Phase 2 — infrastructure split](../../FORK.md#phase-2--infrastructure-split) provisions fork-owned credentials and deploy targets.
 
 ## What runs today
 
 | Path                         | Role                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------- |
 | `workflows/ci.yml`           | `vp check`, typecheck, test, browser tests, mobile lint, release smoke |
+| `workflows/release.yml`      | Desktop/web release, macOS signing, GitHub Release, hosted web deploy  |
 | `workflows/pr-size.yml`      | PR size labels                                                         |
 | `workflows/pr-vouch.yml`     | PR vouch labels                                                        |
 | `workflows/issue-labels.yml` | Issue label sync                                                       |
 
 ## What is disabled (this directory)
 
-| File                     | Blocked until Phase 2                                           |
-| ------------------------ | --------------------------------------------------------------- |
-| `release.yml`            | Fork signing, npm publish, desktop artifacts, hosted web deploy |
-| `deploy-relay.yml`       | Fork relay infra and secrets                                    |
-| `mobile-eas-preview.yml` | Fork Expo project (`KATACODE_EAS_PROJECT_ID`, `EXPO_OWNER`)     |
+| File                     | Blocked until Phase 2                                       |
+| ------------------------ | ----------------------------------------------------------- |
+| `deploy-relay.yml`       | Fork relay infra and secrets                                |
+| `mobile-eas-preview.yml` | Fork Expo project (`KATACODE_EAS_PROJECT_ID`, `EXPO_OWNER`) |
+
+`release.yml` moved back to [`.github/workflows/release.yml`](../workflows/release.yml) for the Phase 2 desktop/web release split.
 
 ## Policy
 

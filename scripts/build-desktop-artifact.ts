@@ -974,6 +974,9 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     delete buildEnv.APPLE_API_KEY;
     delete buildEnv.APPLE_API_KEY_ID;
     delete buildEnv.APPLE_API_ISSUER;
+    delete buildEnv.APPLE_ID;
+    delete buildEnv.APPLE_APP_SPECIFIC_PASSWORD;
+    delete buildEnv.APPLE_TEAM_ID;
   }
 
   if (hostPlatform === "win32") {

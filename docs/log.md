@@ -1,5 +1,18 @@
 # OKF bundle log
 
+## 2026-06-17 (Phase 2 pre-merge)
+
+- Finalized OKF and [AGENTS.md](../../AGENTS.md) for [PR #2](https://github.com/gannonh/katacode/pull/2): active [release workflow](../../.github/workflows/release.yml), `app.kata.sh` hosted web, branch-protection guidance in [CI runbook](/operations/ci.md).
+- Documented `apps/web/vercel.ts` compile-time branding constants (must stay in sync with [branding.ts](../../packages/shared/src/branding.ts)).
+- Post-merge operator steps: merge PR #2, configure branch protection, run `release.yml` `dry_run`, then nightly test release.
+
+## 2026-06-17
+
+- Added [diagrams](/diagrams/index.md) section with interactive [hosted web & remote stack](/diagrams/hosted-remote-stack.html) map (`app.kata.sh`, `katacode serve`, Connect vs manual pairing).
+- Updated bundle [index](/index.md) and [architecture index](/architecture/index.md) cross-links.
+- Rewrote [provider architecture](/architecture/providers.md) for multi-driver server design (no longer Codex-only).
+- Updated [architecture overview](/architecture/overview.md) for provider-agnostic stack diagram and turn flow.
+
 ## 2026-06-16 (Phase 1 CI)
 
 - Documented Phase 1 PR [#1](https://github.com/gannonh/katacode/pull/1) CI green and review hardening in [fork-setup spec](/specs/fork-setup.md).

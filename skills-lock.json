@@ -19,6 +19,12 @@
       "skillPath": "babysit-pr/SKILL.md",
       "computedHash": "e3f2bfdd46bcabccec1918dc6bce9b5faaf22c1d9a0bafaa3754124ec9b4bfbd"
     },
+    "deploy-to-vercel": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/deploy-to-vercel/SKILL.md",
+      "computedHash": "03e0eaaa9bf13ba1e7ffa387f5893de6f324c0868c627001f179395a8feaa7c9"
+    },
     "finalize": {
       "source": "gannonh/skills",
       "sourceType": "github",
@@ -31,6 +37,24 @@
       "skillPath": "fix-github-ci/SKILL.md",
       "computedHash": "c9ac2169c65a49982ec0e4cb1a04540e47c2ff062b4e1eaa8d8727a441600d8d"
     },
+    "html": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html/SKILL.md",
+      "computedHash": "b604d0bb81d95d1f7f116f901dd52ed7a218aaeb0416c3d85c89096019f25491"
+    },
+    "html-diagram": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html-diagram/SKILL.md",
+      "computedHash": "dc8f550f12bdc664ad0815faee3e3d92aaff233bf26254d9a31cb9ead606a464"
+    },
+    "html-plan": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html-plan/SKILL.md",
+      "computedHash": "4ebd8d8ddeeb0f53efdac1c3474a603b7dec6e1db8909a3e7fb32e69f1730b99"
+    },
     "okf": {
       "source": "gannonh/skills",
       "sourceType": "github",
@@ -41,7 +65,7 @@
       "source": "gannonh/skills",
       "sourceType": "github",
       "skillPath": "plan-build-verify/SKILL.md",
-      "computedHash": "0e02ff8cba126124b606c6612def5f7410a76367f053744690a14c9aa3069c17"
+      "computedHash": "2757e0347cd42478da725e13ff495e1ae7f6ea88a4f9cee56dfe41e7d5dabaa7"
     },
     "simplify": {
       "source": "gannonh/skills",
@@ -55,11 +79,53 @@
       "skillPath": "strict-quality-review/SKILL.md",
       "computedHash": "b6d3bc2c76b78ae5ec9228f3a187d3e66738f20bb084b255c5a963467c201c3b"
     },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/tdd/SKILL.md",
+      "computedHash": "d5ca5c8ae0615f343f1cfd71591f4a586046d77b1f36e8d67b8f643bad51043e"
+    },
     "user-acceptance": {
       "source": "gannonh/skills",
       "sourceType": "github",
       "skillPath": "user-acceptance/SKILL.md",
       "computedHash": "5fbdc22e5c1ea5c59b8d57397d39c7b497e628d529dbd3f9c2b593aba45b77aa"
+    },
+    "vercel-cli-with-tokens": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-cli-with-tokens/SKILL.md",
+      "computedHash": "eb16b20dcbe6ce51e0372083d624e0847af1b09487ec99249227d5a8eddebfc0"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/composition-patterns/SKILL.md",
+      "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+    },
+    "vercel-optimize": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/vercel-optimize/SKILL.md",
+      "computedHash": "c6898b3425a2e2bdf17cbcf38bb5aece2894ee79096961f4140f984e185a4b70"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    },
+    "vercel-react-native-skills": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-skills/SKILL.md",
+      "computedHash": "41d24eafa7c3d82e270439808f7cfbc4d51aeb2d14f2809a2267c16275784d06"
+    },
+    "vercel-react-view-transitions": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-view-transitions/SKILL.md",
+      "computedHash": "c8952fc9127fa0564d0cb71dccb4215a5608ac933b5831104f09173a97a46f85"
     }
   }
 }
