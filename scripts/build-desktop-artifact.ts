@@ -721,7 +721,7 @@ const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     productName: resolveDesktopProductName(version),
     artifactName: "KataCode-${version}-${arch}.${ext}",
     asarUnpack: [...DESKTOP_NATIVE_ASAR_UNPACK],
-    afterPack: "apps/desktop/scripts/electron-after-pack.cjs",
+    afterPack: "scripts/electron-after-pack.cjs",
     directories: {
       buildResources: "apps/desktop/resources",
     },
@@ -919,12 +919,6 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   yield* fs.copy(distDirs.desktopDist, path.join(stageAppDir, "apps/desktop/dist-electron"));
   yield* fs.copy(distDirs.desktopResources, stageResourcesDir);
   yield* fs.copy(distDirs.serverDist, path.join(stageAppDir, "apps/server/dist"));
-
-  yield* fs.makeDirectory(path.join(stageAppDir, "apps/desktop/scripts"), { recursive: true });
-  yield* fs.copyFile(
-    path.join(repoRoot, "apps/desktop/scripts/electron-after-pack.cjs"),
-    path.join(stageAppDir, "apps/desktop/scripts/electron-after-pack.cjs"),
-  );
 
   yield* assertPlatformBuildResources(
     options.platform,
