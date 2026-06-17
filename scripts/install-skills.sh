@@ -27,6 +27,16 @@ done
 echo "==> Installing sother skills"
 npx skills add https://github.com/mattpocock/skills --skill tdd -y
 npx skills add plannotator/effective-html -y
+# vercel skills: https://www.skills.sh/vercel-labs/agent-skills
+# Dev Ops
+npx skills add https://github.com/vercel-labs/agent-skills --skill deploy-to-vercel -y
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-cli-with-tokens -y
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-optimize -y
+# React
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-best-practices -y
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-composition-patterns -y
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-native-skills -y
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-view-transitions -y
 
 echo "==> Done. Installed skills:"
 npx skills ls --json 2>/dev/null || npx skills ls

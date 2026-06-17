@@ -33,3 +33,6 @@ node_modules/
 .env*
 !.env.example
 uat-evidence/
+
+# Husky - ignore generated files but keep hooks
+.husky/_
