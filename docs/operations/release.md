@@ -130,6 +130,13 @@ gh release list -R gannonh/katacode --limit 3   # newest tag ends with -nightly.
 | **Web**            | https://nightly.app.kata.sh loads                      |
 | **npm**            | `npm view @kata-sh/code-cli dist-tags.nightly` updated |
 
+## Desktop packaging notes
+
+- `scripts/build-desktop-artifact.ts` stages a temp app and runs `electron-builder` with `--projectDir` at the stage root.
+- `afterPack` in the generated build config must be **`scripts/electron-after-pack.cjs`** (relative to `apps/desktop`, where electron-builder resolves hooks). Do not use `apps/desktop/scripts/...` — that doubles the path and fails all platform builds.
+- macOS Liquid Glass: `apps/desktop/resources/liquid-glass/Assets.car` is copied into the `.app` by `apps/desktop/scripts/electron-after-pack.cjs`.
+- Brand icons: regenerate with `pnpm run generate:brand-rasters` after changing `apps/desktop/resources/source.png` ([FORK.md — brand marks](../../FORK.md#brand-logo-marks)).
+
 ## Quick reference
 
 ```bash

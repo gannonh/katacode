@@ -1,5 +1,10 @@
 # Specs log
 
+## 2026-06-17 (Kata brand icons)
+
+- Completed fork icon rebrand on `main`: `apps/desktop/resources/source.png` drives `pnpm run generate:brand-rasters`; production icons used for dev, nightly, and hosted web ([FORK.md — brand marks](../../FORK.md#brand-logo-marks)).
+- Fixed desktop release `afterPack` hook path (`scripts/electron-after-pack.cjs` relative to `apps/desktop`).
+
 ## 2026-06-17 (Phase 2 pre-merge)
 
 - [PR #2](https://github.com/gannonh/katacode/pull/2) ready to merge: Codex review fixes (`dry_run` default version, prerelease npm `next` dist-tag), `vercel.ts` compile fix, Vercel project + `app.kata.sh` domains.

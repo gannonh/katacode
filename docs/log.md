@@ -1,5 +1,11 @@
 # OKF bundle log
 
+## 2026-06-17 (Kata brand icons + desktop packaging)
+
+- Shipped Kata kanji icons across web, server, mobile, and desktop releases; removed upstream blueprint/T3 artwork from dev and nightly channels ([FORK.md — brand marks](../../FORK.md#brand-logo-marks), `scripts/lib/brand-assets.ts`).
+- Desktop releases use `apps/desktop/resources/` assets, macOS Liquid Glass `Assets.car`, and `scripts/electron-after-pack.cjs` (`afterPack` path must be relative to `apps/desktop`).
+- [Release runbook](/operations/release.md): nightly rerun after `afterPack` path fix (`19f05374d`).
+
 ## 2026-06-17 (Phase 2 pre-merge)
 
 - Finalized OKF and [AGENTS.md](../../AGENTS.md) for [PR #2](https://github.com/gannonh/katacode/pull/2): active [release workflow](../../.github/workflows/release.yml), `app.kata.sh` hosted web, branch-protection guidance in [CI runbook](/operations/ci.md).

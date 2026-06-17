@@ -94,29 +94,31 @@ Scope is `@kata-sh`; workspace packages use the `code-*` suffix:
 
 ### Brand logo marks
 
-Source SVGs (canonical — edit these, then regenerate rasters):
+Canonical icon source and desktop packaging assets live under `apps/desktop/resources/`:
 
-| Asset                   | Path                           | Use                                               |
-| ----------------------- | ------------------------------ | ------------------------------------------------- |
-| Dark mark (black tile)  | `assets/logo-square-dark.svg`  | Production icons, dark UI, macOS/iOS/web favicons |
-| Light mark (white tile) | `assets/logo-square-light.svg` | Light backgrounds, marketing                      |
+| Asset | Path | Use |
+| ----- | ---- | --- |
+| Master raster | `apps/desktop/resources/source.png` | Source for all production rasters and platform icons |
+| Vector mark | `apps/desktop/resources/icon.svg` | Web `logo-mark.svg`, `assets/prod/logo.svg` |
+| macOS icons | `AppIcon.icns`, `icon.icns` | Desktop releases (`CFBundleIconName: AppIcon`) |
+| Windows / Linux | `icon.ico`, `icon.png`, `icons/` | Desktop release targets |
+| Liquid Glass (macOS 26+) | `liquid-glass/Assets.car` | Copied into release `.app` by `apps/desktop/scripts/electron-after-pack.cjs` |
 
-Regenerate production PNG/ICO outputs from the dark mark:
+Legacy SVG tiles (`assets/logo-square-dark.svg`, `assets/logo-square-light.svg`) remain for marketing/light backgrounds only.
+
+Regenerate production outputs from the master raster:
 
 ```bash
 pnpm run generate:brand-rasters
 ```
 
-Rasterization uses ImageMagick with `-background none` so corners outside the
-rounded tile stay transparent (the default white matte causes white halos in
-macOS/Electron app icons).
+This runs `scripts/generate-prod-brand-rasters.mjs` (uses `sips` + ImageMagick) and `apps/desktop/resources/generate-icons.sh` for platform icon sets. Outputs land in `assets/prod/*` and `apps/web/public/*`. Paths are declared in `scripts/lib/brand-assets.ts`.
 
-This updates `assets/prod/*` (desktop, web favicons, `logo.svg`) via
-`scripts/generate-prod-brand-rasters.mjs`. Paths are declared in
-`scripts/lib/brand-assets.ts`.
+**Channels:** dev server builds, hosted nightly, and production all ship the same production Kata icons (blueprint/T3 dev artwork removed).
 
-Mobile production icon composer uses `apps/mobile/assets/icon-composer-prod.icon/Assets/logo-mark.svg`
-(copied from the dark mark). Dev/nightly blueprint icons are unchanged for now.
+**Desktop packaging gotcha:** staged release builds invoke `electron-builder` via `@kata-sh/code-desktop`. The `afterPack` path in `scripts/build-desktop-artifact.ts` must be relative to `apps/desktop` (e.g. `scripts/electron-after-pack.cjs`), not `apps/desktop/scripts/...` — otherwise electron-builder doubles the path and all platform builds fail.
+
+Mobile production icon composer uses `apps/mobile/assets/icon-composer-prod.icon/Assets/logo-mark.svg` (sync from `icon.svg` when the mark changes).
 
 > Dev desktop bundle IDs derive from the repo folder name (`katacode`) in
 > `apps/desktop/scripts/electron-launcher.mjs`. Production bundle id, display names,
