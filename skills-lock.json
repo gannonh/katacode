@@ -31,6 +31,24 @@
       "skillPath": "fix-github-ci/SKILL.md",
       "computedHash": "c9ac2169c65a49982ec0e4cb1a04540e47c2ff062b4e1eaa8d8727a441600d8d"
     },
+    "html": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html/SKILL.md",
+      "computedHash": "b604d0bb81d95d1f7f116f901dd52ed7a218aaeb0416c3d85c89096019f25491"
+    },
+    "html-diagram": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html-diagram/SKILL.md",
+      "computedHash": "dc8f550f12bdc664ad0815faee3e3d92aaff233bf26254d9a31cb9ead606a464"
+    },
+    "html-plan": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html-plan/SKILL.md",
+      "computedHash": "4ebd8d8ddeeb0f53efdac1c3474a603b7dec6e1db8909a3e7fb32e69f1730b99"
+    },
     "okf": {
       "source": "gannonh/skills",
       "sourceType": "github",
