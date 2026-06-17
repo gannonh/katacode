@@ -1,5 +1,10 @@
 # Specs log
 
+## 2026-06-16 (Phase 2 desktop/web release design)
+
+- Added [Phase 2 desktop/web release split design](/specs/2026-06-16-phase-2-desktop-web-release-design.md) focused on desktop CI signing/notarization and hosted `apps/web`; explicitly deferred mobile, marketing, and relay/cloud VM deploys.
+- Updated the specs roadmap to track the Phase 2 desktop/web release design separately from remaining infrastructure split work.
+
 ## 2026-06-16 (Phase 1 delivery)
 
 - Marked Phase 1 PR & CI complete on [roadmap](/specs/index.md); [PR #1](https://github.com/gannonh/katacode/pull/1) passes GitHub Actions.

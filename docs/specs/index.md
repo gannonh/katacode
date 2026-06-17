@@ -4,10 +4,11 @@ Work map for KataCode.
 
 ## Active / next
 
-| Item                         | Status      | Document                                                                                                   |
-| ---------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
-| Phase 2 — CI & release split | **Planned** | [FORK.md — Phase 2](../../FORK.md#phase-2--infrastructure-split) · [fork-setup spec](/specs/fork-setup.md) |
-| Upstream sync (first merge)  | **Planned** | [FORK.md — Phase 3](../../FORK.md#phase-3--upstream-sync-runbook)                                          |
+| Item                                | Status      | Document                                                                                                                                  |
+| ----------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 2 — desktop/web release split | **Draft**   | [Design spec](/specs/2026-06-16-phase-2-desktop-web-release-design.md) · [FORK.md — Phase 2](../../FORK.md#phase-2--infrastructure-split) |
+| Phase 2 — remaining infra split     | **Planned** | Mobile, marketing, relay/cloud VM deploys deferred from desktop/web release spec                                                          |
+| Upstream sync (first merge)         | **Planned** | [FORK.md — Phase 3](../../FORK.md#phase-3--upstream-sync-runbook)                                                                         |
 
 ## Completed
 
