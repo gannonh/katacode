@@ -66,7 +66,7 @@ function extractErrorRatesByRoute(signals) {
     if (!row?.route) continue;
     const v = row.value ?? 0;
     const prior = perRoute.get(row.route) ?? { errors5xx: 0, total: 0 };
-    if (/^5/.test(String(row.http_status ?? ""))) prior.errors5xx += v;
+    if (String(row.http_status ?? "").startsWith("5")) prior.errors5xx += v;
     prior.total += v;
     perRoute.set(row.route, prior);
   }

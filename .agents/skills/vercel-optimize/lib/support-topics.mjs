@@ -149,7 +149,9 @@ function parseFrontmatterValue(value, path, key) {
       if (!Array.isArray(parsed)) throw new Error("not an array");
       return parsed;
     } catch (err) {
-      throw new Error(`${path}: ${key} must use strict JSON array syntax (${err.message})`);
+      throw new Error(`${path}: ${key} must use strict JSON array syntax (${err.message})`, {
+        cause: err,
+      });
     }
   }
   if (/^-?\d+(?:\.\d+)?$/.test(value)) return Number(value);

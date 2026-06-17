@@ -467,7 +467,7 @@ export function buildBrief({
       const absSuffix = abs && abs !== repoRel ? ` — open \`${abs}\`` : "";
       lines.push(`- \`${repoRel}\` ${tag}${sourceSuffix}${absSuffix}`);
     }
-    if ([...routeFiles].length > 0 && workspaceImportFiles.length > 0) {
+    if (routeFiles.size > 0 && workspaceImportFiles.length > 0) {
       lines.push("");
       lines.push(
         "_The route file is often a thin shell that re-exports from a workspace package. If the route file has no awaits / heavy imports / data fetching of its own, the bottleneck almost certainly lives in one of the (workspace import) files above — read those._",
