@@ -76,7 +76,7 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { Button } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
-import { useT3ConnectAuthPrompt } from "../clerk/useT3ConnectAuthPrompt";
+import { useHostedConnectAuthPrompt } from "../clerk/useHostedConnectAuthPrompt";
 import { Group, GroupSeparator } from "../ui/group";
 import { AnimatedHeight } from "../AnimatedHeight";
 import {
@@ -1654,7 +1654,7 @@ function CloudLinkSwitch({
 
 function ConfiguredCloudLinkRow({ canManageRelay }: { readonly canManageRelay: boolean }) {
   const { getToken, isSignedIn } = useAuth();
-  const { authPrompt, openAuthPrompt } = useT3ConnectAuthPrompt();
+  const { authPrompt, openAuthPrompt } = useHostedConnectAuthPrompt();
   const primaryCloudLinkState = usePrimaryCloudLinkState();
   const [operationError, setOperationError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -1844,7 +1844,7 @@ function ConfiguredCloudRemoteEnvironmentRows({
   readonly savedEnvironmentIds: ReadonlyArray<EnvironmentId>;
 }) {
   const { getToken, isSignedIn } = useAuth();
-  const { authPrompt, openAuthPrompt } = useT3ConnectAuthPrompt();
+  const { authPrompt, openAuthPrompt } = useHostedConnectAuthPrompt();
   const environmentsState = useManagedRelayEnvironments();
   const [connectingEnvironmentId, setConnectingEnvironmentId] = useState<EnvironmentId | null>(
     null,

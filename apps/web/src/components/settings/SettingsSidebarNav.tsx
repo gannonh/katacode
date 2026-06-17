@@ -20,7 +20,10 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "../ui/sidebar";
-import { T3ConnectSidebarAvatar, T3ConnectSidebarSignIn } from "../clerk/T3ConnectSidebarSignIn";
+import {
+  HostedConnectSidebarAvatar,
+  HostedConnectSidebarSignIn,
+} from "../clerk/HostedConnectSidebarSignIn";
 
 export type SettingsSectionPath =
   | "/settings/general"
@@ -105,7 +108,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
 
       <SidebarSeparator />
       <SidebarFooter className="p-2">
-        <T3ConnectSidebarSignIn />
+        <HostedConnectSidebarSignIn />
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1">
           <SidebarMenu className="min-w-0">
             <SidebarMenuItem>
@@ -119,7 +122,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-          <T3ConnectSidebarAvatar />
+          <HostedConnectSidebarAvatar />
         </div>
       </SidebarFooter>
     </>

@@ -395,7 +395,7 @@ describe("MessagesTimeline", () => {
       expect(assistantFileLink?.textContent).toContain("package.json");
       expect(assistantFileLink?.textContent).toContain("L25");
       expect(assistantFileLink?.getAttribute("href")).toBe("/repo/project/path/to/package.json:25");
-      expect(icon?.getAttribute("data-pierre-icon")).toBe("t3-file-icon-package-json");
+      expect(icon?.getAttribute("data-pierre-icon")).toBe("katacode-file-icon-package-json");
     } finally {
       await screen.unmount();
     }

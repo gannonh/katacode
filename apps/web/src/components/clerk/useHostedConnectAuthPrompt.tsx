@@ -5,7 +5,7 @@ import { isElectron } from "../../env";
 import { Dialog, DialogPopup } from "../ui/dialog";
 import { DesktopClerkWaitlist } from "./DesktopClerkWaitlist";
 
-export function useT3ConnectAuthPrompt() {
+export function useHostedConnectAuthPrompt() {
   const clerk = useClerk();
   const [desktopAuthOpen, setDesktopAuthOpen] = useState(false);
 

@@ -7,6 +7,8 @@ import * as Option from "effect/Option";
 
 import {
   createStagePnpmConfig,
+  DESKTOP_NATIVE_ASAR_UNPACK,
+  DESKTOP_STAGE_INSTALL_ARGS,
   resolveDesktopRuntimeDependencies,
   resolveBuildOptions,
   resolveDesktopBuildIconAssets,
@@ -30,18 +32,19 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     assert.equal(resolveDesktopProductName("0.0.17-nightly.20260413.42"), "KataCode (Nightly)");
   });
 
-  it("switches desktop packaging icons to the nightly artwork for nightly versions", () => {
-    assert.deepStrictEqual(resolveDesktopBuildIconAssets("0.0.17"), {
+  it("uses production desktop artwork for all release channels", () => {
+    const productionIcons = {
       macIconPng: BRAND_ASSET_PATHS.productionMacIconPng,
       linuxIconPng: BRAND_ASSET_PATHS.productionLinuxIconPng,
       windowsIconIco: BRAND_ASSET_PATHS.productionWindowsIconIco,
-    });
+      macAppIconIcns: BRAND_ASSET_PATHS.desktopAppIconIcns,
+    };
 
-    assert.deepStrictEqual(resolveDesktopBuildIconAssets("0.0.17-nightly.20260413.42"), {
-      macIconPng: BRAND_ASSET_PATHS.nightlyMacIconPng,
-      linuxIconPng: BRAND_ASSET_PATHS.nightlyLinuxIconPng,
-      windowsIconIco: BRAND_ASSET_PATHS.nightlyWindowsIconIco,
-    });
+    assert.deepStrictEqual(resolveDesktopBuildIconAssets("0.0.17"), productionIcons);
+    assert.deepStrictEqual(
+      resolveDesktopBuildIconAssets("0.0.17-nightly.20260413.42"),
+      productionIcons,
+    );
   });
 
   it.effect("resolves GitHub desktop publish config from Effect config", () =>
@@ -107,6 +110,18 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         effect: "4.0.0-beta.59",
       },
     );
+  });
+
+  it("keeps platform native optional deps for staged desktop installs", () => {
+    assert.deepStrictEqual(DESKTOP_STAGE_INSTALL_ARGS, ["install", "--prod"]);
+  });
+
+  it("unpacks workspace search native bindings from the desktop asar", () => {
+    assert.deepStrictEqual(DESKTOP_NATIVE_ASAR_UNPACK, [
+      "**/*.node",
+      "**/@yuuang/**",
+      "**/@ff-labs/fff-bin-*/**",
+    ]);
   });
 
   it("carries only staged dependency patch metadata into staged desktop installs", () => {

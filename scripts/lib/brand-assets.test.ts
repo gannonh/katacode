@@ -30,11 +30,8 @@ describe("brand-assets", () => {
     ]);
   });
 
-  it("maps server build web assets to development icons", () => {
-    expect(DEVELOPMENT_ICON_OVERRIDES[0]).toEqual({
-      sourceRelativePath: BRAND_ASSET_PATHS.developmentWebFaviconIco,
-      targetRelativePath: "dist/client/favicon.ico",
-    });
+  it("maps server build web assets to production icons", () => {
+    expect(DEVELOPMENT_ICON_OVERRIDES).toEqual(PUBLISH_ICON_OVERRIDES);
   });
 
   it("can target hosted web dist directly", () => {
@@ -44,15 +41,15 @@ describe("brand-assets", () => {
     });
   });
 
-  it("maps hosted nightly web assets to nightly icons", () => {
+  it("maps hosted nightly web assets to production icons", () => {
     expect(resolveWebIconOverrides("nightly", "apps/web/dist")).toContainEqual({
-      sourceRelativePath: BRAND_ASSET_PATHS.nightlyWebFaviconIco,
+      sourceRelativePath: BRAND_ASSET_PATHS.productionWebFaviconIco,
       targetRelativePath: "apps/web/dist/favicon.ico",
     });
   });
 
-  it("maps hosted release channels to web asset brands", () => {
+  it("maps hosted release channels to production web assets", () => {
     expect(resolveWebAssetBrandForChannel("latest")).toBe("production");
-    expect(resolveWebAssetBrandForChannel("nightly")).toBe("nightly");
+    expect(resolveWebAssetBrandForChannel("nightly")).toBe("production");
   });
 });

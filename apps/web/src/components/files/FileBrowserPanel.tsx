@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { useTheme } from "~/hooks/useTheme";
 import { cn } from "~/lib/utils";
-import { T3_PIERRE_ICONS } from "~/pierre-icons";
+import { KATACODE_PIERRE_ICONS } from "~/pierre-icons";
 
 import { useProjectEntriesQuery } from "./projectFilesQueryState";
 
@@ -54,7 +54,7 @@ export default function FileBrowserPanel({
     fileTreeSearchMode: "hide-non-matches",
     flattenEmptyDirectories: true,
     initialExpansion: 1,
-    icons: T3_PIERRE_ICONS,
+    icons: KATACODE_PIERRE_ICONS,
     onSelectionChange: (selectedPaths) => {
       const selectedPath = selectedPaths.at(-1)?.replace(/\/$/, "");
       if (selectedPath && entryKindsRef.current.get(selectedPath) === "file") {

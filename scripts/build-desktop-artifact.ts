@@ -28,6 +28,16 @@ import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
 
+/** Native bindings used by @ff-labs/fff-node (via ffi-rs) must install and unpack from asar. */
+export const DESKTOP_NATIVE_ASAR_UNPACK = [
+  "**/*.node",
+  "**/@yuuang/**",
+  "**/@ff-labs/fff-bin-*/**",
+] as const;
+
+/** Optional deps carry platform-specific native binaries required at desktop runtime. */
+export const DESKTOP_STAGE_INSTALL_ARGS = ["install", "--prod"] as const;
+
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
 const BuildArch = Schema.Literals(["arm64", "x64", "universal"]);
 
@@ -56,6 +66,7 @@ interface DesktopBuildIconAssets {
   readonly macIconPng: string;
   readonly linuxIconPng: string;
   readonly windowsIconIco: string;
+  readonly macAppIconIcns: string;
 }
 
 interface PlatformConfig {
@@ -487,7 +498,12 @@ function generateMacIconSet(
   });
 }
 
-function stageMacIcons(stageResourcesDir: string, sourcePng: string, verbose: boolean) {
+function stageMacIcons(
+  stageResourcesDir: string,
+  sourcePng: string,
+  macAppIconIcns: string,
+  verbose: boolean,
+) {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -497,19 +513,26 @@ function stageMacIcons(stageResourcesDir: string, sourcePng: string, verbose: bo
       });
     }
 
-    const tmpRoot = yield* fs.makeTempDirectoryScoped({
-      prefix: "katacode-icon-build-",
-    });
-
     const iconPngPath = path.join(stageResourcesDir, "icon.png");
     const iconIcnsPath = path.join(stageResourcesDir, "icon.icns");
+    const appIconIcnsPath = path.join(stageResourcesDir, "AppIcon.icns");
 
     yield* runCommand(ChildProcess.make({})`sips -z 512 512 ${sourcePng} --out ${iconPngPath}`, {
       label: "sips mac icon",
       verbose,
     });
 
+    if (yield* fs.exists(macAppIconIcns)) {
+      yield* fs.copyFile(macAppIconIcns, appIconIcnsPath);
+      yield* fs.copyFile(macAppIconIcns, iconIcnsPath);
+      return;
+    }
+
+    const tmpRoot = yield* fs.makeTempDirectoryScoped({
+      prefix: "katacode-icon-build-",
+    });
     yield* generateMacIconSet(sourcePng, iconIcnsPath, tmpRoot, path, verbose);
+    yield* fs.copyFile(iconIcnsPath, appIconIcnsPath);
   });
 }
 
@@ -666,19 +689,12 @@ export function resolveDesktopUpdateChannel(version: string): "latest" | "nightl
   return /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest";
 }
 
-export function resolveDesktopBuildIconAssets(version: string): DesktopBuildIconAssets {
-  if (resolveDesktopUpdateChannel(version) === "nightly") {
-    return {
-      macIconPng: BRAND_ASSET_PATHS.nightlyMacIconPng,
-      linuxIconPng: BRAND_ASSET_PATHS.nightlyLinuxIconPng,
-      windowsIconIco: BRAND_ASSET_PATHS.nightlyWindowsIconIco,
-    };
-  }
-
+export function resolveDesktopBuildIconAssets(_version: string): DesktopBuildIconAssets {
   return {
     macIconPng: BRAND_ASSET_PATHS.productionMacIconPng,
     linuxIconPng: BRAND_ASSET_PATHS.productionLinuxIconPng,
     windowsIconIco: BRAND_ASSET_PATHS.productionWindowsIconIco,
+    macAppIconIcns: BRAND_ASSET_PATHS.desktopAppIconIcns,
   };
 }
 
@@ -704,6 +720,8 @@ const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     appId: "com.katacode.app",
     productName: resolveDesktopProductName(version),
     artifactName: "KataCode-${version}-${arch}.${ext}",
+    asarUnpack: [...DESKTOP_NATIVE_ASAR_UNPACK],
+    afterPack: "apps/desktop/scripts/electron-after-pack.cjs",
     directories: {
       buildResources: "apps/desktop/resources",
     },
@@ -724,8 +742,11 @@ const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   if (platform === "mac") {
     buildConfig.mac = {
       target: target === "dmg" ? [target, "zip"] : [target],
-      icon: "icon.icns",
+      icon: "AppIcon.icns",
       category: "public.app-category.developer-tools",
+      extendInfo: {
+        CFBundleIconName: "AppIcon",
+      },
       protocols: [
         {
           name: "KataCode",
@@ -773,7 +794,12 @@ const assertPlatformBuildResources = Effect.fn("assertPlatformBuildResources")(f
   verbose: boolean,
 ) {
   if (platform === "mac") {
-    yield* stageMacIcons(stageResourcesDir, iconAssets.macIconPng, verbose);
+    yield* stageMacIcons(
+      stageResourcesDir,
+      iconAssets.macIconPng,
+      iconAssets.macAppIconIcns,
+      verbose,
+    );
     return;
   }
 
@@ -894,6 +920,12 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   yield* fs.copy(distDirs.desktopResources, stageResourcesDir);
   yield* fs.copy(distDirs.serverDist, path.join(stageAppDir, "apps/server/dist"));
 
+  yield* fs.makeDirectory(path.join(stageAppDir, "apps/desktop/scripts"), { recursive: true });
+  yield* fs.copyFile(
+    path.join(repoRoot, "apps/desktop/scripts/electron-after-pack.cjs"),
+    path.join(stageAppDir, "apps/desktop/scripts/electron-after-pack.cjs"),
+  );
+
   yield* assertPlatformBuildResources(
     options.platform,
     stageResourcesDir,
@@ -901,6 +933,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       macIconPng: path.join(repoRoot, iconAssets.macIconPng),
       linuxIconPng: path.join(repoRoot, iconAssets.linuxIconPng),
       windowsIconIco: path.join(repoRoot, iconAssets.windowsIconIco),
+      macAppIconIcns: path.join(repoRoot, iconAssets.macAppIconIcns),
     },
     options.verbose,
   );
@@ -947,13 +980,13 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   }
 
   yield* Effect.log("[desktop-artifact] Installing staged production dependencies...");
-  const installCommand = yield* resolveSpawnCommand("vp", ["install", "--prod", "--no-optional"]);
+  const installCommand = yield* resolveSpawnCommand("vp", [...DESKTOP_STAGE_INSTALL_ARGS]);
   yield* runCommand(
     ChildProcess.make(installCommand.command, installCommand.args, {
       cwd: stageAppDir,
       shell: installCommand.shell,
     }),
-    { label: "vp install --prod --no-optional", verbose: options.verbose },
+    { label: "vp install --prod", verbose: options.verbose },
   );
 
   // electron-builder treats several set-but-empty variables (e.g. CSC_LINK="")

@@ -2,7 +2,7 @@ import { Image, View } from "react-native";
 
 import { AppText as Text } from "./AppText";
 
-const BRAND_MARK_SOURCE = require("../../../../assets/dev/blueprint-ios-1024.png");
+const BRAND_MARK_SOURCE = require("../../../../assets/prod/black-ios-1024.png");
 
 export function BrandMark(props: { readonly compact?: boolean; readonly stageLabel?: string }) {
   const compact = props.compact ?? false;

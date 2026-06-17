@@ -37,7 +37,7 @@ export const APP_BUNDLE_ID = isDevelopment
 const APP_PROTOCOL_SCHEMES = isDevelopment ? ["katacode-dev"] : ["katacode"];
 const LAUNCHER_VERSION = 11;
 const defaultIconPath = join(desktopDir, "resources", "icon.icns");
-const developmentMacIconPngPath = join(repoRoot, "assets", "prod", "black-macos-1024.png");
+const developmentMacIconPngPath = join(desktopDir, "resources", "source.png");
 // oxlint-disable-next-line kata-code/no-global-process-runtime -- Standalone launcher script has no Effect runtime.
 const hostPlatform = NodeOS.platform();
 
@@ -297,6 +297,11 @@ function buildMacLauncher(electronBinaryPath) {
     currentMetadata &&
     JSON.stringify(currentMetadata) === JSON.stringify(expectedMetadata)
   ) {
+    // Dev ports are chosen at runtime by dev-runner; refresh the launcher script
+    // so a cached .app bundle does not keep a stale VITE_DEV_SERVER_URL.
+    if (isDevelopment) {
+      writeDevelopmentLauncherScript(targetBinaryPath, electronBinaryPath);
+    }
     registerMacLauncherBundle(targetAppBundlePath);
     return targetBinaryPath;
   }

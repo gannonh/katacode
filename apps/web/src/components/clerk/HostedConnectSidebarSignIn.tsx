@@ -3,21 +3,21 @@ import { LogInIcon } from "lucide-react";
 
 import { hasCloudPublicConfig } from "../../cloud/publicConfig";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
-import { useT3ConnectAuthPrompt } from "./useT3ConnectAuthPrompt";
+import { useHostedConnectAuthPrompt } from "./useHostedConnectAuthPrompt";
 
-export function T3ConnectSidebarSignIn() {
+export function HostedConnectSidebarSignIn() {
   if (!hasCloudPublicConfig()) return null;
 
-  return <ConfiguredT3ConnectSidebarSignIn />;
+  return <ConfiguredHostedConnectSidebarSignIn />;
 }
 
-export function T3ConnectSidebarAvatar() {
+export function HostedConnectSidebarAvatar() {
   if (!hasCloudPublicConfig()) return null;
 
-  return <ConfiguredT3ConnectSidebarAvatar />;
+  return <ConfiguredHostedConnectSidebarAvatar />;
 }
 
-function ConfiguredT3ConnectSidebarAvatar() {
+function ConfiguredHostedConnectSidebarAvatar() {
   const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded || !isSignedIn) return null;
@@ -34,9 +34,9 @@ function ConfiguredT3ConnectSidebarAvatar() {
   );
 }
 
-function ConfiguredT3ConnectSidebarSignIn() {
+function ConfiguredHostedConnectSidebarSignIn() {
   const { isLoaded, isSignedIn } = useAuth();
-  const { authPrompt, openAuthPrompt } = useT3ConnectAuthPrompt();
+  const { authPrompt, openAuthPrompt } = useHostedConnectAuthPrompt();
 
   if (!isLoaded || isSignedIn) return null;
 

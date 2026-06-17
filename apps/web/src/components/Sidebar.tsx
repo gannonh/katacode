@@ -2300,10 +2300,6 @@ const SidebarProjectListRow = memo(function SidebarProjectListRow(props: Sidebar
   );
 });
 
-function T3Wordmark() {
-  return <AppMark className="size-5 shrink-0 object-contain" />;
-}
-
 type SortableProjectHandleProps = Pick<
   ReturnType<typeof useSortable>,
   "attributes" | "listeners" | "setActivatorNodeRef"
@@ -2511,7 +2507,7 @@ const SidebarChromeHeader = memo(function SidebarChromeHeader({
               className="ml-1 flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-md outline-hidden ring-ring transition-colors hover:text-foreground focus-visible:ring-2"
               to="/"
             >
-              <T3Wordmark />
+              <AppMark className="size-5 shrink-0 object-contain" />
               <span className="truncate text-sm font-medium tracking-tight text-foreground">
                 KataCode
               </span>
