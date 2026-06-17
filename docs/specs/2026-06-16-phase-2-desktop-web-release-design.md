@@ -234,3 +234,10 @@ Build should stop and ask before enabling mobile, marketing, relay/cloud VM depl
 - **Approved deviations:** Phase 1 signing prep (GitHub secret provisioning) remains a maintainer manual step documented in the runbook; live notarization evidence requires a workflow run with secrets configured
 - **Known follow-up:** Configure repository secrets and run `dry_run` workflow dispatch on GitHub to produce signing-gate evidence; relay deploy and mobile EAS remain disabled
 - **Verification:** `vp check` pass, `vp run typecheck` pass, `vp run release:smoke` pass; `vp run test` reports 2 unrelated failures in `apps/web/src/assets/AssetAccess.test.ts` (pre-existing/environmental, not introduced by this build)
+
+## Pre-merge (PR #2)
+
+- **PR:** [gannonh/katacode#2](https://github.com/gannonh/katacode/pull/2)
+- **Additional fixes:** `dry_run` stable dispatch without version input; prerelease npm dist-tag `next`; `apps/web/vercel.ts` branding inline for Vercel config compile; Vercel project `katacode-web` + `app.kata.sh` domains
+- **Secrets configured:** macOS signing, Vercel, GitHub Release app (`RELEASE_APP_*`)
+- **Post-merge:** merge to `main`, enable branch protection (five CI jobs), `gh workflow run release.yml -f dry_run=true`, then nightly test release — see [release runbook](/operations/release.md)

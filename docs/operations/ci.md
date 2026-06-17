@@ -24,7 +24,22 @@ CI runs on every pull request and push to `main`. Local parity before push:
 vp check
 vp run typecheck
 vp run test
+vp run release:smoke   # matches CI Release Smoke job; required for release work
 ```
+
+## Branch protection (`main`)
+
+Require these **CI** job names before merging PRs (allowlist — there is no per-workflow exclude toggle):
+
+| Required check                | Workflow |
+| ----------------------------- | -------- |
+| Check                         | CI       |
+| Test                          | CI       |
+| Test Browser                  | CI       |
+| Release Smoke                 | CI       |
+| Mobile Native Static Analysis | CI       |
+
+Do **not** require PR label automation (`Label PR size`, `Label PR 2`, etc.) or **Release** workflow jobs — `release.yml` runs on tags and `workflow_dispatch`, not on pull requests.
 
 ## Disabled workflows (remaining Phase 2)
 

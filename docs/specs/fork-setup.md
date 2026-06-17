@@ -21,13 +21,14 @@ KataCode is a hard fork of [pingdotgg/t3code](https://github.com/pingdotgg/t3cod
 
 ## Current status
 
-| Item                                                                     | Status      |
-| ------------------------------------------------------------------------ | ----------- |
-| Fork / upstream remotes                                                  | Done        |
-| Phase 1 — packages, branding, `KATACODE_*`, `~/.katacode`                | **Done**    |
-| Phase 1 — PR [#1](https://github.com/gannonh/katacode/pull/1) & CI gates | **Done**    |
-| Phase 2 — CI / release split                                             | Not started |
-| First upstream merge since `708d5383`                                    | Not started |
+| Item                                                                                | Status             |
+| ----------------------------------------------------------------------------------- | ------------------ |
+| Fork / upstream remotes                                                             | Done               |
+| Phase 1 — packages, branding, `KATACODE_*`, `~/.katacode`                           | **Done**           |
+| Phase 1 — PR [#1](https://github.com/gannonh/katacode/pull/1) & CI gates            | **Done**           |
+| Phase 2 — desktop/web release ([PR #2](https://github.com/gannonh/katacode/pull/2)) | **Ready to merge** |
+| Phase 2 — remaining infra (relay, mobile EAS, marketing)                            | **Planned**        |
+| First upstream merge since `708d5383`                                               | Not started        |
 
 ## Phase 1 delivery (PR #1)
 
@@ -36,7 +37,7 @@ Branch `fork-setup` delivers Phase 1 identity work. GitHub Actions on [PR #1](ht
 **Review and hardening applied before merge:**
 
 - Hosted pairing defaults use [branding constants](../../packages/shared/src/branding.ts) (`app.kata.sh`, `/__katacode/channel`) — no fallback to upstream `app.t3.codes`.
-- Release, relay deploy, and mobile EAS workflows moved to [`.github/disabled/`](../../.github/disabled/README.md); active CI runs from [`.github/workflows/`](../../.github/workflows/README.md) with no branch-name skip gates.
+- Phase 1 moved release/relay/mobile EAS workflows to [`.github/disabled/`](../../.github/disabled/README.md) until Phase 2; **desktop/web `release.yml` re-activated in [PR #2](https://github.com/gannonh/katacode/pull/2)**. Relay deploy and mobile EAS remain disabled.
 - `~/.t3` migration warning on startup (`warnLegacyHomeDirectoryIfNeeded` in `apps/server/src/os-jank.ts`).
 - Mobile EAS preview gated on `KATACODE_EAS_PROJECT_ID`; Expo owner `gannonh`.
 
@@ -46,7 +47,7 @@ Branch `fork-setup` delivers Phase 1 identity work. GitHub Actions on [PR #1](ht
 
 - **Phase 0** — Git remotes — complete
 - **Phase 1** — Branding and rename — complete ([ADR 0002](/adrs/0002-katacode-product-identity.md))
-- **Phase 2** — Infrastructure split (workflows, secrets, release channels)
+- **Phase 2** — Desktop/web release — complete on [PR #2](https://github.com/gannonh/katacode/pull/2); remaining relay/mobile EAS/marketing infra still planned
 - **Phase 3** — Upstream sync runbook ([ADR 0001](/adrs/0001-connected-fork-upstream-merge.md))
 - **Phase 4** — Divergence boundaries (where to put fork-only code)
 - **Phase 5** — Ongoing maintenance checklists
@@ -56,4 +57,4 @@ Branch `fork-setup` delivers Phase 1 identity work. GitHub Actions on [PR #1](ht
 - [Specs roadmap](/specs/index.md)
 - [ADR 0001 — Connected fork](/adrs/0001-connected-fork-upstream-merge.md)
 - [ADR 0002 — Product identity](/adrs/0002-katacode-product-identity.md)
-- [Release runbook](/runbooks/index.md) (operations docs; fork release split pending Phase 2)
+- [Release runbook](/operations/release.md)

@@ -4,7 +4,7 @@
 
 - `vp check` and `vp run typecheck` must pass before considering tasks completed.
   - If changing native mobile code, `vp run lint:mobile` must also pass.
-  - For CI parity before push, also run `vp run test` (matches the GitHub Actions Test job).
+  - For CI parity before push, also run `vp run test` and `vp run release:smoke` (matches GitHub Actions **Test** and **Release Smoke** jobs).
 - Use `vp test` for the built-in Vite+ test command and `vp run test` when you specifically need the `test` package script.
 
 ## Quick Start
@@ -38,7 +38,9 @@ maintainability is encouraged.
 - User-facing identity constants (protocols, hosted pairing, worktree prefix) live in `packages/shared/src/branding.ts` — do not hardcode upstream `app.t3.codes` or `t3code://` for product surfaces.
 - Electron `path.txt missing` after fresh install → run `ensure:electron` (see Quick Start).
 - Brand icon rasters must use ImageMagick `-background none` — run `pnpm run generate:brand-rasters` after SVG changes.
-- **CI:** PR checks run from `.github/workflows/ci.yml`. Release, relay deploy, and mobile EAS live in `.github/disabled/` until Phase 2 — do not gate with branch-name `if:` skips; move whole workflows instead. See [docs/operations/ci.md](./docs/operations/ci.md).
+- **CI:** PR checks run from [`.github/workflows/ci.yml`](./.github/workflows/ci.yml). Require **Check**, **Test**, **Test Browser**, **Release Smoke**, and **Mobile Native Static Analysis** on `main` — see [branch protection](./docs/operations/ci.md#branch-protection-main). **Release** ([`release.yml`](./.github/workflows/release.yml)) runs on tags/`workflow_dispatch`, not PRs. Relay deploy and mobile EAS remain in [`.github/disabled/`](./.github/disabled/README.md).
+- **Hosted web:** `apps/web` deploys to Vercel (`katacode-web`, root `apps/web`). Domains: `app.kata.sh`, `latest.app.kata.sh`, `nightly.app.kata.sh`. `apps/web/vercel.ts` inlines branding constants — Vercel compiles config before the monorepo build; keep in sync with `packages/shared/src/branding.ts`.
+- **Release secrets:** macOS signing (`CSC_*`, `APPLE_*`), GitHub Release app (`RELEASE_APP_*`), Vercel (`VERCEL_*`) — see [release runbook](./docs/operations/release.md).
 - **Fork tests:** rename product surfaces (`katacode`, `KATACODE_*`, worktree prefix `katacode/`) but keep upstream-shaped repo names in fixtures (`octocat/t3code` → clone dir `t3code`). See [fork rebrand test fixtures](./docs/operations/ci.md#fork-rebrand-test-fixtures).
 
 ## Open Knowledge Format docs

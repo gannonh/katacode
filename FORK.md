@@ -9,17 +9,17 @@ decisions change.
 
 ## Current status
 
-| Item                                       | Status      | Notes                                             |
-| ------------------------------------------ | ----------- | ------------------------------------------------- |
-| Fork remote (`origin`)                     | Done        | `https://github.com/gannonh/katacode.git`         |
-| Upstream remote (`upstream`)               | Done        | `https://github.com/pingdotgg/t3code.git`         |
-| Baseline sync point                        | `708d5383`  | Last merged upstream SHA — update after each sync |
-| Product rename (`@t3tools/*` → fork scope) | **Done**    | Phase 1.1                                         |
-| Env prefix rename (`KATACODE_*`)           | **Done**    | `~/.katacode`, protocols, storage keys            |
-| User-facing docs rebrand                   | **Done**    | README, CONTRIBUTING, quick-start                 |
-| Phase 1 verification gate                  | **Done**    | `vp check && vp run typecheck`                    |
-| CI / release split from upstream           | Not started | See Phase 2                                       |
-| `FORK.md` divergence log                   | Started     | This file                                         |
+| Item                                       | Status                 | Notes                                                                                |
+| ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------ |
+| Fork remote (`origin`)                     | Done                   | `https://github.com/gannonh/katacode.git`                                            |
+| Upstream remote (`upstream`)               | Done                   | `https://github.com/pingdotgg/t3code.git`                                            |
+| Baseline sync point                        | `708d5383`             | Last merged upstream SHA — update after each sync                                    |
+| Product rename (`@t3tools/*` → fork scope) | **Done**               | Phase 1.1                                                                            |
+| Env prefix rename (`KATACODE_*`)           | **Done**               | `~/.katacode`, protocols, storage keys                                               |
+| User-facing docs rebrand                   | **Done**               | README, CONTRIBUTING, quick-start                                                    |
+| Phase 1 verification gate                  | **Done**               | `vp check && vp run typecheck`                                                       |
+| CI / release split from upstream           | **Done** (desktop/web) | [PR #2](https://github.com/gannonh/katacode/pull/2); relay/mobile EAS still disabled |
+| `FORK.md` divergence log                   | Started                | This file                                                                            |
 
 Record the last successful upstream merge here:
 

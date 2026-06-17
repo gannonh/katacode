@@ -21,7 +21,7 @@ Open Knowledge Format (OKF) documentation for the [KataCode](https://github.com/
 
 ## Fork status (summary)
 
-Phase 1 (package rename, branding, `KATACODE_*`, `~/.katacode`) is **complete** on branch `fork-setup` ([PR #1](https://github.com/gannonh/katacode/pull/1)); GitHub Actions quality gates are **green**. Phase 2 desktop/web release work is **in progress** on `feat/phase-2-desktop-and-web-ci`. See [fork setup spec](/specs/fork-setup.md) and [FORK.md](../../FORK.md).
+Phase 1 (package rename, branding, `KATACODE_*`, `~/.katacode`) is **complete** ([PR #1](https://github.com/gannonh/katacode/pull/1)). Phase 2 desktop/web release is **ready to merge** on [PR #2](https://github.com/gannonh/katacode/pull/2) (`feat/phase-2-desktop-and-web-ci`). See [fork setup spec](/specs/fork-setup.md) and [FORK.md](../../FORK.md).
 
 ## Package map (quick)
 

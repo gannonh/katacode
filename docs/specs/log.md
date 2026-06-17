@@ -1,8 +1,13 @@
 # Specs log
 
+## 2026-06-17 (Phase 2 pre-merge)
+
+- [PR #2](https://github.com/gannonh/katacode/pull/2) ready to merge: Codex review fixes (`dry_run` default version, prerelease npm `next` dist-tag), `vercel.ts` compile fix, Vercel project + `app.kata.sh` domains.
+- Moved Phase 2 desktop/web release to **Completed** on [roadmap](/specs/index.md); post-merge validation tracked as **Next**.
+
 ## 2026-06-16 (Phase 2 desktop/web release build)
 
-- Implemented [Phase 2 desktop/web release split](/specs/2026-06-16-phase-2-desktop-web-release-design.md): activated [release workflow](/.github/workflows/release.yml), macOS Apple ID notarization gate, KataCode hosted web domains, and [release runbook](/operations/release.md).
+- Implemented [Phase 2 desktop/web release split](/specs/2026-06-16-phase-2-desktop-web-release-design.md): activated [release workflow](../../.github/workflows/release.yml), macOS Apple ID notarization gate, KataCode hosted web domains, and [release runbook](/operations/release.md).
 
 ## 2026-06-16 (Phase 2 desktop/web release design)
 
