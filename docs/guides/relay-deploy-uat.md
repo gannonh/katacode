@@ -12,7 +12,7 @@ Use this guide after a successful production relay deploy and before signoff on 
 
 ## Prerequisites
 
-- Production relay deployed through `deploy-relay.yml` with apply mode
+- Production relay deployed through `deploy-relay.yml` with apply mode (after [Relay credentials playbook](./relay-credentials-playbook.md) phases 1–3)
 - GitHub `production` environment configured per [Relay deploy setup](../operations/relay-deploy-setup.md)
 - A production-configured stable or nightly build (or release artifact) with Connect public config baked in
 - A Clerk-approved beta test user

@@ -10,7 +10,7 @@ approved_at: 2026-06-18T00:00:00Z
 
 # Relay Deploy
 
-**Status:** Implemented (infra setup + UAT evidence pending)
+**Status:** Implemented (credential smoke + local dry-run pass; GitHub apply + UAT pending)
 
 ## Grounding context
 
@@ -412,7 +412,7 @@ Blocking questions for Build:
 
 - **Spec:** `docs/specs/2026-06-18-relay-deploy-design.md`
 - **Base SHA:** `31451890f34e705d0e8f7729ec62eed295c9607d`
-- **Status:** Implemented (pending external infra setup, GitHub workflow evidence, and manual UAT)
+- **Status:** Implemented (credential smoke + local dry-run pass; GitHub apply + UAT pending)
 
 ### Tasks completed
 
@@ -435,10 +435,20 @@ Blocking questions for Build:
 
 ### Not completed in this Build pass (requires your action)
 
-- GitHub `production` environment provisioning (Cloudflare, PlanetScale, Axiom, Clerk, APNs)
-- `deploy-relay.yml` dry-run and apply workflow evidence
-- `release.yml` dry-run Connect config resolution against live Alchemy state
+- Merge [PR #4](https://github.com/gannonh/kata-code/pull/4) so `deploy-relay.yml` is on `main`
+- `deploy-relay.yml` dry-run and apply workflow evidence in GitHub Actions
+- `release.yml` dry-run Connect config resolution against live Alchemy state after apply
 - Manual Connect link/connect/unlink UAT evidence
+
+### Infra setup progress (2026-06-18)
+
+- Fork-owned Cloudflare, PlanetScale, Axiom, Clerk, and APNs credentials collected in `infra/relay/.env`
+- `node infra/relay/scripts/run-credential-smoke.ts` passes (including Cloudflare Workers/Secrets Store permission checks)
+- Corrected `CLOUDFLARE_ACCOUNT_ID` synced to GitHub `production` via `sync-github-config.ts`
+- One-time `alchemy cloudflare bootstrap` completed for Alchemy state store
+- Local `vp run --filter @kata-sh/code-relay deploy -- --stage prod --dry-run --yes` passes
+
+Operator docs updated in [Relay deploy setup](/operations/relay-deploy-setup.md) and [Relay credentials playbook](/guides/relay-credentials-playbook.md).
 
 ### Review gates
 

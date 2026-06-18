@@ -28,7 +28,16 @@ Stable and nightly releases read relay URL and client tracing config from deploy
 1. Create or choose a fork-owned Cloudflare account (do not reuse upstream deploy targets).
 2. Copy the **Account ID** from the Cloudflare dashboard overview page.
 3. Create an API token with permissions sufficient for Alchemy to manage Workers, Queues, DNS records, Hyperdrive, and state storage in that account. Start from the **Edit Cloudflare Workers** template and include account-level access for Workers scripts/subdomain and Secrets Store plus zone-level `Zone:Read` and `DNS:Edit` for `kata.sh`. Validate with `node infra/relay/scripts/run-credential-smoke.ts` before deploying.
-4. Store:
+4. **Verify the account ID matches the token.** Copy the Account ID from the dashboard, then confirm the token can list that same account:
+
+   ```bash
+   curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+     https://api.cloudflare.com/client/v4/accounts | jq '.result[] | {id, name}'
+   ```
+
+   A typo in `CLOUDFLARE_ACCOUNT_ID` still passes token verification but fails Workers endpoints with `403 Authentication error`.
+
+5. Store:
    - Repository variable `CLOUDFLARE_ACCOUNT_ID`
    - `production` environment secret `CLOUDFLARE_API_TOKEN`
 
@@ -153,26 +162,57 @@ gh variable list -R gannonh/kata-code
 gh secret list -R gannonh/kata-code --env production
 ```
 
+## One-time Alchemy Cloudflare bootstrap
+
+Before the first relay deploy on a fork-owned Cloudflare account, bootstrap Alchemy's Cloudflare state store worker (`alchemy-state-store`). This is separate from editing API token permissions.
+
+From the repository root, export only the Cloudflare credentials (the relay `.env` file includes comments and multiline values that Alchemy's `--env-file` parser does not always load):
+
+```bash
+CLOUDFLARE_ACCOUNT_ID="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_ACCOUNT_ID)")" \
+CLOUDFLARE_API_TOKEN="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_API_TOKEN)")" \
+pnpm --dir infra/relay exec alchemy cloudflare bootstrap --profile default
+```
+
+Do **not** set `CI=true` for bootstrap. In CI mode Alchemy refuses to create the state store and only reports that bootstrap is required.
+
+After bootstrap succeeds, local deploy dry-run should proceed:
+
+```bash
+vp run --filter @kata-sh/code-relay deploy -- --stage prod --dry-run --yes
+```
+
 ## Operator flow
 
-1. Configure all variables and secrets above.
-2. Dispatch `deploy-relay.yml` with `dry_run=true` and confirm the plan succeeds.
-3. Dispatch `deploy-relay.yml` with `dry_run=false` and confirm health, OAuth metadata, and DPoP smoke pass.
-4. Dispatch `release.yml` dry-run for stable or nightly and confirm Connect config resolves from Alchemy state.
-5. Complete manual UAT for Connect UI, CLI login, link, connect, and unlink using [Relay Deploy UAT](../guides/relay-deploy-uat.md).
+1. Configure all variables and secrets above in `infra/relay/.env`.
+2. Run `node infra/relay/scripts/run-credential-smoke.ts` and fix any provider failures.
+3. Run `GITHUB_REPOSITORY=gannonh/kata-code node infra/relay/scripts/sync-github-config.ts` to sync GitHub `production` config.
+4. Bootstrap Alchemy Cloudflare state store once (see above).
+5. Confirm local `vp run --filter @kata-sh/code-relay deploy -- --stage prod --dry-run --yes` succeeds.
+6. Merge the relay deploy branch so `.github/workflows/deploy-relay.yml` is on `main`.
+7. Dispatch `deploy-relay.yml` with `dry_run=true` and confirm the plan succeeds.
+8. Dispatch `deploy-relay.yml` with `dry_run=false` and confirm health, OAuth metadata, and DPoP smoke pass.
+9. Dispatch `release.yml` dry-run for stable or nightly and confirm Connect config resolves from Alchemy state.
+10. Complete manual UAT for Connect UI, CLI login, link, connect, and unlink using [Relay Deploy UAT](../guides/relay-deploy-uat.md).
+
+See also [Relay credentials playbook](../guides/relay-credentials-playbook.md) for the full phased operator sequence.
 
 ## Troubleshooting
 
-| Symptom                                     | Fix                                                                                                                                 |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Validate step lists missing Cloudflare vars | Set repository `CLOUDFLARE_ACCOUNT_ID` and `production` `CLOUDFLARE_API_TOKEN`                                                      |
-| Dry-run fails on DNS zone adoption          | Confirm zones exist in the Cloudflare account and names match `RELAY_*_ZONE_NAME`                                                   |
-| DPoP smoke fails with auth errors           | Confirm `CLERK_SMOKE_USER_ID` is approved, JWT template audience matches `CLERK_JWT_AUDIENCE`, relay has current `CLERK_SECRET_KEY` |
-| Release fails on missing Connect config     | Deploy relay `prod` first; confirm Alchemy state read succeeds and Clerk vars exist on `production`                                 |
-| Tracing token appears in logs               | Workflow masks `KATACODE_RELAY_CLIENT_OTLP_TRACES_TOKEN`; report leaks if seen                                                      |
+| Symptom                                     | Fix                                                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Validate step lists missing Cloudflare vars | Set repository `CLOUDFLARE_ACCOUNT_ID` and `production` `CLOUDFLARE_API_TOKEN`                                                             |
+| Credential smoke: Workers `403`             | Confirm `CLOUDFLARE_ACCOUNT_ID` matches the account returned by `GET /accounts`; token permissions alone are not enough if the ID is wrong |
+| `Cloudflare State store not found`          | Run one-time `alchemy cloudflare bootstrap` with Cloudflare env vars exported (see above); do not use `CI=true`                            |
+| Bootstrap: `Missing required env`           | Export `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` into the shell instead of relying on `--env-file .env`                           |
+| Dry-run fails on DNS zone adoption          | Confirm zones exist in the Cloudflare account and names match `RELAY_*_ZONE_NAME`                                                          |
+| DPoP smoke fails with auth errors           | Confirm `CLERK_SMOKE_USER_ID` is approved, JWT template audience matches `CLERK_JWT_AUDIENCE`, relay has current `CLERK_SECRET_KEY`        |
+| Release fails on missing Connect config     | Deploy relay `prod` first; confirm Alchemy state read succeeds and Clerk vars exist on `production`                                        |
+| Tracing token appears in logs               | Workflow masks `KATACODE_RELAY_CLIENT_OTLP_TRACES_TOKEN`; report leaks if seen                                                             |
 
 ## Related
 
+- [Relay credentials playbook](../guides/relay-credentials-playbook.md)
 - [Relay README](../../infra/relay/README.md)
 - [Relay Deploy spec](../specs/2026-06-18-relay-deploy-design.md)
 - [Release setup](./release-setup.md)

@@ -29,12 +29,12 @@ cp infra/relay/.env.example infra/relay/.env
 
 ### Cloudflare
 
-| Variable                 | How to get it                                                                                                           |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`  | [Cloudflare dashboard](https://dash.cloudflare.com) → any zone → right sidebar **Account ID**                           |
-| `CLOUDFLARE_API_TOKEN`   | **My Profile → API Tokens → Create Token** → start from **Edit Cloudflare Workers** template → create → copy token once |
-| `RELAY_API_ZONE_NAME`    | Register/transfer domain → **Websites → Add site** → use apex zone name (e.g. `connect.kata.sh`)                        |
-| `RELAY_TUNNEL_ZONE_NAME` | Same account → add second zone for tunnels (e.g. `tunnels.kata.sh`) or reuse API zone if DNS layout allows              |
+| Variable                 | How to get it                                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`  | [Cloudflare dashboard](https://dash.cloudflare.com) → any zone → right sidebar **Account ID**. Confirm it matches `GET /accounts` for the API token (a typo still verifies the token but fails Workers with `403`). |
+| `CLOUDFLARE_API_TOKEN`   | **My Profile → API Tokens → Create Token** → start from **Edit Cloudflare Workers** template → create → copy token once                                                                                             |
+| `RELAY_API_ZONE_NAME`    | Register/transfer domain → **Websites → Add site** → use apex zone name (e.g. `connect.kata.sh`)                                                                                                                    |
+| `RELAY_TUNNEL_ZONE_NAME` | Same account → add second zone for tunnels (e.g. `tunnels.kata.sh`) or reuse API zone if DNS layout allows                                                                                                          |
 
 Optional: `RELAY_DOMAIN` only if production relay URL must not be `relay.<RELAY_API_ZONE_NAME>`.
 
@@ -109,7 +109,7 @@ node infra/relay/scripts/sync-github-config.ts --dry-run
 Apply (requires `gh auth login`):
 
 ```bash
-node infra/relay/scripts/sync-github-config.ts
+GITHUB_REPOSITORY=gannonh/kata-code node infra/relay/scripts/sync-github-config.ts
 ```
 
 Mapping:
@@ -137,13 +137,33 @@ Writes `KATACODE_CLERK_*` and derived `KATACODE_RELAY_URL` into repo root `.env`
 
 ---
 
-## Phase 3 — Deploy smoke (after GitHub sync)
+## Phase 2.5 — One-time Alchemy Cloudflare bootstrap
 
-1. **Relay dry-run:** GitHub Actions → **Deploy Kata Code Connect relay** → `dry_run=true`
-2. **Relay apply:** same workflow → `dry_run=false` (runs public endpoint + Clerk DPoP smoke)
-3. **Release dry-run:** **Release** workflow → stable or nightly dry-run (reads Alchemy `prod` state)
+Required before the first relay deploy on a new Cloudflare account. Creates Alchemy's `alchemy-state-store` worker and local profile credentials.
 
-Local equivalents after `infra/relay/.env` is filled:
+```bash
+CLOUDFLARE_ACCOUNT_ID="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_ACCOUNT_ID)")" \
+CLOUDFLARE_API_TOKEN="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_API_TOKEN)")" \
+pnpm --dir infra/relay exec alchemy cloudflare bootstrap --profile default
+```
+
+Notes:
+
+- Do **not** pass `--env-file .env` for bootstrap; export Cloudflare vars instead.
+- Do **not** set `CI=true` during bootstrap.
+- If deploy reports `Cloudflare State store not found`, rerun bootstrap before retrying deploy.
+
+---
+
+## Phase 3 — Deploy smoke (after bootstrap + GitHub sync)
+
+1. **Local dry-run:** `vp run --filter @kata-sh/code-relay deploy -- --stage prod --dry-run --yes`
+2. **Merge relay deploy PR** so `.github/workflows/deploy-relay.yml` is on `main`.
+3. **Relay dry-run:** GitHub Actions → **Deploy Kata Code Connect relay** → `dry_run=true`
+4. **Relay apply:** same workflow → `dry_run=false` (runs public endpoint + Clerk DPoP smoke)
+5. **Release dry-run:** **Release** workflow → stable or nightly dry-run (reads Alchemy `prod` state)
+
+Local dry-run command:
 
 ```bash
 vp run --filter @kata-sh/code-relay deploy -- --stage prod --dry-run --yes
@@ -194,8 +214,16 @@ node infra/relay/scripts/run-credential-smoke.ts
 set -a && source infra/relay/.env && set +a && node infra/relay/scripts/validate-deploy-config.ts --include-smoke
 
 # 3. Push to GitHub
-node infra/relay/scripts/sync-github-config.ts
+GITHUB_REPOSITORY=gannonh/kata-code node infra/relay/scripts/sync-github-config.ts
 
-# 4. Client dev env
+# 3b. Bootstrap Alchemy state store (once)
+CLOUDFLARE_ACCOUNT_ID="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_ACCOUNT_ID)")" \
+CLOUDFLARE_API_TOKEN="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_API_TOKEN)")" \
+pnpm --dir infra/relay exec alchemy cloudflare bootstrap --profile default
+
+# 4. Local deploy dry-run
+vp run --filter @kata-sh/code-relay deploy -- --stage prod --dry-run --yes
+
+# 5. Client dev env
 node scripts/sync-client-env-from-relay.ts
 ```

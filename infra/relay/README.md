@@ -102,6 +102,18 @@ vp run --filter @kata-sh/code-relay deploy -- --stage prod
 vp run --filter @kata-sh/code-relay deploy -- --env-file .env.local
 ```
 
+### First deploy on a new Cloudflare account
+
+Bootstrap Alchemy's Cloudflare state store once before the first `prod` deploy:
+
+```sh
+CLOUDFLARE_ACCOUNT_ID="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_ACCOUNT_ID)")" \
+CLOUDFLARE_API_TOKEN="$(node -e "const {parseEnv}=require('node:util');const {readFileSync}=require('node:fs');console.log(parseEnv(readFileSync('infra/relay/.env','utf8')).CLOUDFLARE_API_TOKEN)")" \
+pnpm --dir infra/relay exec alchemy cloudflare bootstrap --profile default
+```
+
+Export Cloudflare credentials into the shell for bootstrap; do not rely on `--env-file .env` for that command. See [Relay deploy setup](../../docs/operations/relay-deploy-setup.md) for the full operator checklist.
+
 Alchemy defaults personal deployments to the `dev_$USER` stage. Relay custom domains apply the same
 DNS-safe sanitization as Alchemy physical resource names, so `prod` uses
 `relay.<RELAY_API_ZONE_NAME>` and `dev_julius` uses
