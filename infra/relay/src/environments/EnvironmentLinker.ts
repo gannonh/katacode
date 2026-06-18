@@ -158,7 +158,7 @@ const make = Effect.gen(function* () {
           expiresAt: DateTime.formatIso(DateTime.makeUnsafe(candidate.exp * 1_000)),
         });
       }
-      const issuer = `t3-env:${candidate.environmentId}`;
+      const issuer = `kata-env:${candidate.environmentId}`;
       const relayIssuer = normalizeRelayIssuer(config.relayIssuer);
       const verified = yield* verifyRelayJwt({
         publicKey: candidate.environmentPublicKey,

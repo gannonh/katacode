@@ -23,8 +23,8 @@ import * as Schema from "effect/Schema";
 
 import * as RelayConfiguration from "../Config.ts";
 
-const LINK_CHALLENGE_TYP = "t3-link-challenge+jwt";
-const ACCESS_TOKEN_TYP = "t3-relay-dpop-access+jwt";
+const LINK_CHALLENGE_TYP = "kata-link-challenge+jwt";
+const ACCESS_TOKEN_TYP = "kata-relay-dpop-access+jwt";
 const LINK_CHALLENGE_KIND = "environment_link_challenge";
 
 const LinkChallengeClaims = Schema.Struct({

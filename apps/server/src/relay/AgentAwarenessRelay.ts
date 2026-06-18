@@ -182,7 +182,7 @@ const makePublishProof = Effect.fn("makePublishProof")(function* (input: {
   const now = yield* DateTime.now;
   const expiresAt = DateTime.add(now, { minutes: 5 });
   const payload = {
-    iss: `t3-env:${input.environmentId}`,
+    iss: `kata-env:${input.environmentId}`,
     aud: normalizeRelayIssuer(input.relayIssuer),
     sub: input.environmentId,
     jti: input.jti,

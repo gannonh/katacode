@@ -39,11 +39,11 @@ describe("relayOwnsManagedEndpointZone", () => {
 
 describe("relayResourceNameForStage", () => {
   it("isolates production and personal stages", () => {
-    expect(relayResourceNameForStage("t3-code-relay-traces", "prod")).toBe(
-      "t3-code-relay-traces-prod",
+    expect(relayResourceNameForStage("kata-code-relay-traces", "prod")).toBe(
+      "kata-code-relay-traces-prod",
     );
-    expect(relayResourceNameForStage("t3-code-relay-traces", "dev_julius")).toBe(
-      "t3-code-relay-traces-dev-julius",
+    expect(relayResourceNameForStage("kata-code-relay-traces", "dev_julius")).toBe(
+      "kata-code-relay-traces-dev-julius",
     );
   });
 });

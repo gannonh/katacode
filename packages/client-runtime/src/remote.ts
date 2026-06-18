@@ -279,7 +279,7 @@ export const fetchRemoteEnvironmentDescriptor = Effect.fn(
 )(function* (input: { readonly httpBaseUrl: string; readonly timeoutMs?: number }) {
   const client = yield* makeEnvironmentHttpApiClient(input.httpBaseUrl);
   return yield* executeRemoteRequest(
-    remoteEndpointUrl(input.httpBaseUrl, "/.well-known/t3/environment"),
+    remoteEndpointUrl(input.httpBaseUrl, "/.well-known/kata/environment"),
     input.timeoutMs ?? DEFAULT_REMOTE_REQUEST_TIMEOUT_MS,
     client.metadata.descriptor(),
   );

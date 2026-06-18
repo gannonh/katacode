@@ -217,7 +217,7 @@ function verifyEnvironmentResponse(input: {
   return verifyWithEnvironmentKeys({
     token: input.response.proof,
     typ: RELAY_MINT_RESPONSE_TYP,
-    issuer: `t3-env:${input.environmentId}`,
+    issuer: `kata-env:${input.environmentId}`,
     audience: normalizeRelayIssuer(input.relayIssuer),
     nowEpochSeconds: input.nowEpochSeconds,
     environmentPublicKeys: input.environmentPublicKeys,
@@ -250,7 +250,7 @@ function verifyEnvironmentHealthResponse(input: {
   return verifyWithEnvironmentKeys({
     token: input.response.proof,
     typ: RELAY_HEALTH_RESPONSE_TYP,
-    issuer: `t3-env:${input.environmentId}`,
+    issuer: `kata-env:${input.environmentId}`,
     audience: normalizeRelayIssuer(input.relayIssuer),
     nowEpochSeconds: Math.floor(input.now.epochMilliseconds / 1_000),
     environmentPublicKeys: input.environmentPublicKeys,
@@ -424,7 +424,7 @@ const make = Effect.gen(function* () {
       );
       const payload = {
         iss: relayIssuer,
-        aud: `t3-env:${link.environmentId}`,
+        aud: `kata-env:${link.environmentId}`,
         sub: input.userId,
         jti: yield* crypto.randomUUIDv4.pipe(
           Effect.mapError(
@@ -555,7 +555,7 @@ const make = Effect.gen(function* () {
       );
       const payload = {
         iss: relayIssuer,
-        aud: `t3-env:${link.environmentId}`,
+        aud: `kata-env:${link.environmentId}`,
         sub: input.userId,
         jti: yield* crypto.randomUUIDv4.pipe(
           Effect.mapError(
@@ -592,7 +592,7 @@ const make = Effect.gen(function* () {
       );
       const environmentClient = yield* makeEnvironmentClient(endpoint.httpBaseUrl);
       const decoded = yield* environmentClient.connect
-        .t3MintCredential({ payload: { proof } })
+        .kataConnectMintCredential({ payload: { proof } })
         .pipe(
           withoutRedirects,
           Effect.mapError(
