@@ -1,5 +1,9 @@
 # Specs log
 
+## 2026-06-17 (episodic upstream sync)
+
+- Documented episodic upstream policy in [ADR 0003](/adrs/0003-episodic-upstream-sync.md) and [upstream sync guide](/guides/upstream-sync.md); updated [roadmap](/specs/index.md) and [fork-setup spec](/specs/fork-setup.md).
+
 ## 2026-06-17 (Kata brand icons)
 
 - Completed fork icon rebrand on `main`: `apps/desktop/resources/source.png` drives `pnpm run generate:brand-rasters`; production icons used for dev, nightly, and hosted web ([FORK.md — brand marks](../../FORK.md#brand-logo-marks)).
@@ -7,7 +11,7 @@
 
 ## 2026-06-17 (Phase 2 pre-merge)
 
-- [PR #2](https://github.com/gannonh/katacode/pull/2) ready to merge: Codex review fixes (`dry_run` default version, prerelease npm `next` dist-tag), `vercel.ts` compile fix, Vercel project + `app.kata.sh` domains.
+- [PR #2](https://github.com/gannonh/kata-code/pull/2) ready to merge: Codex review fixes (`dry_run` default version, prerelease npm `next` dist-tag), `vercel.ts` compile fix, Vercel project + `app.kata.sh` domains.
 - Moved Phase 2 desktop/web release to **Completed** on [roadmap](/specs/index.md); post-merge validation tracked as **Next**.
 
 ## 2026-06-16 (Phase 2 desktop/web release build)
@@ -21,7 +25,7 @@
 
 ## 2026-06-16 (Phase 1 delivery)
 
-- Marked Phase 1 PR & CI complete on [roadmap](/specs/index.md); [PR #1](https://github.com/gannonh/katacode/pull/1) passes GitHub Actions.
+- Marked Phase 1 PR & CI complete on [roadmap](/specs/index.md); [PR #1](https://github.com/gannonh/kata-code/pull/1) passes GitHub Actions.
 - Added Phase 1 delivery notes and test-fixture guidance to [fork-setup spec](/specs/fork-setup.md).
 
 ## 2026-06-16

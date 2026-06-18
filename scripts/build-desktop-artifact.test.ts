@@ -54,7 +54,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           ConfigProvider.layer(
             ConfigProvider.fromEnv({
               env: {
-                KATACODE_DESKTOP_UPDATE_REPOSITORY: "gannonh/katacode",
+                KATACODE_DESKTOP_UPDATE_REPOSITORY: "gannonh/kata-code",
               },
             }),
           ),
@@ -65,7 +65,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           ConfigProvider.layer(
             ConfigProvider.fromEnv({
               env: {
-                GITHUB_REPOSITORY: "gannonh/katacode",
+                GITHUB_REPOSITORY: "gannonh/kata-code",
               },
             }),
           ),

@@ -237,7 +237,7 @@ Build should stop and ask before enabling mobile, marketing, relay/cloud VM depl
 
 ## Pre-merge (PR #2)
 
-- **PR:** [gannonh/katacode#2](https://github.com/gannonh/katacode/pull/2)
+- **PR:** [gannonh/kata-code#2](https://github.com/gannonh/kata-code/pull/2)
 - **Additional fixes:** `dry_run` stable dispatch without version input; prerelease npm dist-tag `next`; `apps/web/vercel.ts` branding inline for Vercel config compile; Vercel project `katacode-web` + `app.kata.sh` domains
 - **Secrets configured:** macOS signing, Vercel, GitHub Release app (`RELEASE_APP_*`)
 - **Post-merge:** merge to `main`, enable branch protection (five CI jobs), `gh workflow run release.yml -f dry_run=true`, then nightly test release — see [release runbook](/operations/release.md)

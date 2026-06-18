@@ -4,7 +4,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gannonh/katacode",
+    "url": "https://github.com/gannonh/kata-code",
     "directory": "apps/server"
   },
   "bin": {

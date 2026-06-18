@@ -30,7 +30,7 @@ Workflow: [`.github/workflows/release.yml`](../../.github/workflows/release.yml)
 Verify names (not values):
 
 ```bash
-gh secret list -R gannonh/katacode
+gh secret list -R gannonh/kata-code
 ```
 
 ## macOS signing certificate
@@ -46,14 +46,14 @@ base64 -i path/to/DeveloperIDApplication.p12 -o /tmp/katacode-csc-link.txt
 4. Store secrets:
 
 ```bash
-gh secret set CSC_LINK -R gannonh/katacode < /tmp/katacode-csc-link.txt
-gh secret set CSC_KEY_PASSWORD -R gannonh/katacode
+gh secret set CSC_LINK -R gannonh/kata-code < /tmp/katacode-csc-link.txt
+gh secret set CSC_KEY_PASSWORD -R gannonh/kata-code
 
 set -a && source .env && set +a
 
-gh secret set APPLE_ID -R gannonh/katacode --body "$APPLE_ID"
-gh secret set APPLE_APP_SPECIFIC_PASSWORD -R gannonh/katacode --body "$APPLE_APP_SPECIFIC_PASSWORD"
-gh secret set APPLE_TEAM_ID -R gannonh/katacode --body "$APPLE_TEAM_ID"
+gh secret set APPLE_ID -R gannonh/kata-code --body "$APPLE_ID"
+gh secret set APPLE_APP_SPECIFIC_PASSWORD -R gannonh/kata-code --body "$APPLE_APP_SPECIFIC_PASSWORD"
+gh secret set APPLE_TEAM_ID -R gannonh/kata-code --body "$APPLE_TEAM_ID"
 
 rm /tmp/katacode-csc-link.txt
 ```
@@ -81,7 +81,7 @@ Domain defaults (override with repository variables if needed):
 Stable releases publish with dist-tag `latest`; nightlies use `nightly`; stable prereleases (`1.2.3-rc.1`) use `next`.
 
 1. Publish once from your machine (`npm login`, then `node apps/server/scripts/cli.ts publish ...`) to create the package.
-2. On npmjs.com: **Packages → `@kata-sh/code-cli` → Settings → Trusted publishing → GitHub Actions** — org `gannonh`, repo `katacode`, workflow `release.yml`, action `npm publish`.
+2. On npmjs.com: **Packages → `@kata-sh/code-cli` → Settings → Trusted publishing → GitHub Actions** — org `gannonh`, kata-code, workflow `release.yml`, action `npm publish`.
 3. CI uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC); no `NPM_TOKEN` secret.
 
 ## Optional (Kata Code Connect)

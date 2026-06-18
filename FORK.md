@@ -1,7 +1,7 @@
 # Kata Code fork setup plan
 
 Hard fork of [pingdotgg/t3code](https://github.com/pingdotgg/t3code) maintained at
-[gannonh/katacode](https://github.com/gannonh/katacode).
+[gannonh/kata-code](https://github.com/gannonh/kata-code).
 
 This document is the source of truth for fork operations: identity, upstream sync,
 release split, and intentional divergence. Update it whenever sync policy or branding
@@ -9,17 +9,17 @@ decisions change.
 
 ## Current status
 
-| Item                                       | Status                 | Notes                                                                                |
-| ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------ |
-| Fork remote (`origin`)                     | Done                   | `https://github.com/gannonh/katacode.git`                                            |
-| Upstream remote (`upstream`)               | Done                   | `https://github.com/pingdotgg/t3code.git`                                            |
-| Baseline sync point                        | `708d5383`             | Last merged upstream SHA — update after each sync                                    |
-| Product rename (`@t3tools/*` → fork scope) | **Done**               | Phase 1.1                                                                            |
-| Env prefix rename (`KATACODE_*`)           | **Done**               | `~/.katacode`, protocols, storage keys                                               |
-| User-facing docs rebrand                   | **Done**               | README, CONTRIBUTING, quick-start                                                    |
-| Phase 1 verification gate                  | **Done**               | `vp check && vp run typecheck`                                                       |
-| CI / release split from upstream           | **Done** (desktop/web) | [PR #2](https://github.com/gannonh/katacode/pull/2); relay/mobile EAS still disabled |
-| `FORK.md` divergence log                   | Started                | This file                                                                            |
+| Item                                       | Status                 | Notes                                                                                 |
+| ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------- |
+| Fork remote (`origin`)                     | Done                   | `https://github.com/gannonh/kata-code.git`                                            |
+| Upstream remote (`upstream`)               | Done                   | `https://github.com/pingdotgg/t3code.git`                                             |
+| Baseline sync point                        | `708d5383`             | Last merged upstream SHA — update after each sync                                     |
+| Product rename (`@t3tools/*` → fork scope) | **Done**               | Phase 1.1                                                                             |
+| Env prefix rename (`KATACODE_*`)           | **Done**               | `~/.katacode`, protocols, storage keys                                                |
+| User-facing docs rebrand                   | **Done**               | README, CONTRIBUTING, quick-start                                                     |
+| Phase 1 verification gate                  | **Done**               | `vp check && vp run typecheck`                                                        |
+| CI / release split from upstream           | **Done** (desktop/web) | [PR #2](https://github.com/gannonh/kata-code/pull/2); relay/mobile EAS still disabled |
+| `FORK.md` divergence log                   | Started                | This file                                                                             |
 
 Record the last successful upstream merge here:
 
@@ -55,7 +55,7 @@ Decide these once, then execute Phase 1 in a single focused branch.
 | Upstream                 | Kata Code                      | Status   |
 | ------------------------ | ------------------------------ | -------- |
 | Product name             | Kata Code                      | **Done** |
-| GitHub repo              | `gannonh/katacode`             | **Done** |
+| GitHub repo              | `gannonh/kata-code`            | **Done** |
 | npm scope                | `@kata-sh/code`                | **Done** |
 | CLI binary               | `katacode`                     | **Done** |
 | Monorepo root package    | `@kata-sh/code-monorepo`       | **Done** |
@@ -131,14 +131,14 @@ Mobile production icon composer uses `apps/mobile/assets/icon-composer-prod.icon
 ```bash
 cd /Volumes/EVO/dev/katacode
 git remote -v
-# origin   → gannonh/katacode
+# origin   → gannonh/kata-code
 # upstream → pingdotgg/t3code
 ```
 
 Clone convention for new machines:
 
 ```bash
-git clone https://github.com/gannonh/katacode.git
+git clone https://github.com/gannonh/kata-code.git
 cd katacode
 git remote add upstream https://github.com/pingdotgg/t3code.git
 git fetch upstream --tags
@@ -257,7 +257,7 @@ in this repo.
 
 ### 2.3 Release channels
 
-- Tag format: `v0.1.0` on `gannonh/katacode` only.
+- Tag format: `v0.1.0` on `gannonh/kata-code` only.
 - Do not push tags to `upstream`.
 - Disable or rewrite nightly cron in `release.yml` until fork release process is ready.
 - Desktop auto-update feed must point at fork release URLs, not `pingdotgg/t3code`.
@@ -266,14 +266,17 @@ in this repo.
 
 ## Phase 3 — Upstream sync runbook
 
-**Default strategy: merge `upstream/main` on a sync branch.** Use cherry-pick only for
-individual hotfixes when a full merge is not ready.
+**Policy:** [ADR 0003 — Episodic upstream sync](docs/adrs/0003-episodic-upstream-sync.md). **Operator guide:** [docs/guides/upstream-sync.md](docs/guides/upstream-sync.md).
+
+**Default strategy: merge `upstream/main` (or a pinned upstream SHA) on a sync branch.** Use cherry-pick only for individual hotfixes when a full merge is not ready. Kata Code does **not** target upstream parity.
 
 ### When to sync
 
-- Weekly while upstream is active, or
-- Before starting large fork features that touch `contracts`, `server`, or `web`, or
-- When you need a specific upstream fix.
+- When there is a **concrete reason** (security, reliability, provider/protocol change, or a bounded upstream feature set worth absorbing), or
+- Before starting large fork features that touch `contracts`, `server`, or `web` (optional prep sync), or
+- When you need a specific upstream fix (prefer cherry-pick if a full merge is not ready).
+
+Do **not** sync on a fixed weekly schedule solely because upstream is active.
 
 ### Step-by-step
 

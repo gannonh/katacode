@@ -14,7 +14,7 @@ Accepted
 
 ## Context
 
-Kata Code is a hard fork of [pingdotgg/t3code](https://github.com/pingdotgg/t3code). We need upstream bug fixes and features while shipping an independent product from `gannonh/katacode`.
+Kata Code is a hard fork of [pingdotgg/t3code](https://github.com/pingdotgg/t3code). We need upstream bug fixes and features while shipping an independent product from `gannonh/kata-code`.
 
 Alternatives considered:
 
@@ -24,7 +24,7 @@ Alternatives considered:
 
 ## Decision
 
-1. Keep `origin` → `gannonh/katacode` and `upstream` → `pingdotgg/t3code`.
+1. Keep `origin` → `gannonh/kata-code` and `upstream` → `pingdotgg/t3code`.
 2. Default sync strategy: **merge `upstream/main`** on a dated `upstream-sync-*` branch, verify, then merge to `main`.
 3. Use **cherry-pick** only for urgent single commits between scheduled merges.
 4. Record rejected upstream commits and cherry-picks in [FORK.md](../../FORK.md) divergence log.
@@ -40,3 +40,5 @@ Alternatives considered:
 
 - [Fork setup spec](/specs/fork-setup.md)
 - [ADR 0002 — Product identity](/adrs/0002-katacode-product-identity.md)
+- [ADR 0003 — Episodic upstream sync](/adrs/0003-episodic-upstream-sync.md) (cadence and independence policy)
+- [Upstream sync guide](/guides/upstream-sync.md)

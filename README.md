@@ -2,7 +2,7 @@
 
 Kata Code is a hard fork of [T3 Code](https://github.com/pingdotgg/t3code) — a minimal web GUI for coding agents (Codex, Claude, Cursor, OpenCode, and more).
 
-This repository is maintained independently at [gannonh/katacode](https://github.com/gannonh/katacode). See [FORK.md](./FORK.md) for fork operations, upstream sync, and intentional divergence.
+This repository is maintained independently at [gannonh/kata-code](https://github.com/gannonh/kata-code). See [FORK.md](./FORK.md) for fork operations, upstream sync, and intentional divergence.
 
 ## Installation
 
@@ -32,7 +32,7 @@ npx @kata-sh/code-cli@latest
 katacode --help
 ```
 
-Desktop releases will be published from [gannonh/katacode releases](https://github.com/gannonh/katacode/releases) once Phase 2 CI/release split is complete.
+Desktop releases will be published from [gannonh/kata-code releases](https://github.com/gannonh/kata-code/releases) once Phase 2 CI/release split is complete.
 
 ## Status
 

@@ -21,7 +21,7 @@ The fork must be distinguishable from upstream T3 Code in package names, CLI, en
 | Surface                  | Kata Code value                   |
 | ------------------------ | --------------------------------- |
 | Product name             | Kata Code                         |
-| GitHub                   | `gannonh/katacode`                |
+| GitHub                   | `gannonh/kata-code`               |
 | npm scope                | `@kata-sh/code-*`                 |
 | CLI package              | `@kata-sh/code-cli`               |
 | CLI binary               | `katacode` (not `kata`, not `t3`) |

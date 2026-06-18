@@ -30,11 +30,11 @@ vp run release:smoke
 Confirms CI gates + macOS signing secrets. Does not build or publish.
 
 ```bash
-gh workflow run release.yml -R gannonh/katacode \
+gh workflow run release.yml -R gannonh/kata-code \
   -f dry_run=true \
   -f channel=stable
 
-gh run watch -R gannonh/katacode <run-number>
+gh run watch -R gannonh/kata-code <run-number>
 ```
 
 Pass criteria: **Validate macOS signing inputs** succeeds.
@@ -51,7 +51,7 @@ Pass criteria: **Validate macOS signing inputs** succeeds.
 1. Check what is already shipped:
 
 ```bash
-gh release list -R gannonh/katacode --limit 5
+gh release list -R gannonh/kata-code --limit 5
 node -p "require('./apps/desktop/package.json').version"
 ```
 
@@ -81,7 +81,7 @@ Example: package.json `0.0.27` → tag `v0.0.28-nightly.20260617.578`.
 Release current `main` HEAD:
 
 ```bash
-gh workflow run release.yml -R gannonh/katacode \
+gh workflow run release.yml -R gannonh/kata-code \
   -f channel=stable \
   -f version=0.0.28
 ```
@@ -95,8 +95,8 @@ git tag v0.0.28 && git push origin v0.0.28
 ### Verify stable
 
 ```bash
-gh run watch -R gannonh/katacode $(gh run list -R gannonh/katacode -w release.yml -L 1 --json databaseId -q '.[0].databaseId')
-gh release view v0.0.28 -R gannonh/katacode
+gh run watch -R gannonh/kata-code $(gh run list -R gannonh/kata-code -w release.yml -L 1 --json databaseId -q '.[0].databaseId')
+gh release view v0.0.28 -R gannonh/kata-code
 ```
 
 | Check                | What to confirm                                                            |
@@ -112,15 +112,15 @@ gh release view v0.0.28 -R gannonh/katacode
 Release current `main` HEAD (version computed automatically — step 3):
 
 ```bash
-gh workflow run release.yml -R gannonh/katacode \
+gh workflow run release.yml -R gannonh/kata-code \
   -f channel=nightly
 ```
 
 ### Verify nightly
 
 ```bash
-gh run watch -R gannonh/katacode $(gh run list -R gannonh/katacode -w release.yml -L 1 --json databaseId -q '.[0].databaseId')
-gh release list -R gannonh/katacode --limit 3   # newest tag ends with -nightly.*
+gh run watch -R gannonh/kata-code $(gh run list -R gannonh/kata-code -w release.yml -L 1 --json databaseId -q '.[0].databaseId')
+gh release list -R gannonh/kata-code --limit 3   # newest tag ends with -nightly.*
 ```
 
 | Check              | What to confirm                                        |
@@ -141,26 +141,26 @@ gh release list -R gannonh/katacode --limit 3   # newest tag ends with -nightly.
 
 ```bash
 # Last shipped + current package.json version
-gh release list -R gannonh/katacode --limit 5
+gh release list -R gannonh/kata-code --limit 5
 node -p "require('./apps/desktop/package.json').version"
 
 # Local gates
 vp check && vp run typecheck && vp run test && vp run release:smoke
 
 # Dry run
-gh workflow run release.yml -R gannonh/katacode -f dry_run=true -f channel=stable
+gh workflow run release.yml -R gannonh/kata-code -f dry_run=true -f channel=stable
 
 # Stable (you supply version)
-gh workflow run release.yml -R gannonh/katacode -f channel=stable -f version=0.0.28
+gh workflow run release.yml -R gannonh/kata-code -f channel=stable -f version=0.0.28
 
 # Nightly (version automatic)
-gh workflow run release.yml -R gannonh/katacode -f channel=nightly
+gh workflow run release.yml -R gannonh/kata-code -f channel=nightly
 
 # Watch the run you just triggered (RUN_URL printed by gh workflow run)
-gh run watch -R gannonh/katacode "${RUN_URL##*/}"
+gh run watch -R gannonh/kata-code "${RUN_URL##*/}"
 
 # Or watch the latest release.yml run
-gh run watch -R gannonh/katacode $(gh run list -R gannonh/katacode -w release.yml -L 1 --json databaseId -q '.[0].databaseId')
+gh run watch -R gannonh/kata-code $(gh run list -R gannonh/kata-code -w release.yml -L 1 --json databaseId -q '.[0].databaseId')
 ```
 
 ## Related

@@ -51,11 +51,11 @@ function makeThread(
 describe("groupProjectsByRepository", () => {
   it("groups projects across environments by repository identity", () => {
     const repoIdentity = {
-      canonicalKey: "github.com/gannonh/katacode",
+      canonicalKey: "github.com/gannonh/kata-code",
       locator: {
         source: "git-remote" as const,
         remoteName: "origin",
-        remoteUrl: "git@github.com:gannonh/katacode.git",
+        remoteUrl: "git@github.com:gannonh/kata-code.git",
       },
       provider: "github",
       owner: "gannonh",
@@ -101,9 +101,9 @@ describe("groupProjectsByRepository", () => {
 
     expect(groups).toHaveLength(1);
     expect(groups[0]).toMatchObject({
-      key: "github.com/gannonh/katacode",
+      key: "github.com/gannonh/kata-code",
       title: "Kata Code",
-      subtitle: "gannonh/katacode",
+      subtitle: "gannonh/kata-code",
       projectCount: 2,
       threadCount: 2,
     });

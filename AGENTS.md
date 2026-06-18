@@ -23,7 +23,7 @@ Default dev ports: web `5733`, server `13773`. Offset with `KATACODE_DEV_INSTANC
 Kata Code is a hard fork of [T3 Code](https://github.com/pingdotgg/t3code) — a minimal
 web GUI for using coding agents like Codex and Claude.
 
-- **Repo:** `gannonh/katacode` · **npm scope:** `@kata-sh/code-*` · **CLI:** `katacode` (`@kata-sh/code-cli`)
+- **Repo:** `gannonh/kata-code` · **npm scope:** `@kata-sh/code-*` · **CLI:** `katacode` (`@kata-sh/code-cli`)
 - **Env prefix:** `KATACODE_*` · **State dir:** `~/.katacode` (override with `KATACODE_HOME`)
 - **Protocols:** `katacode://` / `katacode-dev://` · **Desktop bundle:** `com.katacode.app`
 
@@ -43,6 +43,7 @@ maintainability is encouraged.
 - **CI:** PR checks run from [`.github/workflows/ci.yml`](./.github/workflows/ci.yml). Require **Check**, **Test**, **Test Browser**, **Release Smoke**, and **Mobile Native Static Analysis** on `main` — see [branch protection](./docs/operations/ci.md#branch-protection-main). **Release** ([`release.yml`](./.github/workflows/release.yml)) runs on tags/`workflow_dispatch`, not PRs. Relay deploy and mobile EAS remain in [`.github/disabled/`](./.github/disabled/README.md).
 - **Hosted web:** `apps/web` deploys to Vercel (`katacode-web`, root `apps/web`). Domains: `app.kata.sh`, `latest.app.kata.sh`, `nightly.app.kata.sh`. `apps/web/vercel.ts` inlines branding constants — Vercel compiles config before the monorepo build; keep in sync with `packages/shared/src/branding.ts`.
 - **Release secrets:** see [release setup](./docs/operations/release-setup.md). Day-to-day releases: [release runbook](./docs/operations/release.md).
+- **Upstream sync:** episodic merges only — no parity with `upstream/main`. Read [FORK.md](./FORK.md) and [upstream sync guide](./docs/guides/upstream-sync.md) before merging `upstream`; log rejects in the divergence log. Keep fork-only code in extension modules ([FORK.md — Phase 4](./FORK.md#phase-4--divergence-boundaries)).
 - **Fork tests:** rename product surfaces (`katacode`, `KATACODE_*`, worktree prefix `katacode/`) but keep upstream-shaped repo names in fixtures (`octocat/t3code` → clone dir `t3code`). See [fork rebrand test fixtures](./docs/operations/ci.md#fork-rebrand-test-fixtures).
 
 ## Open Knowledge Format docs

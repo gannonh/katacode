@@ -2,6 +2,12 @@
 
 Setup, user workflows, providers, cloud, and integrations.
 
+## Fork & upstream
+
+| Document                                  | Summary                                         |
+| ----------------------------------------- | ----------------------------------------------- |
+| [Upstream sync](/guides/upstream-sync.md) | Selective merges from T3 Code; episodic cadence |
+
 ## Getting started
 
 | Document                                                       | Summary                           |

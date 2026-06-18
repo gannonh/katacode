@@ -1,5 +1,9 @@
 # ADR log
 
+## 2026-06-17 (episodic upstream sync)
+
+- Added [ADR 0003 — Episodic upstream sync and fork independence](/adrs/0003-episodic-upstream-sync.md); cross-linked from [ADR 0001](/adrs/0001-connected-fork-upstream-merge.md).
+
 ## 2026-06-17 (release + brand icons)
 
 - Updated [ADR 0002](/adrs/0002-katacode-product-identity.md) consequences: active `release.yml` and hosted web; production icons on all channels; relay/EAS still disabled.
