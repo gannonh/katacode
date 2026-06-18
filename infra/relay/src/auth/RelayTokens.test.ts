@@ -2,6 +2,10 @@ import * as NodeCrypto from "node:crypto";
 
 import { describe, expect, it } from "@effect/vitest";
 import { signRelayJwt } from "@kata-sh/code-shared/relayJwt";
+import {
+  WIRE_RELAY_CLERK_JWT_AUDIENCE,
+  WIRE_RELAY_DPOP_ACCESS_JWT_TYP,
+} from "@kata-sh/code-contracts/wireIdentity";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
@@ -26,7 +30,7 @@ const config = RelayConfiguration.RelayConfiguration.of({
   apnsDeliveryJobSigningSecret: Redacted.make("job-secret"),
   clerkSecretKey: Redacted.make("clerk-secret"),
   clerkPublishableKey: "pk_test_test",
-  clerkJwtAudience: "kata-code-relay",
+  clerkJwtAudience: WIRE_RELAY_CLERK_JWT_AUDIENCE,
   cloudMintPrivateKey: Redacted.make(keyPair.privateKey),
   cloudMintPublicKey: keyPair.publicKey,
   managedEndpointBaseDomain: undefined,
@@ -145,7 +149,7 @@ describe("RelayTokens", () => {
       const relayTokens = yield* RelayTokens.RelayTokens;
       const token = yield* signRelayJwt({
         privateKey: keyPair.privateKey,
-        typ: "kata-relay-dpop-access+jwt",
+        typ: WIRE_RELAY_DPOP_ACCESS_JWT_TYP,
         payload: {
           iss: "https://relay.example.test",
           aud: "https://relay.example.test",
@@ -168,7 +172,7 @@ describe("RelayTokens", () => {
       const relayTokens = yield* RelayTokens.RelayTokens;
       const token = yield* signRelayJwt({
         privateKey: keyPair.privateKey,
-        typ: "kata-relay-dpop-access+jwt",
+        typ: WIRE_RELAY_DPOP_ACCESS_JWT_TYP,
         payload: {
           iss: "https://relay.example.test",
           aud: "https://relay.example.test",

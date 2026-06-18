@@ -19,6 +19,15 @@ export const WIRE_RELAY_CLERK_JWT_TEMPLATE = "kata-relay" as const;
 /** JWT `aud` claim accepted by the hosted relay worker. */
 export const WIRE_RELAY_CLERK_JWT_AUDIENCE = "kata-code-relay" as const;
 
+export const WIRE_RELAY_ENV_LINK_JWT_TYP = "kata-env-link+jwt" as const;
+export const WIRE_RELAY_CLOUD_MINT_REQUEST_JWT_TYP = "kata-cloud-mint+jwt" as const;
+export const WIRE_RELAY_CLOUD_HEALTH_REQUEST_JWT_TYP = "kata-cloud-health+jwt" as const;
+export const WIRE_RELAY_ENV_MINT_RESPONSE_JWT_TYP = "kata-env-mint+jwt" as const;
+export const WIRE_RELAY_ENV_HEALTH_RESPONSE_JWT_TYP = "kata-env-health+jwt" as const;
+export const WIRE_RELAY_ENV_ACTIVITY_JWT_TYP = "kata-env-activity+jwt" as const;
+export const WIRE_RELAY_LINK_CHALLENGE_JWT_TYP = "kata-link-challenge+jwt" as const;
+export const WIRE_RELAY_DPOP_ACCESS_JWT_TYP = "kata-relay-dpop-access+jwt" as const;
+
 export function wireEnvironmentIssuer(environmentId: string): string {
   return `${WIRE_ENVIRONMENT_ISSUER_PREFIX}${environmentId}`;
 }

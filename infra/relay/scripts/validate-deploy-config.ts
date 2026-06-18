@@ -6,19 +6,15 @@ import {
   resolveRelayDeployConfig,
   resolveRelayDeploySmokeConfig,
 } from "./deploy-config.ts";
-
-function readEnv(names: ReadonlyArray<string>) {
-  return Object.fromEntries(names.map((name) => [name, process.env[name]]));
-}
+import { mergedRelayEnv, readRelayEnv } from "./relay-env.ts";
 
 const includeSmoke = process.argv.includes("--include-smoke");
+const env = mergedRelayEnv();
 const status = resolveRelayDeployConfig(
-  readEnv(RELAY_DEPLOY_VARIABLE_NAMES),
-  readEnv(RELAY_DEPLOY_SECRET_NAMES),
+  readRelayEnv(RELAY_DEPLOY_VARIABLE_NAMES, env),
+  readRelayEnv(RELAY_DEPLOY_SECRET_NAMES, env),
 );
-const missingSmokeVariables = includeSmoke
-  ? resolveRelayDeploySmokeConfig(process.env as Readonly<Record<string, string | undefined>>)
-  : [];
+const missingSmokeVariables = includeSmoke ? resolveRelayDeploySmokeConfig(env) : [];
 
 if (status.ready && missingSmokeVariables.length === 0) {
   process.stdout.write("Relay production deploy configuration is complete.\n");

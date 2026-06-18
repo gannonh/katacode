@@ -3,6 +3,7 @@ import type {
   RelayEnvironmentLinkProofPayload,
   RelayEnvironmentLinkRequest,
 } from "@kata-sh/code-contracts/relay";
+import { wireEnvironmentIssuer } from "@kata-sh/code-contracts/wireIdentity";
 import { RELAY_LINK_PROOF_TYP } from "@kata-sh/code-shared/relayJwt";
 import { describe, expect, it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
@@ -69,7 +70,7 @@ const makeRequest = Effect.gen(function* () {
     expiresAtEpochSeconds: Math.floor(expiresAt.epochMilliseconds / 1_000),
   });
   const payload = {
-    iss: "kata-env:env-link-test",
+    iss: wireEnvironmentIssuer("env-link-test"),
     aud: "https://relay.example.test",
     sub: "env-link-test",
     jti: "link-proof-jti",

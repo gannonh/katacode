@@ -31,6 +31,10 @@ import {
   EditorId,
 } from "@kata-sh/code-contracts";
 import {
+  WIRE_CONNECT_API_PREFIX,
+  wireEnvironmentIssuer,
+} from "@kata-sh/code-contracts/wireIdentity";
+import {
   computeDpopAccessTokenHash,
   computeDpopJwkThumbprint,
   type DpopPublicJwk,
@@ -1026,7 +1030,7 @@ const makeCloudMintCredentialRequest = (input: {
 }) => {
   const payload = {
     iss: input.issuer ?? "https://relay.example.test",
-    aud: input.audience ?? `kata-env:${input.environmentId}`,
+    aud: input.audience ?? wireEnvironmentIssuer(input.environmentId),
     sub: input.subject ?? "user_123",
     jti: input.jti ?? "cloud-mint-jti-1",
     environmentId: input.environmentId,
@@ -1063,7 +1067,7 @@ const makeCloudEnvironmentHealthRequest = (input: {
 }) => {
   const payload = {
     iss: input.issuer ?? "https://relay.example.test",
-    aud: input.audience ?? `kata-env:${input.environmentId}`,
+    aud: input.audience ?? wireEnvironmentIssuer(input.environmentId),
     sub: input.subject ?? "user_123",
     jti: input.jti ?? "cloud-health-jti-1",
     environmentId: input.environmentId,
@@ -2457,7 +2461,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const mintUrl = yield* getHttpServerUrl("/api/kata-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/mint-credential`);
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -2515,7 +2519,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/kata-connect/health");
+      const healthUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/health`);
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -2575,7 +2579,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/kata-connect/health");
+      const healthUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/health`);
       const postHealth = () =>
         fetchEffect(healthUrl, {
           method: "POST",
@@ -2629,7 +2633,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.equal(relayConfigResponse.status, 200);
 
         const now = yield* DateTime.now;
-        const mintUrl = yield* getHttpServerUrl("/api/kata-connect/mint-credential");
+        const mintUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/mint-credential`);
         const postMint = (request: ReturnType<typeof makeCloudMintCredentialRequest>) =>
           fetchEffect(mintUrl, {
             method: "POST",
@@ -2729,7 +2733,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         issuedAt: DateTime.formatIso(now),
         expiresAt: DateTime.formatIso(DateTime.add(now, { minutes: 5 })),
       });
-      const healthUrl = yield* getHttpServerUrl("/api/kata-connect/health");
+      const healthUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/health`);
       const healthResponse = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -2804,7 +2808,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           privateKey: cloudKeyPair.privateKey,
           environmentId: testEnvironmentDescriptor.environmentId,
           clientProofKeyThumbprint: "client-proof-key-thumbprint",
-          audience: "kata-env:other-environment",
+          audience: wireEnvironmentIssuer("other-environment"),
           jti: "cloud-mint-jti-wrong-audience",
           nonce: "cloud-mint-nonce-wrong-audience",
           issuedAt: DateTime.formatIso(now),
@@ -2844,7 +2848,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const mintUrl = yield* getHttpServerUrl("/api/kata-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/mint-credential`);
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -2895,7 +2899,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const mintUrl = yield* getHttpServerUrl("/api/kata-connect/mint-credential");
+      const mintUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/mint-credential`);
       const response = yield* fetchEffect(mintUrl, {
         method: "POST",
         headers: {
@@ -2946,7 +2950,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/kata-connect/health");
+      const healthUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/health`);
       const postHealth = (request: ReturnType<typeof makeCloudEnvironmentHealthRequest>) =>
         fetchEffect(healthUrl, {
           method: "POST",
@@ -2971,7 +2975,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         makeCloudEnvironmentHealthRequest({
           privateKey: cloudKeyPair.privateKey,
           environmentId: testEnvironmentDescriptor.environmentId,
-          audience: "kata-env:other-environment",
+          audience: wireEnvironmentIssuer("other-environment"),
           jti: "cloud-health-jti-wrong-audience",
           nonce: "cloud-health-nonce-wrong-audience",
           issuedAt: DateTime.formatIso(now),
@@ -3011,7 +3015,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/kata-connect/health");
+      const healthUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/health`);
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {
@@ -3061,7 +3065,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       assert.equal(relayConfigResponse.status, 200);
 
       const now = yield* DateTime.now;
-      const healthUrl = yield* getHttpServerUrl("/api/kata-connect/health");
+      const healthUrl = yield* getHttpServerUrl(`${WIRE_CONNECT_API_PREFIX}/health`);
       const response = yield* fetchEffect(healthUrl, {
         method: "POST",
         headers: {

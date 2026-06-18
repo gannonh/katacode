@@ -1,33 +1,100 @@
-export const RELAY_DEPLOY_VARIABLE_NAMES = [
-  "CLOUDFLARE_ACCOUNT_ID",
-  "PLANETSCALE_ORGANIZATION",
-  "AXIOM_ORG_ID",
-  "RELAY_API_ZONE_NAME",
-  "RELAY_TUNNEL_ZONE_NAME",
-  "CLERK_PUBLISHABLE_KEY",
-  "CLERK_JWT_AUDIENCE",
-  "CLERK_JWT_TEMPLATE",
-  "CLERK_CLI_OAUTH_CLIENT_ID",
-  "APNS_ENVIRONMENT",
-  "APNS_TEAM_ID",
-  "APNS_KEY_ID",
-  "APNS_BUNDLE_ID",
+export type RelayDeployKeyKind = "variable" | "secret";
+export type RelayDeployGithubDestination = "repo" | "production";
+
+export interface RelayDeployKeyDef {
+  readonly name: string;
+  readonly kind: RelayDeployKeyKind;
+  readonly github?: RelayDeployGithubDestination;
+  readonly githubOptional?: boolean;
+  readonly clientEnvKey?: string;
+}
+
+export const RELAY_DEPLOY_REGISTRY = [
+  { name: "CLOUDFLARE_ACCOUNT_ID", kind: "variable", github: "repo" },
+  { name: "PLANETSCALE_ORGANIZATION", kind: "variable", github: "repo" },
+  { name: "AXIOM_ORG_ID", kind: "variable", github: "repo" },
+  { name: "RELAY_API_ZONE_NAME", kind: "variable", github: "production" },
+  { name: "RELAY_TUNNEL_ZONE_NAME", kind: "variable", github: "production" },
+  {
+    name: "CLERK_PUBLISHABLE_KEY",
+    kind: "variable",
+    github: "production",
+    clientEnvKey: "KATACODE_CLERK_PUBLISHABLE_KEY",
+  },
+  { name: "CLERK_JWT_AUDIENCE", kind: "variable", github: "production" },
+  {
+    name: "CLERK_JWT_TEMPLATE",
+    kind: "variable",
+    github: "production",
+    clientEnvKey: "KATACODE_CLERK_JWT_TEMPLATE",
+  },
+  {
+    name: "CLERK_CLI_OAUTH_CLIENT_ID",
+    kind: "variable",
+    github: "production",
+    clientEnvKey: "KATACODE_CLERK_CLI_OAUTH_CLIENT_ID",
+  },
+  { name: "APNS_ENVIRONMENT", kind: "variable", github: "production" },
+  { name: "APNS_TEAM_ID", kind: "variable", github: "production" },
+  { name: "APNS_KEY_ID", kind: "variable", github: "production" },
+  { name: "APNS_BUNDLE_ID", kind: "variable", github: "production" },
+  { name: "CLOUDFLARE_API_TOKEN", kind: "secret", github: "production" },
+  { name: "PLANETSCALE_API_TOKEN_ID", kind: "secret", github: "production" },
+  { name: "PLANETSCALE_API_TOKEN", kind: "secret", github: "production" },
+  { name: "AXIOM_TOKEN", kind: "secret", github: "production" },
+  { name: "CLERK_SECRET_KEY", kind: "secret", github: "production" },
+  { name: "APNS_PRIVATE_KEY", kind: "secret", github: "production" },
+] as const satisfies ReadonlyArray<RelayDeployKeyDef>;
+
+export const RELAY_DEPLOY_SMOKE_REGISTRY = [
+  { name: "CLERK_SMOKE_USER_ID", kind: "variable", github: "production" },
+] as const satisfies ReadonlyArray<RelayDeployKeyDef>;
+
+export const RELAY_DEPLOY_OPTIONAL_REGISTRY = [
+  { name: "RELAY_DOMAIN", kind: "variable", github: "production", githubOptional: true },
+] as const satisfies ReadonlyArray<RelayDeployKeyDef>;
+
+function namesWhere(
+  registry: ReadonlyArray<RelayDeployKeyDef>,
+  predicate: (entry: RelayDeployKeyDef) => boolean,
+): ReadonlyArray<string> {
+  return registry.filter(predicate).map((entry) => entry.name);
+}
+
+export const RELAY_DEPLOY_VARIABLE_NAMES = namesWhere(
+  RELAY_DEPLOY_REGISTRY,
+  (entry) => entry.kind === "variable",
+);
+export const RELAY_DEPLOY_SECRET_NAMES = namesWhere(
+  RELAY_DEPLOY_REGISTRY,
+  (entry) => entry.kind === "secret",
+);
+export const RELAY_DEPLOY_SMOKE_VARIABLE_NAMES = namesWhere(
+  RELAY_DEPLOY_SMOKE_REGISTRY,
+  (entry) => entry.kind === "variable",
+);
+
+export const RELAY_GITHUB_REPO_VARIABLES = namesWhere(
+  RELAY_DEPLOY_REGISTRY,
+  (entry) => entry.kind === "variable" && entry.github === "repo",
+);
+
+export const RELAY_GITHUB_PRODUCTION_VARIABLES = [
+  ...namesWhere(
+    RELAY_DEPLOY_REGISTRY,
+    (entry) => entry.kind === "variable" && entry.github === "production",
+  ),
+  ...RELAY_DEPLOY_SMOKE_VARIABLE_NAMES,
+  ...namesWhere(RELAY_DEPLOY_OPTIONAL_REGISTRY, (entry) => entry.kind === "variable"),
 ] as const;
 
-export const RELAY_DEPLOY_SECRET_NAMES = [
-  "CLOUDFLARE_API_TOKEN",
-  "PLANETSCALE_API_TOKEN_ID",
-  "PLANETSCALE_API_TOKEN",
-  "AXIOM_TOKEN",
-  "CLERK_SECRET_KEY",
-  "APNS_PRIVATE_KEY",
+export const RELAY_GITHUB_PRODUCTION_SECRETS = [...RELAY_DEPLOY_SECRET_NAMES] as const;
+
+export const RELAY_CLIENT_ENV_MAPPINGS = [
+  { source: "CLERK_PUBLISHABLE_KEY", target: "KATACODE_CLERK_PUBLISHABLE_KEY" },
+  { source: "CLERK_JWT_TEMPLATE", target: "KATACODE_CLERK_JWT_TEMPLATE" },
+  { source: "CLERK_CLI_OAUTH_CLIENT_ID", target: "KATACODE_CLERK_CLI_OAUTH_CLIENT_ID" },
 ] as const;
-
-export const RELAY_DEPLOY_SMOKE_VARIABLE_NAMES = ["CLERK_SMOKE_USER_ID"] as const;
-
-export type RelayDeployVariableName = (typeof RELAY_DEPLOY_VARIABLE_NAMES)[number];
-export type RelayDeploySecretName = (typeof RELAY_DEPLOY_SECRET_NAMES)[number];
-export type RelayDeploySmokeVariableName = (typeof RELAY_DEPLOY_SMOKE_VARIABLE_NAMES)[number];
 
 export interface RelayDeployConfigStatus {
   readonly missingVariables: ReadonlyArray<string>;

@@ -214,14 +214,13 @@ jobs:
           cache: true
           run-install: |
             args:
-              - --filter=@kata-sh/code-relay...
+              - --filter=@kata-sh/code-relay
 
       - id: relay_state
         name: Read production relay Alchemy state
         run: |
-          vp run --filter @kata-sh/code-relay deploy -- \
+          node infra/relay/scripts/read-public-config.ts \
             --stage prod \
-            --read-state \
             --github-output \
             --github-env-file "$RUNNER_TEMP/relay-client-tracing.env"
         env:

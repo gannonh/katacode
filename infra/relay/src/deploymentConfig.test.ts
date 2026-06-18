@@ -8,8 +8,10 @@ import {
   managedEndpointTunnelName,
   relayOwnsManagedEndpointZone,
   relayPublicDomainForStage,
+  relayPublicOrigin,
   relayResourceNameForStage,
   relayStageSlug,
+  resolveRelayPublicUrl,
 } from "./deploymentConfig.ts";
 
 describe("relayStageSlug", () => {
@@ -26,6 +28,30 @@ describe("relayPublicDomainForStage", () => {
   it("isolates personal stages below the imported zone", () => {
     expect(relayPublicDomainForStage("dev_julius", "example.com")).toBe(
       "relay-dev-julius.example.com",
+    );
+  });
+});
+
+describe("resolveRelayPublicUrl", () => {
+  it("prefixes RELAY_DOMAIN overrides with https", () => {
+    expect(
+      resolveRelayPublicUrl({
+        relayDomain: "relay.connect.kata.sh",
+      }),
+    ).toBe("https://relay.connect.kata.sh");
+  });
+
+  it("derives the production relay origin from the API zone name", () => {
+    expect(
+      resolveRelayPublicUrl({
+        relayApiZoneName: "connect.example.test",
+      }),
+    ).toBe("https://relay.connect.example.test");
+  });
+
+  it("strips an accidental scheme from domain overrides", () => {
+    expect(relayPublicOrigin("https://relay.connect.kata.sh/")).toBe(
+      "https://relay.connect.kata.sh",
     );
   });
 });

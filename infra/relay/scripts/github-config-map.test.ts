@@ -1,4 +1,9 @@
 import { describe, expect, it } from "@effect/vitest";
+import {
+  WIRE_RELAY_CLERK_JWT_AUDIENCE,
+  WIRE_RELAY_CLERK_JWT_TEMPLATE,
+  WIRE_RELAY_DPOP_ACCESS_JWT_TYP,
+} from "@kata-sh/code-contracts/wireIdentity";
 
 import { buildRelayGithubSyncPlan } from "./github-config-map.ts";
 
@@ -13,8 +18,8 @@ const completeEnv = {
   RELAY_API_ZONE_NAME: "connect.example.test",
   RELAY_TUNNEL_ZONE_NAME: "tunnels.example.test",
   CLERK_PUBLISHABLE_KEY: "pk_test_example",
-  CLERK_JWT_AUDIENCE: "kata-code-relay",
-  CLERK_JWT_TEMPLATE: "kata-relay",
+  CLERK_JWT_AUDIENCE: WIRE_RELAY_CLERK_JWT_AUDIENCE,
+  CLERK_JWT_TEMPLATE: WIRE_RELAY_CLERK_JWT_TEMPLATE,
   CLERK_CLI_OAUTH_CLIENT_ID: "oauth_client",
   CLERK_SECRET_KEY: "sk_test_example",
   CLERK_SMOKE_USER_ID: "user_smoke",

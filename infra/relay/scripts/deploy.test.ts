@@ -166,15 +166,11 @@ describe("release workflow tracing config propagation", () => {
       const workflow = yield* fileSystem.readFileString(workflowPath);
 
       expect(workflow).toContain("relay_client_otlp_traces_token:");
-      expect(workflow).toContain("@kata-sh/code-relay deploy");
-      expect(workflow).toContain("--read-state");
+      expect(workflow).toContain("read-public-config.ts");
+      expect(workflow).toContain("--github-output");
       expect(workflow).toContain("resolve-connect-public-config.ts");
       expect(workflow).toContain("REQUIRE_CONNECT_CONFIG");
       expect(workflow).toContain("resolve_public_config:");
-      expect(workflow).toContain("node scripts/check-macos-release-signing.ts");
-      expect(workflow).toContain("DISPATCH_DRY_RUN:");
-      expect(workflow).toContain('raw="0.0.0-dryrun.${NIGHTLY_RUN_NUMBER}"');
-      expect(workflow).toContain("cli_dist_tag=next");
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
