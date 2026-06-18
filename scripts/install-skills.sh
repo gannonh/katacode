@@ -42,7 +42,8 @@ npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-
 npx skills add https://github.com/cloudflare/skills --skill cloudflare -y
 npx skills add https://github.com/cloudflare/skills --skill wrangler -y
 npx skills add https://github.com/cloudflare/skills --skill workers-best-practices -y
-
+# clerk
+npx skills add clerk/skills -y
 
 echo "==> Done. Installed skills:"
 npx skills ls --json 2>/dev/null || npx skills ls
