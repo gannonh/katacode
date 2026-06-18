@@ -81,15 +81,15 @@ The outcome should let a maintainer deploy the production relay, verify its publ
 ### User-path UAT criteria
 
 1. A released or production-configured stable/nightly build with production Connect config exposes Kata Code Connect UI instead of hiding it due to missing config.
-2. A signed-out user can reach the Kata Code Connect sign-in or waitlist path from the app without a missing-config error.
-3. A signed-in beta user can open Connections and see relay-backed Connect state, either an empty linked-environments state or existing linked environments.
-4. A CLI user can run `katacode connect --help` or an equivalent command from a released or production-configured build; the command group is present and does not fail with “missing Kata Code Connect public configuration.”
+2. A signed-out approved test user can start the Kata Code Connect sign-in path from the app without a missing-config error; a signed-out unapproved test user can start the Clerk waitlist path when the production Clerk app is configured for waitlist access.
+3. A signed-in Clerk-approved beta test user can open Connections and see relay-backed Connect state, either an empty linked-environments state or existing linked environments.
+4. A CLI user can run `katacode connect --help` from a released or production-configured build; the command group is present and does not fail with “missing Kata Code Connect public configuration.”
 5. A maintainer can run `katacode connect login` from a production-configured build and complete Clerk authorization through the loopback callback path.
 6. A maintainer can run `katacode connect link` for a test `katacode serve` environment and create a relay-backed environment link.
-7. The signed-in app shows the linked test environment under Connections.
-8. The app can connect to that linked environment through the relay-managed endpoint.
-9. `katacode connect unlink` removes the relay link and the app no longer shows it as connected.
-10. UAT evidence includes terminal output, screenshots, workflow URLs, and cleanup confirmation for the Connect UI, CLI, link/connect, and unlink paths.
+7. The signed-in app shows the linked test environment under Connections with the expected environment label or identifier.
+8. The app can connect to that linked environment through the relay-managed endpoint and reaches a usable environment state, such as loading environment metadata, projects, or an authenticated connected status from the environment server.
+9. `katacode connect unlink` removes the relay link and the app no longer lists that environment as linked after refresh or reconnect.
+10. UAT evidence includes terminal output, screenshots, workflow URLs, and cleanup confirmation for the Connect UI, CLI, link/connect, connected-state, and unlink paths.
 
 ### System and configuration gates
 
@@ -98,14 +98,14 @@ The outcome should let a maintainer deploy the production relay, verify its publ
 3. `dry_run=true` runs a non-mutating relay deployment plan and publishes a successful commit status without applying infrastructure changes.
 4. `dry_run=false` applies the production relay deployment and publishes a successful commit status only after post-deploy checks pass.
 5. Post-deploy checks verify `GET /health`, `GET /.well-known/oauth-authorization-server`, and `GET /.well-known/oauth-protected-resource` against the deployed relay URL.
-6. Post-deploy Clerk smoke mints a fresh CI token from production GitHub environment secrets and verifies DPoP token exchange through `/v1/client/dpop-token`; Build must stop and ask if safe CI minting is not possible without storing a long-lived bearer token.
+6. Post-deploy Clerk smoke uses a documented CI token-minting mechanism that mints a fresh token during the workflow from production GitHub environment secrets, records the exact secret names in the relay setup runbook, and verifies DPoP token exchange through `/v1/client/dpop-token`; Build must stop and ask if safe CI minting is not possible without storing a long-lived bearer token.
 7. APNs configuration is required for production relay deploy; missing APNs vars or secrets fail the deploy.
-8. Stable and nightly release preflight reads production relay public config and client tracing config from Alchemy state, not manually copied GitHub vars.
+8. Stable and nightly release preflight reads production relay URL and client tracing config from Alchemy state, not manually copied GitHub vars; Clerk public config remains sourced from the GitHub `production` environment.
 9. Stable and nightly releases fail before build, publish, or deploy if relay URL, Clerk public config, or relay client tracing config is missing.
 10. Release workflow has no bypass input for missing relay or Connect config.
-11. Workflow indexes and runbooks reflect Relay Deploy as an active manual production workflow, with dry-run-before-apply operator guidance.
+11. `.github/workflows/README.md`, `.github/disabled/README.md`, `infra/relay/README.md`, and release/setup runbooks document Relay Deploy as an active manual production workflow with dry-run-before-apply operator guidance.
 12. The OKF specs roadmap links this Relay Deploy spec under Active / next and does not mark Relay Deploy complete until implementation finishes.
-13. Verification includes `vp check`, `vp run typecheck`, and relay-focused tests or smoke scripts added by the implementation.
+13. Verification includes `vp check`, `vp run typecheck`, targeted tests for changed helper scripts, and a documented manual UAT evidence bundle for the Connect UI, CLI login, link, connect, and unlink path.
 
 ## Architecture
 
@@ -170,7 +170,7 @@ Apply mode:
 10. Build a DPoP proof and exchange the Clerk token at `/v1/client/dpop-token`.
 11. Publish commit status for `Relay deploy / production` after all checks pass.
 
-The exact Clerk token minting method is a Build-time dependency decision. It must use a fresh token minted during the workflow. If Clerk cannot support a safe CI minting pattern for this app, Build must stop and ask rather than storing a long-lived bearer token.
+The exact Clerk token minting method is a Build-time dependency decision that must be resolved before the workflow can satisfy acceptance. It must use a fresh token minted during the workflow, and the implementation must document the required GitHub production secret names. If Clerk cannot support a safe CI minting pattern for this app, Build must stop and ask rather than storing a long-lived bearer token.
 
 ### Release workflow
 
@@ -192,7 +192,7 @@ Required release values:
 - `KATACODE_CLERK_JWT_TEMPLATE`
 - `KATACODE_CLERK_CLI_OAUTH_CLIENT_ID`
 
-The implementation must mask tracing tokens in logs. It should not echo secret values.
+The implementation must mask tracing tokens in logs. It should not echo secret values. `CLERK_JWT_AUDIENCE` is a relay deploy/runtime value, while release builds need the client-facing Clerk values listed above.
 
 ## GitHub environment and secrets
 
@@ -221,7 +221,7 @@ Required secrets are expected to include:
 - `AXIOM_TOKEN`
 - `CLERK_SECRET_KEY`
 - `APNS_PRIVATE_KEY`
-- Clerk smoke-token minting secrets, exact names to be defined during Build after validating the supported Clerk CI auth pattern.
+- Clerk smoke-token minting secrets. Build must identify the Clerk-supported CI minting pattern, choose exact secret names, and document those names in the relay setup runbook before the Clerk DPoP smoke acceptance gate can pass.
 
 Keep private credential setup details outside the repo. Repo docs should list names, purpose, and validation behavior, not secret values.
 
@@ -327,16 +327,17 @@ GitHub verification:
 
 Manual UAT:
 
-1. Use a production-configured build or released artifact.
-2. Confirm Connect UI is visible.
-3. Confirm signed-out sign-in or waitlist path opens.
-4. Sign in as a beta user and open Connections.
-5. Start a test environment with `katacode serve`.
-6. Run `katacode connect login` and complete Clerk authorization.
-7. Run `katacode connect link` and confirm the relay link is created.
-8. Confirm the signed-in app lists the linked environment.
-9. Connect to the linked environment through the relay-managed endpoint.
-10. Run `katacode connect unlink` and confirm cleanup in CLI and app state.
+1. Use a production-configured stable/nightly build or released artifact.
+2. Confirm Connect UI is visible and no missing-config message appears.
+3. Confirm a signed-out approved test user can start sign-in; if waitlist is enabled, confirm a signed-out unapproved test user can start the waitlist path.
+4. Sign in as a Clerk-approved beta test user and open Connections.
+5. Start a test environment with `katacode serve` and record the environment label or identifier used for verification.
+6. Run `katacode connect --help` and confirm the command group is available.
+7. Run `katacode connect login` and complete Clerk authorization through the loopback callback.
+8. Run `katacode connect link` and confirm the relay link is created.
+9. Confirm the signed-in app lists the linked environment with the expected label or identifier.
+10. Connect to the linked environment through the relay-managed endpoint and record a usable connected state, such as loaded environment metadata, project data, or an authenticated connected status.
+11. Run `katacode connect unlink` and confirm cleanup in CLI and app state after refresh or reconnect.
 
 ## Risks and mitigations
 
