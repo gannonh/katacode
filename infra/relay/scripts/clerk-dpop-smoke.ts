@@ -4,6 +4,7 @@ import {
   RelayDpopTokenExchangeGrantType,
   RelayEnvironmentStatusScope,
   RelayJwtSubjectTokenType,
+  RelayWebClientId,
 } from "@kata-sh/code-contracts/relay";
 
 import { generateNodeDpopKeyPair, signNodeDpopProof } from "./dpop-node.ts";
@@ -74,6 +75,7 @@ export async function exchangeClerkDpopToken(
     requested_token_type: RelayAccessTokenType,
     resource: relayUrl,
     scope: RelayEnvironmentStatusScope,
+    client_id: RelayWebClientId,
   });
   const fetchImpl = input.fetchImpl ?? fetch;
   const response = await fetchImpl(tokenUrl, {

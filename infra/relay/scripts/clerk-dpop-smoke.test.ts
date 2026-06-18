@@ -38,7 +38,9 @@ describe("exchangeClerkDpopToken", () => {
     expect(
       String((capturedInit?.headers as Record<string, string> | undefined)?.dpop ?? ""),
     ).toMatch(/^eyJ/u);
-    expect(String(capturedInit?.body)).toContain("subject_token=clerk-jwt");
+    const tokenBody = new URLSearchParams(String(capturedInit?.body));
+    expect(tokenBody.get("subject_token")).toBe("clerk-jwt");
+    expect(tokenBody.get("client_id")).toBe("kata-web");
   });
 
   it("fails when relay returns a non-success response", async () => {
