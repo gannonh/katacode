@@ -1,5 +1,9 @@
 # Specs log
 
+## 2026-06-18 (deferred work registry)
+
+- Added [deferred work registry](/specs/deferred-work.md) and linked it from the [specs roadmap](/specs/index.md) so deferred scope has a durable review queue.
+
 ## 2026-06-17 (episodic upstream sync)
 
 - Documented episodic upstream policy in [ADR 0003](/adrs/0003-episodic-upstream-sync.md) and [upstream sync guide](/guides/upstream-sync.md); updated [roadmap](/specs/index.md) and [fork-setup spec](/specs/fork-setup.md).

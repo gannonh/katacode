@@ -6,7 +6,7 @@ Work map for Kata Code.
 
 | Item                            | Status      | Document                                                                                                                                                               |
 | ------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 2 — remaining infra split | **Planned** | Relay deploy, mobile EAS, marketing — see [disabled workflows README](../../.github/disabled/README.md)                                                                |
+| Phase 2 — remaining infra split | **Planned** | Relay deploy, mobile EAS, marketing — see [disabled workflows README](../../.github/disabled/README.md) and [deferred work registry](/specs/deferred-work.md)          |
 | Upstream sync (first merge)     | **Planned** | [Upstream sync guide](/guides/upstream-sync.md) · [ADR 0003](/adrs/0003-episodic-upstream-sync.md) · [FORK.md — Phase 3](../../FORK.md#phase-3--upstream-sync-runbook) |
 
 ## Completed
@@ -18,6 +18,12 @@ Work map for Kata Code.
 | Phase 0 — Git remotes               | [FORK.md — Phase 0](../../FORK.md#phase-0--git-remotes-complete)                                                                                                          |
 | Phase 1 — Branding & rename         | [FORK.md — Phase 1](../../FORK.md#phase-1--branding-and-rename-do-this-first) · [ADR 0002](/adrs/0002-katacode-product-identity.md)                                       |
 | Phase 1 — PR & CI                   | [PR #1](https://github.com/gannonh/kata-code/pull/1) · [fork-setup spec](/specs/fork-setup.md) · [CI runbook](/operations/ci.md)                                          |
+
+## Deferred / review queue
+
+| Item                   | Status     | Document                                          |
+| ---------------------- | ---------- | ------------------------------------------------- |
+| Deferred work registry | **Active** | [Deferred work registry](/specs/deferred-work.md) |
 
 ## Backlog & historical plans
 

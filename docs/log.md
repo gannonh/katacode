@@ -1,5 +1,10 @@
 # OKF bundle log
 
+## 2026-06-18 (deferred work registry)
+
+- Added [deferred work registry](/specs/deferred-work.md) and roadmap links so spec out-of-scope items have a durable review queue.
+- Updated [AGENTS.md](../../AGENTS.md) with deferred-work maintenance guidance.
+
 ## 2026-06-17 (episodic upstream sync)
 
 - Added [ADR 0003 — Episodic upstream sync](/adrs/0003-episodic-upstream-sync.md) and [upstream sync guide](/guides/upstream-sync.md).
