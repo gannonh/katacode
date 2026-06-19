@@ -1,0 +1,36 @@
+diff --git a/dist/src/binary.js b/dist/src/binary.js
+--- a/dist/src/binary.js
++++ b/dist/src/binary.js
+@@ -53,6 +53,20 @@ export function binaryExists() {
+     return findBinary() !== null;
+ }
+ /**
++ * Electron's asar filesystem shim makes existsSync(app.asar/...) work for many
++ * file reads, but ffi-rs passes the resolved path to native dlopen. dlopen
++ * cannot load dylibs/shared objects from inside app.asar, so prefer the
++ * electron-builder unpacked mirror when the package is bundled in Electron.
++ */
++function resolveAsarUnpackedPath(binaryPath) {
++    const marker = "app.asar";
++    const index = binaryPath.indexOf(marker);
++    if (index === -1)
++        return binaryPath;
++    const unpackedPath = `${binaryPath.slice(0, index)}app.asar.unpacked${binaryPath.slice(index + marker.length)}`;
++    return existsSync(unpackedPath) ? unpackedPath : binaryPath;
++}
++/**
+  * Try to resolve the binary from the platform-specific npm package.
+  *
+  * When users install @ff-labs/fff-node, npm automatically installs the matching
+@@ -68,8 +82,9 @@ function resolveFromNpmPackage() {
+         const packageJsonPath = require.resolve(`${packageName}/package.json`);
+         const packageDir = dirname(packageJsonPath);
+         const binaryPath = join(packageDir, getLibFilename());
+-        if (existsSync(binaryPath)) {
+-            return binaryPath;
++        const unpackedBinaryPath = resolveAsarUnpackedPath(binaryPath);
++        if (existsSync(unpackedBinaryPath)) {
++            return unpackedBinaryPath;
+         }
+     }
+     catch {

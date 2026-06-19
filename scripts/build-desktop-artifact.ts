@@ -353,6 +353,7 @@ export function createStagePnpmWorkspaceDocument(
   workspaceConfig: WorkspaceConfig,
   patchedDependencies: Record<string, string>,
   dependencies: Record<string, unknown>,
+  overrides: Record<string, string> = {},
 ): Record<string, unknown> {
   const document: Record<string, unknown> = {
     packages: ["."],
@@ -363,6 +364,9 @@ export function createStagePnpmWorkspaceDocument(
   }
   if (workspaceConfig.allowBuilds && Object.keys(workspaceConfig.allowBuilds).length > 0) {
     document.allowBuilds = workspaceConfig.allowBuilds;
+  }
+  if (Object.keys(overrides).length > 0) {
+    document.overrides = overrides;
   }
 
   const stagePatchedDependencies = filterStagePatchedDependencies(
@@ -733,6 +737,27 @@ export function createDesktopStageRuntimeImportCheckScript(
     `for (const specifier of imports) {`,
     `  await import(specifier);`,
     `}`,
+    `const { FileFinder } = await import("@ff-labs/fff-node");`,
+    `const finder = FileFinder.create({ basePath: process.cwd(), watch: false });`,
+    `if (!finder.ok) throw new Error(finder.error);`,
+    `finder.value.destroy();`,
+  ].join("\n");
+}
+
+export function createPackagedMacRuntimeSmokeScript(): string {
+  return [
+    `const appPath = process.env.KATACODE_PACKAGED_APP_PATH;`,
+    `if (!appPath) throw new Error("KATACODE_PACKAGED_APP_PATH is required.");`,
+    `const asarPath = appPath + "/Contents/Resources/app.asar";`,
+    `await import(asarPath + "/node_modules/electron-updater/out/main.js");`,
+    `await import(asarPath + "/node_modules/effect/dist/unstable/http/FindMyWay.js");`,
+    `await import(asarPath + "/node_modules/effect/dist/testing/FastCheck.js");`,
+    `await import(asarPath + "/node_modules/@effect/platform-node-shared/dist/NodeSocket.js");`,
+    `const { FileFinder } = await import(asarPath + "/node_modules/@ff-labs/fff-node/dist/src/index.js");`,
+    `const finder = FileFinder.create({ basePath: process.cwd(), watch: false });`,
+    `if (!finder.ok) throw new Error(finder.error);`,
+    `finder.value.destroy();`,
+    `console.log("packaged mac runtime smoke ok");`,
   ].join("\n");
 }
 
@@ -1035,7 +1060,6 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     ...resolvedDesktopRuntimeDependencies,
     ...resolveDesktopStageSupplementalDependencies(workspaceCatalog),
   };
-  const stagePnpmConfig = createStagePnpmConfig(workspacePatchedDependencies, stageDependencies);
   const stagePackageJson: StagePackageJson = {
     name: "kata-code",
     version: appVersion,
@@ -1059,7 +1083,6 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
       electron: electronVersion,
     },
     overrides: resolvedOverrides,
-    ...(stagePnpmConfig ? { pnpm: stagePnpmConfig } : {}),
   };
 
   const stagePackageJsonString = yield* encodeJsonString(stagePackageJson);
@@ -1069,6 +1092,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     workspaceConfig,
     workspacePatchedDependencies,
     stageDependencies,
+    resolvedOverrides,
   );
   yield* fs.writeFileString(
     path.join(stageAppDir, "pnpm-workspace.yaml"),
@@ -1175,6 +1199,38 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
     return yield* new BuildScriptError({
       message: `Build completed but dist directory was not found at ${stageDistDir}`,
     });
+  }
+
+  if (options.platform === "mac") {
+    yield* Effect.log("[desktop-artifact] Verifying packaged mac runtime...");
+    const packagedRuntimeSmokePath = path.join(stageRoot, "packaged-mac-runtime-smoke.mjs");
+    yield* fs.writeFileString(packagedRuntimeSmokePath, createPackagedMacRuntimeSmokeScript());
+    const productName = resolveDesktopProductName(appVersion);
+    yield* runCommand(
+      ChildProcess.make(
+        "bash",
+        [
+          "-lc",
+          [
+            "set -euo pipefail",
+            'app_path="$(find "$KATACODE_STAGE_DIST_DIR" -name "$KATACODE_MAC_APP_NAME.app" -type d -print -quit)"',
+            'if [[ -z "$app_path" ]]; then echo "Packaged mac app bundle not found" >&2; exit 1; fi',
+            'export KATACODE_PACKAGED_APP_PATH="$app_path"',
+            'ELECTRON_RUN_AS_NODE=1 "$app_path/Contents/MacOS/$KATACODE_MAC_APP_NAME" "$KATACODE_PACKAGED_SMOKE_SCRIPT"',
+          ].join("\n"),
+        ],
+        {
+          cwd: stageAppDir,
+          env: {
+            ...buildEnv,
+            KATACODE_STAGE_DIST_DIR: stageDistDir,
+            KATACODE_MAC_APP_NAME: productName,
+            KATACODE_PACKAGED_SMOKE_SCRIPT: packagedRuntimeSmokePath,
+          },
+        },
+      ),
+      { label: "packaged mac runtime smoke", verbose: options.verbose },
+    );
   }
 
   const stageEntries = yield* fs.readDirectory(stageDistDir);

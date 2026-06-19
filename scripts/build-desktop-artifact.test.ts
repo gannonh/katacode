@@ -7,6 +7,7 @@ import * as Option from "effect/Option";
 
 import {
   createDesktopStageRuntimeImportCheckScript,
+  createPackagedMacRuntimeSmokeScript,
   createStagePnpmConfig,
   createStagePnpmWorkspaceDocument,
   DESKTOP_NATIVE_ASAR_UNPACK,
@@ -117,8 +118,20 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         "for (const specifier of imports) {",
         "  await import(specifier);",
         "}",
+        'const { FileFinder } = await import("@ff-labs/fff-node");',
+        "const finder = FileFinder.create({ basePath: process.cwd(), watch: false });",
+        "if (!finder.ok) throw new Error(finder.error);",
+        "finder.value.destroy();",
       ].join("\n"),
     );
+  });
+
+  it("creates a packaged mac runtime smoke check", () => {
+    const script = createPackagedMacRuntimeSmokeScript();
+    assert.match(script, /KATACODE_PACKAGED_APP_PATH/);
+    assert.match(script, /electron-updater/);
+    assert.match(script, /@ff-labs\/fff-node/);
+    assert.match(script, /FileFinder\.create/);
   });
 
   it("omits bundled workspace packages from staged desktop dependencies", () => {
@@ -211,6 +224,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           "effect@4.0.0-beta.73": "patches/effect@4.0.0-beta.73.patch",
         },
         { effect: "4.0.0-beta.73", "node-pty": "1.1.0" },
+        { "@ff-labs/fff-node": "0.9.4" },
       ),
       {
         packages: ["."],
@@ -218,6 +232,9 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         allowBuilds: {
           "node-pty": true,
           "msgpackr-extract": true,
+        },
+        overrides: {
+          "@ff-labs/fff-node": "0.9.4",
         },
         patchedDependencies: {
           "effect@4.0.0-beta.73": "patches/effect@4.0.0-beta.73.patch",
