@@ -41,7 +41,7 @@ export const DESKTOP_NATIVE_ASAR_UNPACK = [
 export const DESKTOP_STAGE_INSTALL_ARGS = ["install", "--prod"] as const;
 
 /** effect/Schema imports FastCheck at runtime; hoist for Electron asar resolution. */
-export const DESKTOP_STAGE_SUPPLEMENTAL_CATALOG_DEPENDENCIES = ["fast-check"] as const;
+export const DESKTOP_STAGE_SUPPLEMENTAL_CATALOG_DEPENDENCIES = ["fast-check", "pure-rand"] as const;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
 const BuildArch = Schema.Literals(["arm64", "x64", "universal"]);
@@ -332,6 +332,8 @@ export function createStagePnpmWorkspaceDocument(
 ): Record<string, unknown> {
   const document: Record<string, unknown> = {
     packages: ["."],
+    // Electron asar cannot resolve pnpm's default isolated nested node_modules layout.
+    nodeLinker: "hoisted",
   };
 
   if (workspaceConfig.onlyBuiltDependencies && workspaceConfig.onlyBuiltDependencies.length > 0) {

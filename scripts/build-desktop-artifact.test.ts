@@ -94,9 +94,11 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     assert.deepStrictEqual(
       resolveDesktopStageSupplementalDependencies({
         "fast-check": "4.8.0",
+        "pure-rand": "8.4.0",
       }),
       {
         "fast-check": "4.8.0",
+        "pure-rand": "8.4.0",
       },
     );
   });
@@ -190,6 +192,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       ),
       {
         packages: ["."],
+        nodeLinker: "hoisted",
         onlyBuiltDependencies: ["node-pty", "msgpackr-extract"],
         allowBuilds: {
           "node-pty": true,
