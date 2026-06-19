@@ -13,6 +13,7 @@ import {
   DESKTOP_NATIVE_ASAR_UNPACK,
   DESKTOP_STAGE_INSTALL_ARGS,
   resolveDesktopRuntimeDependencies,
+  resolveDesktopStageNativeDependencies,
   resolveDesktopStageSupplementalDependencies,
   resolveBuildOptions,
   resolveDesktopBuildIconAssets,
@@ -108,6 +109,27 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       yaml: "2.9.0",
     };
     assert.deepStrictEqual(resolveDesktopStageSupplementalDependencies(catalog), catalog);
+  });
+
+  it("pins target-arch native bindings for cross-built desktop stages", () => {
+    assert.deepStrictEqual(resolveDesktopStageNativeDependencies("mac", "x64"), {
+      "@ff-labs/fff-bin-darwin-x64": "0.9.4",
+      "@yuuang/ffi-rs-darwin-x64": "1.3.2",
+    });
+    assert.deepStrictEqual(resolveDesktopStageNativeDependencies("mac", "universal"), {
+      "@ff-labs/fff-bin-darwin-arm64": "0.9.4",
+      "@yuuang/ffi-rs-darwin-arm64": "1.3.2",
+      "@ff-labs/fff-bin-darwin-x64": "0.9.4",
+      "@yuuang/ffi-rs-darwin-x64": "1.3.2",
+    });
+    assert.deepStrictEqual(resolveDesktopStageNativeDependencies("linux", "arm64"), {
+      "@ff-labs/fff-bin-linux-arm64-gnu": "0.9.4",
+      "@yuuang/ffi-rs-linux-arm64-gnu": "1.3.2",
+    });
+    assert.deepStrictEqual(resolveDesktopStageNativeDependencies("win", "x64", "0.9.4", "1.3.2"), {
+      "@ff-labs/fff-bin-win32-x64": "0.9.4",
+      "@yuuang/ffi-rs-win32-x64-msvc": "1.3.2",
+    });
   });
 
   it("creates a staged runtime import smoke check", () => {

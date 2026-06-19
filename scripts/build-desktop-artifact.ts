@@ -44,6 +44,10 @@ export const DESKTOP_STAGE_INSTALL_ARGS = [
   "--config.node-linker=hoisted",
 ] as const;
 
+/** Platform-specific optional deps for @ff-labs/fff-node and ffi-rs. */
+export const DESKTOP_STAGE_FFF_BIN_VERSION = "0.9.4";
+export const DESKTOP_STAGE_FFI_RS_VERSION = "1.3.2";
+
 /** effect imports these packages from ESM entrypoints that Electron resolves from app.asar. */
 export const DESKTOP_STAGE_SUPPLEMENTAL_CATALOG_DEPENDENCIES = [
   "@standard-schema/spec",
@@ -729,6 +733,76 @@ export function resolveDesktopStageSupplementalDependencies(
   );
 }
 
+interface DesktopStageNativeBindingTarget {
+  readonly fffBinPackage: string;
+  readonly ffiRsPackage: string;
+}
+
+const DESKTOP_STAGE_MAC_NATIVE_BINDINGS: Record<
+  Exclude<typeof BuildArch.Type, "universal">,
+  DesktopStageNativeBindingTarget
+> = {
+  arm64: {
+    fffBinPackage: "@ff-labs/fff-bin-darwin-arm64",
+    ffiRsPackage: "@yuuang/ffi-rs-darwin-arm64",
+  },
+  x64: {
+    fffBinPackage: "@ff-labs/fff-bin-darwin-x64",
+    ffiRsPackage: "@yuuang/ffi-rs-darwin-x64",
+  },
+};
+
+const DESKTOP_STAGE_LINUX_GNU_NATIVE_BINDINGS: Record<
+  Exclude<typeof BuildArch.Type, "universal">,
+  DesktopStageNativeBindingTarget
+> = {
+  arm64: {
+    fffBinPackage: "@ff-labs/fff-bin-linux-arm64-gnu",
+    ffiRsPackage: "@yuuang/ffi-rs-linux-arm64-gnu",
+  },
+  x64: {
+    fffBinPackage: "@ff-labs/fff-bin-linux-x64-gnu",
+    ffiRsPackage: "@yuuang/ffi-rs-linux-x64-gnu",
+  },
+};
+
+const DESKTOP_STAGE_WIN_NATIVE_BINDINGS: Record<
+  Exclude<typeof BuildArch.Type, "universal">,
+  DesktopStageNativeBindingTarget
+> = {
+  arm64: {
+    fffBinPackage: "@ff-labs/fff-bin-win32-arm64",
+    ffiRsPackage: "@yuuang/ffi-rs-win32-arm64-msvc",
+  },
+  x64: {
+    fffBinPackage: "@ff-labs/fff-bin-win32-x64",
+    ffiRsPackage: "@yuuang/ffi-rs-win32-x64-msvc",
+  },
+};
+
+export function resolveDesktopStageNativeDependencies(
+  platform: typeof BuildPlatform.Type,
+  arch: typeof BuildArch.Type,
+  fffBinVersion: string = DESKTOP_STAGE_FFF_BIN_VERSION,
+  ffiRsVersion: string = DESKTOP_STAGE_FFI_RS_VERSION,
+): Record<string, string> {
+  const bindingsByPlatform = {
+    mac: DESKTOP_STAGE_MAC_NATIVE_BINDINGS,
+    linux: DESKTOP_STAGE_LINUX_GNU_NATIVE_BINDINGS,
+    win: DESKTOP_STAGE_WIN_NATIVE_BINDINGS,
+  }[platform];
+  const cpus: Array<Exclude<typeof BuildArch.Type, "universal">> =
+    arch === "universal" ? ["arm64", "x64"] : [arch];
+
+  const dependencies: Record<string, string> = {};
+  for (const cpu of cpus) {
+    const binding = bindingsByPlatform[cpu];
+    dependencies[binding.fffBinPackage] = fffBinVersion;
+    dependencies[binding.ffiRsPackage] = ffiRsVersion;
+  }
+  return dependencies;
+}
+
 export function createDesktopStageRuntimeImportCheckScript(
   imports: readonly string[] = DESKTOP_STAGE_RUNTIME_IMPORT_CHECKS,
 ): string {
@@ -1055,10 +1129,12 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   // electron-builder is filtering out stageResourcesDir directory in the AppImage for production
   yield* fs.copy(stageResourcesDir, path.join(stageAppDir, "apps/desktop/prod-resources"));
 
+  const fffBinVersion = resolvedOverrides["@ff-labs/fff-node"] ?? DESKTOP_STAGE_FFF_BIN_VERSION;
   const stageDependencies = {
     ...resolvedServerDependencies,
     ...resolvedDesktopRuntimeDependencies,
     ...resolveDesktopStageSupplementalDependencies(workspaceCatalog),
+    ...resolveDesktopStageNativeDependencies(options.platform, options.arch, fffBinVersion),
   };
   const stagePackageJson: StagePackageJson = {
     name: "kata-code",
