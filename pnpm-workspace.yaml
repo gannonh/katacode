@@ -36,6 +36,7 @@ catalog:
   "@typescript/native-preview": 7.0.0-dev.20260604.1
   "@vitest/runner": 4.1.8
   effect: 4.0.0-beta.78
+  fast-check: 4.8.0
   jose: 6.2.2
   typescript: ~6.0.3
   vite: npm:@voidzero-dev/vite-plus-core@0.1.24

@@ -40,6 +40,9 @@ export const DESKTOP_NATIVE_ASAR_UNPACK = [
 /** Optional deps carry platform-specific native binaries required at desktop runtime. */
 export const DESKTOP_STAGE_INSTALL_ARGS = ["install", "--prod"] as const;
 
+/** effect/Schema imports FastCheck at runtime; hoist for Electron asar resolution. */
+export const DESKTOP_STAGE_SUPPLEMENTAL_CATALOG_DEPENDENCIES = ["fast-check"] as const;
+
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
 const BuildArch = Schema.Literals(["arm64", "x64", "universal"]);
 
@@ -682,6 +685,22 @@ function validateBundledClientAssets(clientDir: string) {
   });
 }
 
+export function resolveDesktopStageSupplementalDependencies(
+  catalog: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    DESKTOP_STAGE_SUPPLEMENTAL_CATALOG_DEPENDENCIES.map((dependencyName) => {
+      const version = catalog[dependencyName];
+      if (!version) {
+        throw new Error(
+          `Missing catalog version for desktop supplemental dependency: ${dependencyName}`,
+        );
+      }
+      return [dependencyName, version] as const;
+    }),
+  );
+}
+
 export function resolveDesktopRuntimeDependencies(
   dependencies: Record<string, string> | undefined,
   catalog: Record<string, string>,
@@ -979,6 +998,7 @@ const buildDesktopArtifact = Effect.fn("buildDesktopArtifact")(function* (
   const stageDependencies = {
     ...resolvedServerDependencies,
     ...resolvedDesktopRuntimeDependencies,
+    ...resolveDesktopStageSupplementalDependencies(workspaceCatalog),
   };
   const stagePnpmConfig = createStagePnpmConfig(workspacePatchedDependencies, stageDependencies);
   const stagePackageJson: StagePackageJson = {

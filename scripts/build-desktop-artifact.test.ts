@@ -11,6 +11,7 @@ import {
   DESKTOP_NATIVE_ASAR_UNPACK,
   DESKTOP_STAGE_INSTALL_ARGS,
   resolveDesktopRuntimeDependencies,
+  resolveDesktopStageSupplementalDependencies,
   resolveBuildOptions,
   resolveDesktopBuildIconAssets,
   resolveDesktopProductName,
@@ -88,6 +89,17 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       });
     }),
   );
+
+  it("hoists effect runtime supplemental dependencies for desktop staging", () => {
+    assert.deepStrictEqual(
+      resolveDesktopStageSupplementalDependencies({
+        "fast-check": "4.8.0",
+      }),
+      {
+        "fast-check": "4.8.0",
+      },
+    );
+  });
 
   it("omits bundled workspace packages from staged desktop dependencies", () => {
     assert.deepStrictEqual(
