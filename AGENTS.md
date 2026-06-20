@@ -121,3 +121,29 @@ agents.
   examples of idiomatic usage, tests, module structure, and API design.
 - When writing relay infrastructure code with Alchemy, inspect `.repos/alchemy-effect/` for examples of
   idiomatic usage, tests, module structure, and API design.
+
+## Cursor Cloud specific instructions
+
+Environment notes for autonomous agents (the startup update script already runs `pnpm install`; deps,
+native `node-pty` build, and the `prepare` hook are handled). See the [Quick Start](#quick-start) and
+`README.md` for the canonical commands; the items below are non-obvious caveats.
+
+- **Node toolchain:** repo requires Node `^24.13.1`. Node 24.13.1 is installed via nvm and prepended to
+  `PATH` in `~/.bashrc` (the VM also ships an older `/exec-daemon/node` v22 that must be shadowed). `pnpm`
+  (11.8.0) is provided by corepack under that Node. If `node -v` ever reports v22, run
+  `nvm use 24.13.1 && corepack enable` before working.
+- **Run the app:** `pnpm run dev` starts contracts watcher + web (`http://localhost:5733`) + server
+  (`http://localhost:13773`) together; run it in a long-lived tmux session. SQLite migrations run
+  automatically on server boot.
+- **Pairing/auth is required:** the server boots in "Authentication required" mode and prints a one-time
+  pairing URL like `http://localhost:5733/pair#token=XXXX` to its stdout on startup. Open that exact URL
+  (token included) in the browser to authenticate; the bare `http://localhost:5733/` will 302-redirect to
+  pairing. Grab the token from the dev log, not by guessing.
+- **Providers are external:** no agent CLI (`codex`, `claude`, `cursor-agent`, `opencode`, `grok`) is
+  installed in the VM. Pairing, adding a project, creating threads, git branch detection, and the composer
+  all work without one, but actually sending a turn to an agent needs that provider CLI installed AND
+  authenticated (login/API key = user secrets). A red "provider not installed" banner in a thread is
+  expected here, not a bug.
+- **State dir:** `~/.katacode` (override with `KATACODE_HOME`). Delete it to reset pairing/projects/threads.
+- **Desktop dev** (`pnpm run dev:desktop`) additionally needs
+  `vp run --filter @kata-sh/code-desktop ensure:electron` once per fresh worktree; not required for the web app.
