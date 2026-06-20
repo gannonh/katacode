@@ -39,4 +39,4 @@ uat-evidence/
 .husky/_
 
 # Local agent skills (installed per developer/machine)
-.agents/skills/
+# .agents/skills/
