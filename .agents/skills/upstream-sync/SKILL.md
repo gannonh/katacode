@@ -102,15 +102,27 @@ At very large scale (hundreds of conflicting files), the zone rollup matters mor
 git merge upstream/main   # or the pinned SHA from Step 1
 ```
 
+**Resolution order matters — this is the trap that bit the first sync.** Resolve conflicts by zone **before staging them**: `git checkout --theirs/--ours <path>` and `git add <path>` per file. Do not run a bulk `git add -u` mid-resolution, and never write upstream versions with `git show :3:$f > $f` — when a file's `:3` stage is unavailable (e.g. after partial staging), that pattern truncates files to empty silently. The bundled `take-upstream.sh` helper wraps the safe form (`git checkout --theirs` on unmerged paths) and refuses to run once stages are gone.
+
+Once all conflicts are resolved and staged, run the branding rebrand across the whole merged tree **before** regenerating the lockfile:
+
+```bash
+node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --apply   # restore @kata-sh/* etc.
+node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --check    # gate: exit 1 if regressions remain
+vp i                                                                 # then regen pnpm-lock.yaml
+```
+
 Resolve conflicts by zone, applying these fork-policy rules consistently:
 
-- **Restore Kata Code branding** on every product surface: `Kata Code`, `KATACODE_*`, `katacode://` / `katacode-dev://`, `@kata-sh/code-*`, `com.katacode.app`. Never reintroduce `@t3tools/*` or `T3CODE_*` without an explicit `FORK.md` decision.
+- **Restore Kata Code branding** on every product surface: `Kata Code`, `KATACODE_*`, `katacode://` / `katacode-dev://`, `@kata-sh/code-*`, `com.katacode.app`. Never reintroduce `@t3tools/*` or `T3CODE_*` without an explicit `FORK.md` decision. The `rebrand-fork.ts` script applies the FORK.md identity table deterministically; use it instead of hand-editing.
 - **Prefer fork extension modules** over inlining fork logic into shared upstream files. When upstream moved a file the fork also moved, keep the fork location and reapply the divergence there.
-- **Do not hand-merge `pnpm-lock.yaml`.** Delete it and run `vp i`; let pnpm regenerate it.
+- **Do not hand-merge `pnpm-lock.yaml`.** Delete it and run `vp i`; let pnpm regenerate it. Do this **after** the rebrand, so the regenerated lockfile references `@kata-sh/code-*` not `@t3tools/*`.
 - **Keep fork rebrand test fixtures upstream-shaped** where they must be: product surfaces use Kata identity, fixture repo names may remain `octocat/t3code` (see `docs/operations/ci.md#fork-rebrand-test-fixtures`).
-- **`ours` vs `theirs` is a decision, not a default.** Note non-obvious resolutions in the sync PR description so the next maintainer can follow the reasoning.
+- **`ours` vs `theirs` is a decision, not a default.** Note non-obvious resolutions in the sync PR description so the next maintainer can follow the reasoning. The `take-upstream.sh` helper accepts zone path filters so you can take upstream for `apps/mobile` while resolving `infra/relay` by hand.
 
 High-conflict zones to expect (the conflict-zones script rolls these up): `apps/server`, `apps/web`, `apps/desktop`, `packages/contracts`, `packages/shared`, `scripts/dev-runner.ts`, `pnpm-lock.yaml`, root and app `package.json`.
+
+For a zone where the fork has no functional customization beyond branding (the 2026-06-20 sync's `apps/mobile` was the example), take upstream wholesale: `.agents/skills/upstream-sync/scripts/take-upstream.sh apps/mobile`. For zones with real fork divergence (`infra/relay`, the desktop auth migration), resolve by hand.
 
 ### Step 4 — Sync vendored reference repos (if deps changed)
 
@@ -236,6 +248,8 @@ Before a large fork-only feature, ask: _can this live in a new module upstream d
 - `scripts/rules.ts` — classification rules (the source of truth the classifier runs against; edit when fork policy changes).
 - `scripts/classify-upstream.ts` — inventory + classify script.
 - `scripts/conflict-zones.ts` — conflict-zone predictor.
+- `scripts/rebrand-fork.ts` — applies the FORK.md identity-rename table (`@t3tools/*`→`@kata-sh/code-*`, `T3CODE_*`→`KATACODE_*`, build defines); `--apply` writes, `--check` is a closure gate.
+- `scripts/take-upstream.sh` — resolves conflicts by taking upstream's side for unmerged paths (with optional zone filter). Safe wrapper around `git checkout --theirs`; refuses to run after staging.
 - `docs/guides/upstream-sync.md` — human-facing mirror of this runbook.
 - `FORK.md` — baseline SHA, divergence log, Phase 3 runbook, Phase 4 divergence boundaries.
 - `docs/adrs/0003-episodic-upstream-sync.md` — sync policy ADR.

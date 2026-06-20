@@ -46,7 +46,7 @@ describe("ElectronProtocol", () => {
               [
                 [
                   {
-                    scheme: "t3",
+                    scheme: "@kata-sh/code-cli",
                     privileges: {
                       standard: true,
                       secure: true,
@@ -81,7 +81,7 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const electronProtocol = yield* ElectronProtocol.ElectronProtocol;
           yield* electronProtocol.registerFileProtocol({
-            scheme: "t3",
+            scheme: "@kata-sh/code-cli",
             handler: () => Effect.succeed({ path: "/app/index.html" }),
           });
 
@@ -97,9 +97,9 @@ describe("ElectronProtocol", () => {
       assert.deepEqual(response, { path: "/app/index.html" });
       assert.deepEqual(
         registerFileProtocolMock.mock.calls.map((call) => call[0]),
-        ["t3"],
+        ["@kata-sh/code-cli"],
       );
-      assert.deepEqual(unregisterProtocolMock.mock.calls, [["t3"]]);
+      assert.deepEqual(unregisterProtocolMock.mock.calls, [["@kata-sh/code-cli"]]);
     }).pipe(Effect.provide(ElectronProtocol.layer)),
   );
 });

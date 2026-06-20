@@ -79,15 +79,25 @@ Intersects upstream-changed paths with fork-changed paths since baseline and the
 git merge upstream/main   # or the pinned SHA from Step 1
 ```
 
+**Resolution order matters — the trap that bit the first sync.** Resolve conflicts by zone **before staging**: `git checkout --theirs/--ours <path>` then `git add` per file. Do not `git add -u` mid-resolution, and never write upstream versions with `git show :3:$f > $f` — when a `:3` stage is unavailable (after partial staging) that truncates files to empty silently. Use the bundled [`take-upstream.sh`](../../.agents/skills/upstream-sync/scripts/take-upstream.sh) helper, which wraps the safe `git checkout --theirs` form and refuses to run once stages are gone.
+
+Once all conflicts are resolved and staged, rebrand the whole merged tree before regenerating the lockfile:
+
+```bash
+node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --apply   # restore @kata-sh/* etc.
+node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --check    # gate: exit 1 on regressions
+vp i                                                                 # then regen pnpm-lock.yaml
+```
+
 ### Resolution rules
 
 These rules encode fork policy. Apply them consistently so the fork does not silently drift back toward upstream identity.
 
-- **Restore Kata Code branding** on every product surface: `Kata Code`, `KATACODE_*`, `katacode://` / `katacode-dev://`, `@kata-sh/code-*`, `com.katacode.app`. Never reintroduce `@t3tools/*` or `T3CODE_*` without an explicit [FORK.md](../../FORK.md) decision.
+- **Restore Kata Code branding** on every product surface: `Kata Code`, `KATACODE_*`, `katacode://` / `katacode-dev://`, `@kata-sh/code-*`, `com.katacode.app`. Never reintroduce `@t3tools/*` or `T3CODE_*` without an explicit [FORK.md](../../FORK.md) decision. The [`rebrand-fork.ts`](../../.agents/skills/upstream-sync/scripts/rebrand-fork.ts) script applies the FORK.md identity table deterministically; prefer it to hand-editing.
 - **Prefer fork extension modules** over inlining fork logic into shared upstream files. When upstream moved a file the fork also moved, keep the fork location and reapply the divergence there.
-- **Do not hand-merge `pnpm-lock.yaml`.** Delete it, run `vp i`, let pnpm regenerate it.
+- **Do not hand-merge `pnpm-lock.yaml`.** Delete it, run `vp i`, let pnpm regenerate it. Do this **after** the rebrand so the regenerated lockfile references `@kata-sh/code-*` not `@t3tools/*`.
 - **Keep fork rebrand test fixtures** upstream-shaped where they must be: product surfaces use Kata identity, but fixture repo names may remain `octocat/t3code`. See [CI runbook — fork rebrand test fixtures](/operations/ci.md#fork-rebrand-test-fixtures).
-- **Resolution choices of `ours` vs `theirs` are decisions, not defaults.** Note non-obvious resolutions in the sync PR description so the next maintainer can follow the reasoning.
+- **Resolution choices of `ours` vs `theirs` are decisions, not defaults.** Note non-obvious resolutions in the sync PR description so the next maintainer can follow the reasoning. `take-upstream.sh` accepts zone filters so you can take upstream for `apps/mobile` while resolving `infra/relay` by hand.
 
 ### High-conflict zones
 
