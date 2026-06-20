@@ -19,7 +19,15 @@ Why bulk merge by default: upstream periodically ships coordinated refactors (th
 
 ## Process
 
-Follow these steps in order. Step 0 sets up a clean integration branch so every artifact this runbook produces (sync-plan.md, conflict-zones.md, the merge commit, lockfile regen) stays off `main`. Steps 1 and 2 are read-only status checks. Steps 3+ mutate the repo.
+Follow these steps in order.
+
+- **Step 0** sets up a clean integration branch so every artifact this runbook produces (sync-plan.md, conflict-zones.md, the merge commit, lockfile regen, the closure spec) stays off `main`.
+- **Steps 1 and 2** are read-only status checks.
+- **Steps 3-5** mutate the repo: merge, vendored-repo sync, verify gates.
+- **Step 6** is post-merge closure: sync-scoped follow-up work (caused by this merge, lands on this branch, authored against a spec with acceptance criteria). Routed through the `plan-build-verify` skill.
+- **Step 7** lands the closure-complete branch on `main` and records the sync.
+
+Do not land on `main` (Step 7) until Step 6 closure is complete. Closure work belongs on the integration branch, same as the merge.
 
 ### Step 0 — Prepare a clean integration branch
 
@@ -41,7 +49,7 @@ If the tree on `main` is dirty, do not work around it. Commit, stash, or revert 
 
 ### Step 1 — Inventory and classify
 
-Produce a draft Take / Cherry-pick / Reject / Defer table, then review it. Do not skip the human review: the classifier is a starting point, not a final decision.
+Produce a draft classification table (Take / Cherry-pick / Reject / Defer, with unclassified commits flagged for Review), then review it. Do not skip the human review: the classifier is a starting point, not a final decision.
 
 ```bash
 node .agents/skills/upstream-sync/scripts/classify-upstream.ts --out sync-plan.md
@@ -49,10 +57,21 @@ node .agents/skills/upstream-sync/scripts/classify-upstream.ts --out sync-plan.m
 
 The script reads the baseline SHA from `FORK.md`'s `Upstream SHA:` line (override with `--base <sha>`; falls back to `git merge-base main upstream/main`), fetches upstream, lists every non-merge commit since baseline, applies the rules in `scripts/rules.ts`, and writes the table grouped by verdict with rationale.
 
-**Review the Defer bucket carefully.** Two sub-cases deserve attention:
+`sync-plan.md` is a scratch artifact: it is gitignored at the repo root and regenerated on each run. The decisions you confirm during review get recorded in `FORK.md` (Rejects), the closure spec (Take+defer plans), or `docs/specs/deferred-work.md` (legitimate deferrals). The artifact itself does not need to persist past the sync.
+
+**Read every verdict, especially anything not a clean Take.** The classifier emits four verdicts; use them with this vocabulary:
+
+- **Take** — absorb cleanly. Land in the bulk merge, no follow-up.
+- **Reject** — permanently skip. Record in the `FORK.md` divergence log before merging.
+- **Defer** — tied to a named, tracked fork project phase or revisit trigger (see `docs/specs/deferred-work.md`). Cross-sync: survives beyond this sync. Not "maybe later."
+- **Review** — the classifier had no rule signal. Not tied to any un-integrated feature; just unclassified. The human assigns it to Take/Reject/Defer.
+
+Two sub-cases in the Defer/Review buckets deserve attention:
 
 - **take + defer** (a `[codex]` refactor that also touches a fork divergence surface like `infra/relay/src` or `wireIdentity`): plan for manual conflict resolution, not a clean take. The refactor wants to land together, but the fork has policy-level reasons to diverge on that surface.
-- **upstream-internal docs only** (commits touching only `.macroscope/`, `.github` templates, `CONTRIBUTING.md`): the fork has its own equivalents (e.g. `docs/operations/effect-fn-checklist.md`). Absorb only if you want upstream's guidance verbatim.
+- **upstream-internal docs only** (commits touching only `.macroscope/`, `.github` templates, `CONTRIBUTING.md`): the fork has its own equivalents (e.g. `docs/operations/effect-fn-checklist.md`). Absorb, then handle the OKF integration as Step 6 closure work — do not let it sit un-classified.
+
+Note: `rules.ts` currently emits only `take | cherry-pick | reject | defer`; the "unclassified, pending human verdict" case is emitted as `defer`. Aligning the code's `Classification` type with this vocabulary (adding a distinct `review` bucket) is tracked closure work. Until then, read a `defer` with rationale "No rule matched" as **Review**, not as a project-phase deferral.
 
 Confirm every Take and Reject verdict. Record new Rejects in the `FORK.md` divergence log **before** merging, so rejected work is not re-debated next sync. Commit the divergence-log update on the integration branch before proceeding.
 
@@ -64,7 +83,7 @@ To pin to a specific upstream tip instead of `upstream/main`, note the SHA from 
 node .agents/skills/upstream-sync/scripts/conflict-zones.ts --out conflict-zones.md
 ```
 
-Intersects upstream-changed paths with fork-changed paths since baseline and the FORK.md high-conflict zone catalog. The zone rollup tells you where to budget resolution time. Use it to scope the merge session and to sanity-check whether a single bulk merge is sane or whether the conflicting surface is so large you should reconsider wave-based absorbs.
+Intersects upstream-changed paths with fork-changed paths since baseline and the FORK.md high-conflict zone catalog. The zone rollup tells you where to budget resolution time. Use it to scope the merge session and to sanity-check whether a single bulk merge is sane or whether the conflicting surface is so large you should reconsider wave-based absorbs. `conflict-zones.md` is gitignored scratch, like `sync-plan.md`.
 
 At very large scale (hundreds of conflicting files), the zone rollup matters more than the per-file list — you resolve by zone, not file by file.
 
@@ -118,7 +137,33 @@ pnpm run dev:desktop  # Electron
 
 If native mobile code changed, also run `vp run lint:mobile`.
 
-### Step 6 — Land and record
+### Step 6 — Post-merge closure
+
+Almost every non-trivial merge produces a tail of follow-up work **caused by this merge** that must land on **this integration branch** before it merges to `main`. This is distinct from `docs/specs/deferred-work.md` (the cross-sync backlog): closure work is scoped to this sync, has acceptance criteria, and is part of this sync's definition of done.
+
+Common closure work:
+
+- **Branding re-application** the merge reverted (`@t3tools/*`, `T3CODE_*`, `t3code://`, `app.t3.codes` reappearing on product surfaces).
+- **Build-injection verification** for new build-time constants or env the merge introduced (e.g. a Clerk publishable key define that must flow from the release workflow's `production` environment).
+- **OKF integration** of upstream-internal docs the merge absorbed (e.g. `.macroscope/check-run-agents/*` Effect conventions → `docs/reference/` or `docs/operations/`).
+- **Classifier rule updates** when the merge exposed a rule gap (e.g. a `[codex]` wave that touched a divergence surface and was mis-bucketed).
+- **Vendored-repo follow-up** if `vp run sync:repos` couldn't fully converge in Step 4.
+
+Route closure through the **`plan-build-verify`** skill: author a spec at `docs/specs/YYYY-MM-DD-upstream-sync-closure.md` with a `## Acceptance criteria` section, build against it, and verify with evidence artifacts (command output, file diffs, gate results). Link the spec from the `docs/specs/index.md` roadmap row for this sync and promote that row to Active.
+
+If `plan-build-verify` is not installed, add it first:
+
+```bash
+npx skills add https://github.com/gannonh/skills --skill plan-build-verify -y
+```
+
+This is the only external skill this runbook depends on. Do not improvise closure without it — the spec + acceptance-criteria + evidence discipline is what separates closure from deferred work.
+
+Trivial syncs (clean merge, no follow-up surfaced) may skip this step — state that explicitly and proceed to Step 7. But the default for any merge that touched branding, build injection, or absorbed internal docs is to run closure.
+
+Do not merge the branch to `main` (Step 7) until closure is complete and its acceptance criteria pass.
+
+### Step 7 — Land and record
 
 ```bash
 git checkout main
@@ -134,9 +179,10 @@ Upstream SHA:       <merged-upstream-tip-or-pin>
 Fork SHA after merge: <main-commit>
 Conflicts resolved in: <paths or zones>
 Verification:       vp check && vp run typecheck && vp run test
+Closure spec:       docs/specs/YYYY-MM-DD-upstream-sync-closure.md (or 'n/a — trivial merge')
 ```
 
-Record any Reject entries and cherry-picks in the `FORK.md` divergence log. After landing, update the OKF bundle (`docs/log.md` with a dated entry; `docs/specs/log.md` if a spec changed) per the OKF workflow.
+Record any Reject entries and cherry-picks in the `FORK.md` divergence log. After landing, update the OKF bundle (`docs/log.md` with a dated entry; `docs/specs/log.md` if a spec changed; add the closure spec to `docs/specs/index.md`) per the OKF workflow.
 
 ## Cherry-pick path (urgent single commit)
 
@@ -185,3 +231,5 @@ Before a large fork-only feature, ask: _can this live in a new module upstream d
 - `FORK.md` — baseline SHA, divergence log, Phase 3 runbook, Phase 4 divergence boundaries.
 - `docs/adrs/0003-episodic-upstream-sync.md` — sync policy ADR.
 - `docs/adrs/0001-connected-fork-upstream-merge.md` — connected-fork strategy ADR.
+- `.agents/skills/plan-build-verify/SKILL.md` — drives Step 6 post-merge closure (spec with acceptance criteria → build → verify).
+- `docs/specs/deferred-work.md` — the cross-sync deferred-work registry; the source of truth for what a legitimate "Defer" verdict is tied to.

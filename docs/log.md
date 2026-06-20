@@ -1,5 +1,12 @@
 # OKF bundle log
 
+## 2026-06-20 (upstream-sync skill: post-merge closure phase + vocabulary fix)
+
+- Added **Step 6 — Post-merge closure** to the [upstream-sync skill](../../.agents/skills/upstream-sync/SKILL.md) and [guide](/guides/upstream-sync.md): a sync-scoped follow-up phase (branding re-application, build-injection verification, OKF integration of absorbed internal docs, classifier rule updates, vendored-repo follow-up) that lands on the integration branch before it merges to `main`. Routed through the `plan-build-verify` skill, producing a `docs/specs/YYYY-MM-DD-upstream-sync-closure.md` spec with acceptance criteria. Old Step 6 (land) renumbered to Step 7, gated on closure completion.
+- Added `plan-build-verify` install fallback (`npx skills add https://github.com/gannonh/skills --skill plan-build-verify -y`) for environments missing the skill.
+- Fixed the classification vocabulary in the runbook: split the single `defer` into `Take` / `Reject` / `Defer` (project-phase-tied, cross-sync, see [deferred-work registry](/specs/deferred-work.md)) / `Review` (unclassified, pending human verdict). Documented that `rules.ts` still emits only `take|cherry-pick|reject|defer`; aligning the code's `Classification` type with this vocabulary is tracked closure work for the 2026-06-20 sync.
+- Gitignored `sync-plan.md` / `conflict-zones.md` (script scratch artifacts) at the repo root so they no longer pollute `git status` or trip `vp check`.
+
 ## 2026-06-20 (upstream-sync scripts moved into the skill)
 
 - Moved the three upstream-sync helper scripts from `scripts/upstream-sync/` into the skill bundle at `.agents/skills/upstream-sync/scripts/` (`rules.ts`, `classify-upstream.ts`, `conflict-zones.ts`) so the skill is self-contained and portable, matching how other tracked skills (babysit-pr, fix-github-ci, okf) bundle their scripts.

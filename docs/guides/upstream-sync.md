@@ -44,7 +44,7 @@ If you are already on a `upstream-sync-*` branch (or in a dedicated worktree for
 
 ## Step 1 — Inventory and classify upstream commits
 
-Produce a draft Take / Cherry-pick / Reject / Defer table, then review it.
+Produce a draft classification table, then review it.
 
 ```bash
 node .agents/skills/upstream-sync/scripts/classify-upstream.ts --out sync-plan.md
@@ -55,9 +55,9 @@ The script:
 1. Reads the baseline SHA from `FORK.md` (or `--base <sha>`, else `git merge-base main upstream/main`).
 2. Lists every non-merge upstream commit since baseline.
 3. Applies the rules in [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts) — commit-message patterns (`[codex]` coordinated refactor = take; marketing / mobile-EAS = reject), path heuristics (`packages/contracts`, `apps/server|web|desktop` = take; `apps/marketing`, disabled workflows = reject), and the FORK.md divergence surfaces (`wireIdentity`, internal `t3://` protocol, `infra/relay/src` = defer).
-4. Emits `sync-plan.md` grouped by verdict, with rationale for each commit.
+4. Emits `sync-plan.md` grouped by verdict, with rationale for each commit. (`sync-plan.md` and `conflict-zones.md` are gitignored scratch artifacts, regenerated on each run.)
 
-**Read every verdict, especially the Defer bucket.** The classifier is a starting point, not a final decision. For commits flagged take+defer (a `[codex]` refactor that touches a fork divergence surface), plan for manual conflict resolution rather than a clean take. Confirm Take/Reject before merging, and record new Rejects in the [FORK.md divergence log](../../FORK.md#divergence-log) **before** merging so rejected work is not re-debated next sync.
+**Read every verdict, especially anything not a clean Take.** Use precise vocabulary: Take (absorb cleanly), Reject (permanently skip; log in FORK.md), Defer (tied to a named fork project phase or revisit trigger, cross-sync, see [deferred-work registry](../../docs/specs/deferred-work.md)), and Review (unclassified, pending human verdict — read a `defer` with "No rule matched" rationale this way). For commits flagged take+defer (a `[codex]` refactor that touches a fork divergence surface), plan for manual conflict resolution rather than a clean take. Confirm Take/Reject before merging, and record new Rejects in the [FORK.md divergence log](../../FORK.md#divergence-log) **before** merging so rejected work is not re-debated next sync.
 
 To pin to a specific upstream tip instead of `upstream/main`, note the SHA from `sync-plan.md` and use `git merge <upstream-sha>` in Step 3.
 
@@ -134,7 +134,21 @@ If changing native mobile code, also run `vp run lint:mobile`.
 
 Do not land the merge until `vp check` and `vp run typecheck` pass. These gates are required by [AGENTS.md](../../AGENTS.md) before a task is considered complete.
 
-## Step 6 — Land and record
+## Step 6 — Post-merge closure
+
+Almost every non-trivial merge produces a tail of follow-up work **caused by this merge** that must land on **this integration branch** before it merges to `main`. This is distinct from the [deferred-work registry](../../docs/specs/deferred-work.md) (cross-sync backlog): closure work is scoped to this sync, has acceptance criteria, and is part of this sync's definition of done.
+
+Common closure work: branding re-application the merge reverted, build-injection verification for new build-time constants or env (e.g. a Clerk publishable key define flowing from the release workflow's `production` environment), [OKF bundle](../../docs/index.md) integration of upstream-internal docs the merge absorbed (`.macroscope/*` Effect conventions → `docs/reference/` or `docs/operations/`), classifier rule updates when the merge exposed a rule gap, and vendored-repo follow-up if Step 4 could not fully converge.
+
+Route closure through the **`plan-build-verify`** skill: author a spec at `docs/specs/YYYY-MM-DD-upstream-sync-closure.md` with a `## Acceptance criteria` section, build against it, and verify with evidence artifacts. Link the spec from the [specs roadmap](../../docs/specs/index.md) row for this sync and promote that row to Active.
+
+If `plan-build-verify` is not installed, add it first: `npx skills add https://github.com/gannonh/skills --skill plan-build-verify -y`. This is the only external skill this runbook depends on.
+
+Trivial syncs (clean merge, no follow-up surfaced) may skip this step — state that explicitly and proceed to Step 7. The default for any merge that touched branding, build injection, or absorbed internal docs is to run closure.
+
+Do not merge the branch to `main` (Step 7) until closure is complete and its acceptance criteria pass.
+
+## Step 7 — Land and record
 
 ```bash
 git checkout main
@@ -150,9 +164,10 @@ Upstream SHA:       <merged-upstream-tip-or-pin>
 Fork SHA after merge: <main-commit>
 Conflicts resolved in: <paths or zones>
 Verification:       vp check && vp run typecheck && vp run test
+Closure spec:       docs/specs/YYYY-MM-DD-upstream-sync-closure.md (or 'n/a — trivial merge')
 ```
 
-Record any **Reject** entries in the [divergence log](../../FORK.md#divergence-log). Record cherry-picks outside full merges under **Cherry-picks (outside full merges)**.
+Record any **Reject** entries in the [divergence log](../../FORK.md#divergence-log). Record cherry-picks outside full merges under **Cherry-picks (outside full merges)**. After landing, update the OKF bundle (`docs/log.md`; `docs/specs/log.md`; add the closure spec to the [specs roadmap](../../docs/specs/index.md)).
 
 ## Cherry-pick path (urgent single commit)
 
