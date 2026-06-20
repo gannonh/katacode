@@ -138,7 +138,7 @@ function isCacheLifeRec(rec) {
     .filter(Boolean)
     .join("\n");
   return (
-    /^isr_overrevalidation:/.test(String(rec?.candidateRef ?? "")) &&
+    String(rec?.candidateRef ?? "").startsWith("isr_overrevalidation:") &&
     /\bcacheLife\s*\(|\bcacheLife\b/i.test(text)
   );
 }
@@ -189,8 +189,8 @@ function cacheLifeIntent(rec) {
   const profiles = unique(
     [...text.matchAll(/\bcacheLife\s*\(\s*['"`]([^'"`]+)['"`]/g)].map((m) => m[1]),
   );
-  const tags = unique([
-    ...[...text.matchAll(/\bcacheTag\s*\(([^)]*)\)/gs)].flatMap((m) => {
+  const tags = unique(
+    [...text.matchAll(/\bcacheTag\s*\(([^)]*)\)/gs)].flatMap((m) => {
       const args = m[1] ?? "";
       return [
         ...[...args.matchAll(/['"]([^'"]+)['"]/g)].map((x) => x[1]),
@@ -199,7 +199,7 @@ function cacheLifeIntent(rec) {
         ),
       ];
     }),
-  ]);
+  );
   const invalidation = /\b(?:revalidateTag|updateTag)\s*\(/.test(text)
     ? "with-invalidation-api"
     : "no-invalidation-api";

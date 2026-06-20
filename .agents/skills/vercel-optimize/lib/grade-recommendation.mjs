@@ -10,7 +10,7 @@ const UNIT_RE =
   /\b\d[\d.,]*\s*(?:%|ms|s|sec|seconds?|min|minutes?|h|hours?|GB|MB|KB|K|M|B|rps|qps|req\/s|reqs?\/min)\b/gi;
 const CODE_FENCE_RE = /```[\s\S]*?```/g;
 const INLINE_CODE_RE = /`[^`\n]{10,}`/g;
-const FILE_LINE_RE = /[\w/.\-()\[\]]+\.\w+:\d+/g;
+const FILE_LINE_RE = /[\w/.\-()[\]]+\.\w+:\d+/g;
 
 // Grounding + evidence are lie-detectors — weighted higher than specificity/actionability, which LLMs can game with fluff.
 const W = { grounding: 0.35, evidence: 0.3, specificity: 0.2, actionability: 0.15 };

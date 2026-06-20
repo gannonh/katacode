@@ -18,6 +18,7 @@ export async function checkCliVersion() {
   } catch (err) {
     throw new Error(
       "VERCEL_NOT_INSTALLED: `vercel` CLI not found in PATH. Install with `npm i -g vercel@latest`.",
+      { cause: err },
     );
   }
   const m = raw.match(/(\d+)\.(\d+)\.(\d+)/);

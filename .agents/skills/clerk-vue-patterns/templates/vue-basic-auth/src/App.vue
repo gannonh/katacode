@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/vue'
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/vue";
 </script>
 
 <template>

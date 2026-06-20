@@ -236,6 +236,7 @@ async function writeBriefFile(outPath, brief, { force = false } = {}) {
     if (err?.code === "EEXIST") {
       throw new Error(
         `output file already exists: ${outPath}. Use a fresh run directory or pass --force to overwrite.`,
+        { cause: err },
       );
     }
     throw err;

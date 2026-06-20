@@ -5,7 +5,7 @@
 // This module is the ONLY place we touch Next.js metric path encoding — every gate calls canonicalizeRoute before aggregating.
 
 export const ROUTE_SHAPE_RE =
-  /(?:^.{200,}$)|[\s'"`,;&=<>(){}!\\^|\u0000-\u001F]|%(?:22|5B|5C|7B|7D|20|3C|3E|26)|localhost:|https?:\/|\/\/(?!$)|[:,\$\s]$|\.segments?\/|__PAGE__|@[a-z]/i;
+  /(?:^.{200,}$)|[\s'"`,;&=<>(){}!\\^|\u0000-\u001F]|%(?:22|5B|5C|7B|7D|20|3C|3E|26)|localhost:|https?:\/|\/\/(?!$)|[:,$\s]$|\.segments?\/|__PAGE__|@[a-z]/i;
 
 export function isSegmentTreePath(route) {
   if (typeof route !== "string") return false;
@@ -92,9 +92,9 @@ function decodeSegmentToken(token) {
 
   let t = token.endsWith(".segment") ? token.slice(0, -".segment".length) : token;
 
-  if (/^\$d\$/.test(t)) return `[${t.slice(3)}]`;
-  if (/^\$oc\$/.test(t)) return `[[...${t.slice(4)}]]`;
-  if (/^\$c\$/.test(t)) return `[...${t.slice(3)}]`;
+  if (t.startsWith("$d$")) return `[${t.slice(3)}]`;
+  if (t.startsWith("$oc$")) return `[[...${t.slice(4)}]]`;
+  if (t.startsWith("$c$")) return `[...${t.slice(3)}]`;
 
   // `!` is segment-tree marker; body is base64 of `(default)` etc. Accept only when decoded looks like `(name)`.
   if (t.startsWith("!") && t.length > 1) {

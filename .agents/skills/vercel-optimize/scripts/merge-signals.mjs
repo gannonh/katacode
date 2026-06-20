@@ -163,7 +163,7 @@ async function readJson(path, label) {
   try {
     return JSON.parse(await readFile(path, "utf-8"));
   } catch (err) {
-    throw new Error(`Could not read ${label} JSON at ${path}: ${err.message}`);
+    throw new Error(`Could not read ${label} JSON at ${path}: ${err.message}`, { cause: err });
   }
 }
 
