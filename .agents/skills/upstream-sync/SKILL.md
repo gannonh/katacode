@@ -19,9 +19,27 @@ Why bulk merge by default: upstream periodically ships coordinated refactors (th
 
 ## Process
 
-Follow these steps in order. Steps 0 and 1 are read-only and safe to run anytime for a status check. Steps 2+ mutate the repo.
+Follow these steps in order. Step 0 sets up a clean integration branch so every artifact this runbook produces (sync-plan.md, conflict-zones.md, the merge commit, lockfile regen) stays off `main`. Steps 1 and 2 are read-only status checks. Steps 3+ mutate the repo.
 
-### Step 0 — Inventory and classify
+### Step 0 — Prepare a clean integration branch
+
+Start here, before running any inventory script. The classifier and conflict-zones scripts write `sync-plan.md` / `conflict-zones.md` into the working tree; keep those artifacts (and the eventual merge) isolated on an integration branch so `main` stays clean.
+
+```bash
+git checkout main
+git status --short        # must be empty before continuing
+git pull origin main
+git fetch upstream --tags
+git checkout -b upstream-sync-$(date +%Y-%m-%d)
+```
+
+If you are already on a sync branch (e.g. resuming a paused run, or working in a dedicated worktree for this sync), stay there: confirm `git status --short` is clean and `git branch --show-current` is `upstream-sync-*` (or your chosen worktree branch), then continue to Step 1. Do not rebase mid-sync.
+
+If the tree on `main` is dirty, do not work around it. Commit, stash, or revert the unrelated change first. `git status --short` must be empty before the integration branch is created.
+
+**Re-entering a sync in progress:** if `upstream-sync-<date>` already exists from a prior attempt, decide whether to resume it (`git checkout` into it and continue from where you paused) or start fresh (`git branch -D` the old branch after confirming nothing there was worth keeping). Resume by default; a fresh branch loses prior conflict-resolution work.
+
+### Step 1 — Inventory and classify
 
 Produce a draft Take / Cherry-pick / Reject / Defer table, then review it. Do not skip the human review: the classifier is a starting point, not a final decision.
 
@@ -36,9 +54,11 @@ The script reads the baseline SHA from `FORK.md`'s `Upstream SHA:` line (overrid
 - **take + defer** (a `[codex]` refactor that also touches a fork divergence surface like `infra/relay/src` or `wireIdentity`): plan for manual conflict resolution, not a clean take. The refactor wants to land together, but the fork has policy-level reasons to diverge on that surface.
 - **upstream-internal docs only** (commits touching only `.macroscope/`, `.github` templates, `CONTRIBUTING.md`): the fork has its own equivalents (e.g. `docs/operations/effect-fn-checklist.md`). Absorb only if you want upstream's guidance verbatim.
 
-Confirm every Take and Reject verdict. Record new Rejects in the `FORK.md` divergence log **before** merging, so rejected work is not re-debated next sync.
+Confirm every Take and Reject verdict. Record new Rejects in the `FORK.md` divergence log **before** merging, so rejected work is not re-debated next sync. Commit the divergence-log update on the integration branch before proceeding.
 
-### Step 1 — Predict conflict zones
+To pin to a specific upstream tip instead of `upstream/main`, note the SHA from `sync-plan.md` and use `git merge <upstream-sha>` in Step 3.
+
+### Step 2 — Predict conflict zones
 
 ```bash
 node .agents/skills/upstream-sync/scripts/conflict-zones.ts --out conflict-zones.md
@@ -48,20 +68,10 @@ Intersects upstream-changed paths with fork-changed paths since baseline and the
 
 At very large scale (hundreds of conflicting files), the zone rollup matters more than the per-file list — you resolve by zone, not file by file.
 
-### Step 2 — Open a sync branch
-
-```bash
-git checkout main
-git pull origin main
-git checkout -b upstream-sync-$(date +%Y-%m-%d)
-```
-
-To pin to a specific upstream tip instead of `upstream/main`, note the SHA from Step 0 and `git merge <upstream-sha>` in Step 3.
-
 ### Step 3 — Merge and resolve
 
 ```bash
-git merge upstream/main   # or the pinned SHA
+git merge upstream/main   # or the pinned SHA from Step 1
 ```
 
 Resolve conflicts by zone, applying these fork-policy rules consistently:
@@ -130,13 +140,16 @@ Record any Reject entries and cherry-picks in the `FORK.md` divergence log. Afte
 
 ## Cherry-pick path (urgent single commit)
 
-For one bugfix between scheduled merges, or when a full merge is blocked but a security/reliability fix is urgent:
+For one bugfix between scheduled merges, or when a full merge is blocked but a security/reliability fix is urgent. Follow the same branch discipline as a full sync: start from a clean `main`, create a dedicated branch.
 
 ```bash
+git checkout main
+git status --short        # must be empty
+git pull origin main
 git fetch upstream
 git checkout -b cherry-pick-<short-sha>
 git cherry-pick <upstream-commit-sha>
-# verify, merge to main, push
+# verify (vp check + vp run typecheck), merge to main, push
 ```
 
 Log the SHA under **Cherry-picks (outside full merges)** in the `FORK.md` divergence log.

@@ -28,7 +28,21 @@ Use the **inventory + classify** step below to confirm the diff shape before com
 - Clean working tree on `main`
 - The **Last upstream sync** block in [FORK.md](../../FORK.md) records the baseline SHA (`Upstream SHA:` line). The classifier reads it from there.
 
-## Step 0 — Inventory and classify upstream commits
+## Step 0 — Prepare a clean integration branch
+
+Start here. The classifier and conflict-zones scripts write `sync-plan.md` / `conflict-zones.md` into the working tree; keep those artifacts (and the eventual merge) isolated on an integration branch so `main` stays clean.
+
+```bash
+git checkout main
+git status --short        # must be empty before continuing
+git pull origin main
+git fetch upstream --tags
+git checkout -b upstream-sync-$(date +%Y-%m-%d)
+```
+
+If you are already on a `upstream-sync-*` branch (or in a dedicated worktree for this sync), stay there: confirm `git status --short` is clean and continue to Step 1. Resume by default; a fresh branch loses prior conflict-resolution work.
+
+## Step 1 — Inventory and classify upstream commits
 
 Produce a draft Take / Cherry-pick / Reject / Defer table, then review it.
 
@@ -45,32 +59,20 @@ The script:
 
 **Read every verdict, especially the Defer bucket.** The classifier is a starting point, not a final decision. For commits flagged take+defer (a `[codex]` refactor that touches a fork divergence surface), plan for manual conflict resolution rather than a clean take. Confirm Take/Reject before merging, and record new Rejects in the [FORK.md divergence log](../../FORK.md#divergence-log) **before** merging so rejected work is not re-debated next sync.
 
-## Step 1 — Predict conflict zones
+To pin to a specific upstream tip instead of `upstream/main`, note the SHA from `sync-plan.md` and use `git merge <upstream-sha>` in Step 3.
+
+## Step 2 — Predict conflict zones
 
 ```bash
 node .agents/skills/upstream-sync/scripts/conflict-zones.ts --out conflict-zones.md
 ```
 
-Intersects upstream-changed paths with fork-changed paths since baseline and the [FORK.md high-conflict zone catalog](../../FORK.md#high-conflict-zones). The zone rollup tells you where to budget resolution time (e.g. "196 conflicting files in apps/server"). Use it to scope the merge session and to decide whether a wave-based absorb is worth the extra PRs.
-
-## Step 2 — Open a sync branch
-
-```bash
-git checkout main
-git pull origin main
-git checkout -b upstream-sync-$(date +%Y-%m-%d)
-```
-
-To pin to a specific upstream tip instead of `upstream/main`:
-
-```bash
-git merge <upstream-sha>
-```
+Intersects upstream-changed paths with fork-changed paths since baseline and the [FORK.md high-conflict zone catalog](../../FORK.md#high-conflict-zones). The zone rollup tells you where to budget resolution time (e.g. "196 conflicting files in apps/server"). Use it to scope the merge session and to decide whether a single bulk merge is sane or whether a wave-based absorb is worth the extra PRs.
 
 ## Step 3 — Merge and resolve conflicts
 
 ```bash
-git merge upstream/main   # or the pinned SHA from Step 0
+git merge upstream/main   # or the pinned SHA from Step 1
 ```
 
 ### Resolution rules
