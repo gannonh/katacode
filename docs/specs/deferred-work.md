@@ -32,12 +32,12 @@ Each entry should include:
 
 ### Production Relay Deploy
 
-- **Status:** accepted
+- **Status:** closed
 - **Area:** relay, infrastructure, release
 - **Source:** [Relay Deploy design](/specs/2026-06-18-relay-deploy-design.md), [Phase 2 desktop/web release design](/specs/2026-06-16-phase-2-desktop-web-release-design.md), [specs roadmap](/specs/index.md), `.github/disabled/README.md`
 - **Rationale:** Deferred from the desktop/web release split until fork-owned relay infrastructure and secrets are ready.
 - **Revisit trigger:** Build and Verify [Relay Deploy design](/specs/2026-06-18-relay-deploy-design.md); close after implementation and UAT evidence are complete.
-- **Notes:** Initial direction is manual-only production deploy with dry-run mode, health/metadata checks, Clerk DPoP smoke, release config from Alchemy state, and required manual link/connect UAT.
+- **Notes:** Completed 2026-06-19. Production relay deployed via [deploy-relay.yml](https://github.com/gannonh/kata-code/actions/runs/27798366259). Nightly runtime regressions (asar native libs, x64 cross-arch packaging) fixed. Connect UAT passed: sign-in, linked environment visible, tunnel started, hosted web connected.
 
 ### CI automation for full relay link/connect smoke
 
@@ -83,3 +83,12 @@ Each entry should include:
 - **Rationale:** Excluded from the desktop/web release split and Relay Deploy planning so infrastructure work can remain independently verifiable.
 - **Revisit trigger:** Review before public Connect launch, release download page work, or marketing site deployment work.
 - **Notes:** Keep release/download surfaces aligned with hosted web and desktop artifact channels.
+
+### Connect: stale relay link on account switch
+
+- **Status:** deferred
+- **Area:** connect, desktop, relay
+- **Source:** relay UAT 2026-06-19
+- **Rationale:** Discovered during UAT when switching between Google accounts; the relay link from the first account persisted and the new account's `listEnvironments` returned empty.
+- **Revisit trigger:** Before stable release or public Connect launch.
+- **Notes:** On sign-out, revoke the relay link for the departing `cloudUserId` before clearing credentials. On sign-in, detect that `cloudUserId` changed and re-link under the new user.

@@ -1,5 +1,11 @@
 # Specs log
 
+## 2026-06-19 (Relay Deploy completed)
+
+- Marked [Relay Deploy design](/specs/2026-06-18-relay-deploy-design.md) **Completed** with UAT evidence date 2026-06-19.
+- Updated [specs roadmap](/specs/index.md): Phase 2 relay deploy moved to Completed; upstream sync remains Planned.
+- Closed "Production Relay Deploy" in [deferred work registry](/specs/deferred-work.md); added "Connect: stale relay link on account switch" as deferred.
+
 ## 2026-06-18 (Relay Deploy infra setup)
 
 - Updated [Relay Deploy design](/specs/2026-06-18-relay-deploy-design.md) with credential smoke + local dry-run progress and remaining GitHub/UAT gates.

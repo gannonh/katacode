@@ -4,13 +4,14 @@ title: "Relay Deploy"
 description: "Plan to enable manual production deployment for the Kata Code Connect relay with strict release config, smoke checks, and UAT evidence."
 tags: [relay, connect, infrastructure, release, github-actions]
 timestamp: 2026-06-18T00:00:00Z
-status: Implemented
+status: Completed
 approved_at: 2026-06-18T00:00:00Z
+completed_at: 2026-06-19T00:00:00Z
 ---
 
 # Relay Deploy
 
-**Status:** Implemented (credential smoke + local dry-run pass; GitHub apply + UAT pending)
+**Status:** Completed — production relay deployed, Nightly runtime regressions fixed, Connect UAT passed (2026-06-19)
 
 ## Grounding context
 
@@ -412,7 +413,7 @@ Blocking questions for Build:
 
 - **Spec:** `docs/specs/2026-06-18-relay-deploy-design.md`
 - **Base SHA:** `31451890f34e705d0e8f7729ec62eed295c9607d`
-- **Status:** Implemented (credential smoke + local dry-run pass; GitHub apply + UAT pending)
+- **Status:** Completed (2026-06-19)
 
 ### Tasks completed
 

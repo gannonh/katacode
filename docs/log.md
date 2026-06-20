@@ -1,5 +1,12 @@
 # OKF bundle log
 
+## 2026-06-19 (Relay Deploy completed + Nightly UAT)
+
+- Marked [Relay Deploy design](/specs/2026-06-18-relay-deploy-design.md) **Completed**: production relay deployed ([run 27798366259](https://github.com/gannonh/kata-code/actions/runs/27798366259)), Nightly runtime regressions fixed, Connect UAT passed.
+- Moved Phase 2 infra split to **Completed** on [specs roadmap](/specs/index.md); updated Active to upstream sync planning.
+- Closed "Production Relay Deploy" deferred item; added "Connect: stale relay link on account switch" deferred item to [deferred work registry](/specs/deferred-work.md).
+- Documented relay deploy and Connect polish commits: `11c8a75c6` (fff native asar fix), `628d982de` (rejected cloud session recovery), `1cfb69697` (x64 cross-arch native bindings).
+
 ## 2026-06-18 (Relay Deploy infra setup)
 
 - Documented one-time Alchemy Cloudflare bootstrap, credential smoke validation, and `CLOUDFLARE_ACCOUNT_ID` verification in [Relay deploy setup](/operations/relay-deploy-setup.md) and [Relay credentials playbook](/guides/relay-credentials-playbook.md).
