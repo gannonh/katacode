@@ -40,7 +40,7 @@ git fetch upstream --tags
 git checkout -b upstream-sync-$(date +%Y-%m-%d)
 ```
 
-If you are already on a `upstream-sync-*` branch (or in a dedicated worktree for this sync), stay there: confirm `git status --short` is clean and continue to Step 1. Resume by default; a fresh branch loses prior conflict-resolution work.
+If you are already on a `upstream-sync-*` branch (or in a dedicated worktree for this sync), stay there: confirm `git status --short` is clean, re-fetch upstream (`git fetch upstream --tags`) so you see any commits landed since the pause, then continue to Step 1. Resume by default; a fresh branch loses prior conflict-resolution work.
 
 ## Step 1 — Inventory and classify upstream commits
 
@@ -57,9 +57,13 @@ The script:
 3. Applies the rules in [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts) — commit-message patterns (`[codex]` coordinated refactor = take; marketing / mobile-EAS = reject), path heuristics (`packages/contracts`, `apps/server|web|desktop` = take; `apps/marketing`, disabled workflows = reject), and the FORK.md divergence surfaces (`wireIdentity`, internal `t3://` protocol, `infra/relay/src` = defer).
 4. Emits `sync-plan.md` grouped by verdict, with rationale for each commit. (`sync-plan.md` and `conflict-zones.md` are gitignored scratch artifacts, regenerated on each run.)
 
-**Read every verdict, especially anything not a clean Take.** Use precise vocabulary: Take (absorb cleanly), Reject (permanently skip; log in FORK.md), Defer (tied to a named fork project phase or revisit trigger, cross-sync, see [deferred-work registry](../../docs/specs/deferred-work.md)), and Review (unclassified, pending human verdict — read a `defer` with "No rule matched" rationale this way). For commits flagged take+defer (a `[codex]` refactor that touches a fork divergence surface), plan for manual conflict resolution rather than a clean take. Confirm Take/Reject before merging, and record new Rejects in the [FORK.md divergence log](../../FORK.md#divergence-log) **before** merging so rejected work is not re-debated next sync.
+**Read every verdict, especially anything not a clean Take.** Use precise vocabulary: Take (absorb cleanly), Reject (permanently skip; log in FORK.md), Defer (tied to a named fork project phase or revisit trigger, cross-sync, see [deferred-work registry](../../docs/specs/deferred-work.md)), and Review (unclassified by the rules — the human assigns it to Take/Reject/Defer; not tied to any un-integrated feature). For commits flagged take+defer (a `[codex]` refactor that touches a fork divergence surface), plan for manual conflict resolution rather than a clean take. Confirm Take/Reject before merging, and record new Rejects in the [FORK.md divergence log](../../FORK.md#divergence-log) **before** merging so rejected work is not re-debated next sync.
 
 To pin to a specific upstream tip instead of `upstream/main`, note the SHA from `sync-plan.md` and use `git merge <upstream-sha>` in Step 3.
+
+**Hard human gate.** This step is not auto-proceedable. Present the classification to the human and pause; do not start Step 3 (merge) until they confirm Take/Reject/Defer/Review verdicts.
+
+**Where decisions go** (carried forward into Step 6 closure): Rejects → [FORK.md divergence log](../../FORK.md#divergence-log) (before merge). take+defer resolution plans → sync PR description / scratch note, carried into the Step 6 closure spec. Anything newly deferring to a fork project phase → [deferred-work registry](../../docs/specs/deferred-work.md). You make resolution decisions at Step 3 and record them in the Step 6 closure spec — keep notes now so closure has the input.
 
 ## Step 2 — Predict conflict zones
 
@@ -144,7 +148,7 @@ Route closure through the **`plan-build-verify`** skill: author a spec at `docs/
 
 If `plan-build-verify` is not installed, add it first: `npx skills add https://github.com/gannonh/skills --skill plan-build-verify -y`. This is the only external skill this runbook depends on.
 
-Trivial syncs (clean merge, no follow-up surfaced) may skip this step — state that explicitly and proceed to Step 7. The default for any merge that touched branding, build injection, or absorbed internal docs is to run closure.
+Trivial syncs may skip this step, but the bar for "trivial" is concrete: the merge introduced zero `@t3tools/*` / `T3CODE_*` regressions, zero new build-time constants or env, and zero absorbed upstream-internal docs needing OKF integration. If any of those is non-zero, run closure. State the trivial-skip decision explicitly in the Step 7 record.
 
 Do not merge the branch to `main` (Step 7) until closure is complete and its acceptance criteria pass.
 
@@ -172,13 +176,16 @@ Record any **Reject** entries in the [divergence log](../../FORK.md#divergence-l
 ## Cherry-pick path (urgent single commit)
 
 ```bash
+git checkout main
+git status --short        # must be empty
+git pull origin main
 git fetch upstream
 git checkout -b cherry-pick-<short-sha>
 git cherry-pick <upstream-commit-sha>
-# verify, merge to main, push
+# verify (vp check + vp run typecheck), then run Step 6 closure if branding/build constants/docs absorbed, merge to main, push
 ```
 
-Log the SHA under **Cherry-picks (outside full merges)** in [FORK.md](../../FORK.md#divergence-log).
+Log the SHA under **Cherry-picks (outside full merges)** in [FORK.md](../../FORK.md#divergence-log). Cherry-picks that touch branding, build injection, or absorb docs run the same Step 6 closure check as a bulk merge, under the same concrete "trivial" bar.
 
 ## When not to "disconnect" upstream
 

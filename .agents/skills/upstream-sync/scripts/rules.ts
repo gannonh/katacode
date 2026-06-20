@@ -25,7 +25,7 @@ export interface UpstreamCommit {
   readonly files: ReadonlyArray<readonly [string, string]>;
 }
 
-export type Classification = "take" | "cherry-pick" | "reject" | "defer";
+export type Classification = "take" | "cherry-pick" | "reject" | "defer" | "review";
 
 export interface RuleHit {
   readonly rule: string;
@@ -226,7 +226,11 @@ export function classifyCommit(commit: UpstreamCommit): CommitVerdict {
   let rationale: string;
 
   if (takeCount > 0 && rejectCount > 0) {
-    classification = "defer";
+    // Conflicting take+reject signals (e.g. a [codex] refactor that also touches
+    // a marketing surface) cannot be resolved mechanically. This is the
+    // "review" verdict in the runbook vocabulary: not a clean take, not a clean
+    // reject, not a project-phase deferral — a human must decide.
+    classification = "review";
     const takeRules = hits.filter((h) => h.classification === "take").map((h) => h.rule);
     const rejectRules = hits.filter((h) => h.classification === "reject").map((h) => h.rule);
     rationale = `Conflicting signals: take (${takeRules.join(", ")}) vs reject (${rejectRules.join(", ")}). Review manually.`;
@@ -259,9 +263,12 @@ export function classifyCommit(commit: UpstreamCommit): CommitVerdict {
       .map((h) => h.reason)
       .join(" ");
   } else {
-    classification = "defer";
+    // No rule fired. This is the "review" verdict: the classifier had no signal
+    // — it is NOT tied to a named fork project phase or revisit trigger, so it
+    // is not a legitimate "defer". The human assigns it to take/reject/defer.
+    classification = "review";
     rationale =
-      "No rule matched (likely upstream-internal or peripheral). Default to defer for human review.";
+      "No classification rule matched (likely upstream-internal or peripheral). Not tied to any fork project phase — assign to Take/Reject/Defer during review.";
   }
 
   return { commit, classification, rationale, hits };

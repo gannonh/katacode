@@ -41,7 +41,7 @@ git fetch upstream --tags
 git checkout -b upstream-sync-$(date +%Y-%m-%d)
 ```
 
-If you are already on a sync branch (e.g. resuming a paused run, or working in a dedicated worktree for this sync), stay there: confirm `git status --short` is clean and `git branch --show-current` is `upstream-sync-*` (or your chosen worktree branch), then continue to Step 1. Do not rebase mid-sync.
+If you are already on a sync branch (e.g. resuming a paused run, or working in a dedicated worktree for this sync), stay there: confirm `git status --short` is clean and `git branch --show-current` is `upstream-sync-*` (or your chosen worktree branch), then re-fetch upstream (`git fetch upstream --tags`) so you see any commits landed since the pause, then continue to Step 1. Do not rebase mid-sync.
 
 If the tree on `main` is dirty, do not work around it. Commit, stash, or revert the unrelated change first. `git status --short` must be empty before the integration branch is created.
 
@@ -71,9 +71,18 @@ Two sub-cases in the Defer/Review buckets deserve attention:
 - **take + defer** (a `[codex]` refactor that also touches a fork divergence surface like `infra/relay/src` or `wireIdentity`): plan for manual conflict resolution, not a clean take. The refactor wants to land together, but the fork has policy-level reasons to diverge on that surface.
 - **upstream-internal docs only** (commits touching only `.macroscope/`, `.github` templates, `CONTRIBUTING.md`): the fork has its own equivalents (e.g. `docs/operations/effect-fn-checklist.md`). Absorb, then handle the OKF integration as Step 6 closure work — do not let it sit un-classified.
 
-Note: `rules.ts` currently emits only `take | cherry-pick | reject | defer`; the "unclassified, pending human verdict" case is emitted as `defer`. Aligning the code's `Classification` type with this vocabulary (adding a distinct `review` bucket) is tracked closure work. Until then, read a `defer` with rationale "No rule matched" as **Review**, not as a project-phase deferral.
+Note: `rules.ts` emits `take | cherry-pick | reject | defer | review`. The `review` bucket is for commits with no rule signal (not tied to any fork project phase — distinct from a project-phase `defer`). Upgrade the rules in `scripts/rules.ts` when you find a `review` verdict you can resolve deterministically for future syncs.
+
+**This step has a hard human gate.** Present the classification to the human and pause. Do not proceed to Step 3 (merge) until the human has confirmed Take/Reject/Defer/Review verdicts. An agent running this skill must stop here and hand back to the human — classification is not a step to auto-proceed through.
 
 Confirm every Take and Reject verdict. Record new Rejects in the `FORK.md` divergence log **before** merging, so rejected work is not re-debated next sync. Commit the divergence-log update on the integration branch before proceeding.
+
+**Where decisions go** (carried forward into Step 6 closure):
+
+- Rejects → `FORK.md` divergence log (before merge).
+- take+defer resolution plans (e.g. "take the [codex] relay commits, resolve `infra/relay/src` conflicts manually keeping kata wire identifiers") → notes in the sync PR description / a scratch note, carried into the Step 6 closure spec.
+- Anything newly deferring to a fork project phase → `docs/specs/deferred-work.md`.
+  You make resolution decisions at Step 3 and record them in the Step 6 closure spec; keep notes now so closure has the input it needs.
 
 To pin to a specific upstream tip instead of `upstream/main`, note the SHA from `sync-plan.md` and use `git merge <upstream-sha>` in Step 3.
 
@@ -159,7 +168,7 @@ npx skills add https://github.com/gannonh/skills --skill plan-build-verify -y
 
 This is the only external skill this runbook depends on. Do not improvise closure without it — the spec + acceptance-criteria + evidence discipline is what separates closure from deferred work.
 
-Trivial syncs (clean merge, no follow-up surfaced) may skip this step — state that explicitly and proceed to Step 7. But the default for any merge that touched branding, build injection, or absorbed internal docs is to run closure.
+Trivial syncs may skip this step, but the bar for "trivial" is concrete: the merge introduced zero `@t3tools/*` / `T3CODE_*` regressions, zero new build-time constants or env, and zero absorbed upstream-internal docs needing OKF integration. If any of those is non-zero, run closure. State the trivial-skip decision explicitly in the Step 7 record.
 
 Do not merge the branch to `main` (Step 7) until closure is complete and its acceptance criteria pass.
 
@@ -195,10 +204,10 @@ git pull origin main
 git fetch upstream
 git checkout -b cherry-pick-<short-sha>
 git cherry-pick <upstream-commit-sha>
-# verify (vp check + vp run typecheck), merge to main, push
+# verify (vp check + vp run typecheck), then run Step 6 closure if branding/build constants/docs absorbed, merge to main, push
 ```
 
-Log the SHA under **Cherry-picks (outside full merges)** in the `FORK.md` divergence log.
+Log the SHA under **Cherry-picks (outside full merges)** in the `FORK.md` divergence log. Cherry-picks that touch branding, build injection, or absorb docs run the same Step 6 closure check as a bulk merge — trivial single-file fixes may skip it under the same concrete bar.
 
 ## Hard rules
 

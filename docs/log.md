@@ -1,5 +1,17 @@
 # OKF bundle log
 
+## 2026-06-20 (upstream-sync skill: rerun audit fixes)
+
+Reran the updated skill from Step 0 against the real 80-commit diff as if for the first time; fixed seven gaps the rerun surfaced.
+
+- **Classifier vocabulary end-to-end:** added `review` to `rules.ts` `Classification` type. The "no rule matched" and "conflicting take+reject" cases now emit `review` instead of `defer`, so the script output (four buckets) matches the runbook vocabulary. Validated against the real diff: 63 take / 2 reject / 11 defer / 4 review (was 63/2/15/0 — the 4 mis-bucketed defers were the unrelated mobile/ssh/TTL/typography commits, not project-phase deferrals). Breaks the prior circularity where the fix was scoped to "closure work" during the very sync that needed it pre-merge.
+- **Step 1 hard human gate:** made the classification checkpoint an explicit pause for agent-driven execution ("present to human, do not auto-proceed to Step 3").
+- **Step 1 decisions-where:** documented that Rejects go to FORK.md (pre-merge), take+defer plans go to a scratch note carried into the Step 6 closure spec, and new deferrals go to `docs/specs/deferred-work.md`. Resolves the Step-3-make / Step-6-record tension.
+- **Step 0 resume path:** resume branch now re-fetches upstream (`git fetch upstream --tags`) so a resumed sync sees commits landed since the pause.
+- **Step 6 trivial bar:** "trivial sync may skip closure" now has a concrete test (zero `@t3tools` regressions, zero new build constants/env, zero absorbed upstream-internal docs).
+- **Cherry-pick path:** now follows clean-main-first discipline and runs the same Step 6 closure check under the same concrete trivial bar.
+- Mirrored all fixes in [docs/guides/upstream-sync.md](/guides/upstream-sync.md).
+
 ## 2026-06-20 (upstream-sync skill: post-merge closure phase + vocabulary fix)
 
 - Added **Step 6 — Post-merge closure** to the [upstream-sync skill](../../.agents/skills/upstream-sync/SKILL.md) and [guide](/guides/upstream-sync.md): a sync-scoped follow-up phase (branding re-application, build-injection verification, OKF integration of absorbed internal docs, classifier rule updates, vendored-repo follow-up) that lands on the integration branch before it merges to `main`. Routed through the `plan-build-verify` skill, producing a `docs/specs/YYYY-MM-DD-upstream-sync-closure.md` spec with acceptance criteria. Old Step 6 (land) renumbered to Step 7, gated on closure completion.

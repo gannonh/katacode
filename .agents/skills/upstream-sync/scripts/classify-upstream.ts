@@ -125,7 +125,13 @@ function summarize(verdicts: ReadonlyArray<CommitVerdict>): {
   byClass: Record<string, number>;
   total: number;
 } {
-  const byClass: Record<string, number> = { take: 0, "cherry-pick": 0, reject: 0, defer: 0 };
+  const byClass: Record<string, number> = {
+    take: 0,
+    "cherry-pick": 0,
+    reject: 0,
+    defer: 0,
+    review: 0,
+  };
   for (const v of verdicts) byClass[v.classification] = (byClass[v.classification] ?? 0) + 1;
   return { byClass, total: verdicts.length };
 }
@@ -143,7 +149,7 @@ function renderMarkdown(
   lines.push(`- Upstream tip: \`${upstreamTip}\``);
   lines.push(`- Commits since base: ${total}`);
   lines.push(
-    `- Draft classification: ${byClass.take ?? 0} take · ${byClass["cherry-pick"] ?? 0} cherry-pick · ${byClass.reject ?? 0} reject · ${byClass.defer ?? 0} defer`,
+    `- Draft classification: ${byClass.take ?? 0} take · ${byClass["cherry-pick"] ?? 0} cherry-pick · ${byClass.reject ?? 0} reject · ${byClass.defer ?? 0} defer · ${byClass.review ?? 0} review`,
   );
   lines.push("");
   lines.push(
@@ -154,7 +160,8 @@ function renderMarkdown(
   const groups: Array<[string, string]> = [
     ["take", "### Take"],
     ["cherry-pick", "### Cherry-pick"],
-    ["defer", "### Defer (review manually)"],
+    ["defer", "### Defer (project-phase-tied, see docs/specs/deferred-work.md)"],
+    ["review", "### Review (unclassified — assign to Take/Reject/Defer)"],
     ["reject", "### Reject"],
   ];
 
