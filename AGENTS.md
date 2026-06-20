@@ -147,4 +147,11 @@ native `node-pty` build, and the `prepare` hook are handled). See the [Quick Sta
   so install a new provider into the Node 24 bin and it is picked up without restarting the dev server.
 - **State dir:** `~/.katacode` (override with `KATACODE_HOME`). Delete it to reset pairing/projects/threads.
 - **Desktop dev** (`pnpm run dev:desktop`) additionally needs
-  `vp run --filter @kata-sh/code-desktop ensure:electron` once per fresh worktree; not required for the web app.
+  `vp run --filter @kata-sh/code-desktop ensure:electron` once per fresh worktree (not required for the
+  web app). It builds web+server, then launches Electron against the loopback embedded server and reuses
+  the same `~/.katacode` state — so stop a running `pnpm run dev` first to avoid two servers sharing the
+  SQLite DB. Headless caveats: set `DISPLAY=:1` (the virtual desktop); Electron auto-adds `--no-sandbox`;
+  and the default 64 MB `/dev/shm` is too small for Chromium — it surfaces as
+  `ERR_INSUFFICIENT_RESOURCES` / `BootstrapHttpError: Failed to load server environment descriptor (500)`
+  and a stuck loading screen. Fix by enlarging it before launch: `sudo mount -o remount,size=2g /dev/shm`
+  (ephemeral; re-run after a VM restart). dbus/GPU/WebGL warnings in the log are expected and harmless.
