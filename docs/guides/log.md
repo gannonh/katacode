@@ -2,7 +2,7 @@
 
 ## 2026-06-20 (upstream-sync runbook rewrite)
 
-- Rewrote [upstream-sync guide](/guides/upstream-sync.md) as the canonical selective-sync runbook (bulk-merge default, classifier + conflict-zone steps, fork-policy resolution rules, verify gates). Mirrors the new `.agents/skills/upstream-sync/SKILL.md` and points at `scripts/upstream-sync/`.
+- Rewrote [upstream-sync guide](/guides/upstream-sync.md) as the canonical selective-sync runbook (bulk-merge default, classifier + conflict-zone steps, fork-policy resolution rules, verify gates). Mirrors the new `.agents/skills/upstream-sync/SKILL.md`; helper scripts are bundled inside the skill at `.agents/skills/upstream-sync/scripts/`.
 
 ## 2026-06-17 (upstream sync)
 

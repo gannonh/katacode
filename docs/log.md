@@ -1,10 +1,15 @@
 # OKF bundle log
 
+## 2026-06-20 (upstream-sync scripts moved into the skill)
+
+- Moved the three upstream-sync helper scripts from `scripts/upstream-sync/` into the skill bundle at `.agents/skills/upstream-sync/scripts/` (`rules.ts`, `classify-upstream.ts`, `conflict-zones.ts`) so the skill is self-contained and portable, matching how other tracked skills (babysit-pr, fix-github-ci, okf) bundle their scripts.
+- Updated [upstream-sync guide](/guides/upstream-sync.md) and [`.agents/skills/upstream-sync/SKILL.md`](../../.agents/skills/upstream-sync/SKILL.md) command examples and references to point at the new in-skill paths.
+- Scripts no longer typecheck under `vp run typecheck` (they left the `@kata-sh/code-scripts` workspace); they remain linted by `vp check`. Run via `node .agents/skills/upstream-sync/scripts/<name>.ts` from the repo root.
+
 ## 2026-06-20 (upstream-sync runbook + skill + classifier scripts)
 
 - Rewrote [upstream-sync guide](/guides/upstream-sync.md) as the canonical selective-sync runbook: bulk-merge default, integrated inventory+classify and conflict-zone scripts, fork-policy resolution rules, verify gates, land+record steps.
-- Added `.agents/skills/upstream-sync/SKILL.md` — the agent-facing runbook that IS the sync process (mirrors the guide, points at the scripts and ADRs).
-- Added `scripts/upstream-sync/`:
+- Added `.agents/skills/upstream-sync/SKILL.md` — the agent-facing runbook that IS the sync process (mirrors the guide, points at the scripts and ADRs). Helper scripts are bundled inside the skill at `.agents/skills/upstream-sync/scripts/`:
   - `rules.ts` — Take/Cherry-pick/Reject/Defer classification rules (source of truth the classifier runs against).
   - `classify-upstream.ts` — inventories upstream commits since baseline and emits a draft classification table.
   - `conflict-zones.ts` — intersects upstream-changed and fork-changed paths with the FORK.md high-conflict zone catalog; zone-level rollup.

@@ -5,7 +5,7 @@ description: Selective upstream sync runbook for the Kata Code fork of T3 Code. 
 
 # Upstream sync
 
-This skill is the canonical runbook for pulling changes from `pingdotgg/t3code` into `gannonh/kata-code`. The human-facing guide at `docs/guides/upstream-sync.md` mirrors this process and points back here; the helper scripts under `scripts/upstream-sync/` automate the inventory and classification steps.
+This skill is the canonical runbook for pulling changes from `pingdotgg/t3code` into `gannonh/kata-code`. The human-facing guide at `docs/guides/upstream-sync.md` mirrors this process and points back here; the helper scripts bundled under `scripts/` in this skill automate the inventory and classification steps. Run them from the repo root:
 
 **Policy:** ADR 0003 (episodic sync, no parity target). **Fork baseline & divergence log:** `FORK.md`. Read both before a first-time sync.
 
@@ -26,10 +26,10 @@ Follow these steps in order. Steps 0 and 1 are read-only and safe to run anytime
 Produce a draft Take / Cherry-pick / Reject / Defer table, then review it. Do not skip the human review: the classifier is a starting point, not a final decision.
 
 ```bash
-node scripts/upstream-sync/classify-upstream.ts --out sync-plan.md
+node .agents/skills/upstream-sync/scripts/classify-upstream.ts --out sync-plan.md
 ```
 
-The script reads the baseline SHA from `FORK.md`'s `Upstream SHA:` line (override with `--base <sha>`; falls back to `git merge-base main upstream/main`), fetches upstream, lists every non-merge commit since baseline, applies the rules in `scripts/upstream-sync/rules.ts`, and writes the table grouped by verdict with rationale.
+The script reads the baseline SHA from `FORK.md`'s `Upstream SHA:` line (override with `--base <sha>`; falls back to `git merge-base main upstream/main`), fetches upstream, lists every non-merge commit since baseline, applies the rules in `scripts/rules.ts`, and writes the table grouped by verdict with rationale.
 
 **Review the Defer bucket carefully.** Two sub-cases deserve attention:
 
@@ -41,7 +41,7 @@ Confirm every Take and Reject verdict. Record new Rejects in the `FORK.md` diver
 ### Step 1 — Predict conflict zones
 
 ```bash
-node scripts/upstream-sync/conflict-zones.ts --out conflict-zones.md
+node .agents/skills/upstream-sync/scripts/conflict-zones.ts --out conflict-zones.md
 ```
 
 Intersects upstream-changed paths with fork-changed paths since baseline and the FORK.md high-conflict zone catalog. The zone rollup tells you where to budget resolution time. Use it to scope the merge session and to sanity-check whether a single bulk merge is sane or whether the conflicting surface is so large you should reconsider wave-based absorbs.
@@ -165,9 +165,9 @@ Before a large fork-only feature, ask: _can this live in a new module upstream d
 
 ## References
 
-- `scripts/upstream-sync/rules.ts` — classification rules (the source of truth the classifier runs against; edit when fork policy changes).
-- `scripts/upstream-sync/classify-upstream.ts` — inventory + classify script.
-- `scripts/upstream-sync/conflict-zones.ts` — conflict-zone predictor.
+- `scripts/rules.ts` — classification rules (the source of truth the classifier runs against; edit when fork policy changes).
+- `scripts/classify-upstream.ts` — inventory + classify script.
+- `scripts/conflict-zones.ts` — conflict-zone predictor.
 - `docs/guides/upstream-sync.md` — human-facing mirror of this runbook.
 - `FORK.md` — baseline SHA, divergence log, Phase 3 runbook, Phase 4 divergence boundaries.
 - `docs/adrs/0003-episodic-upstream-sync.md` — sync policy ADR.

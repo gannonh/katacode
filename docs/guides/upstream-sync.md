@@ -33,14 +33,14 @@ Use the **inventory + classify** step below to confirm the diff shape before com
 Produce a draft Take / Cherry-pick / Reject / Defer table, then review it.
 
 ```bash
-node scripts/upstream-sync/classify-upstream.ts --out sync-plan.md
+node .agents/skills/upstream-sync/scripts/classify-upstream.ts --out sync-plan.md
 ```
 
 The script:
 
 1. Reads the baseline SHA from `FORK.md` (or `--base <sha>`, else `git merge-base main upstream/main`).
 2. Lists every non-merge upstream commit since baseline.
-3. Applies the rules in [`scripts/upstream-sync/rules.ts`](../../scripts/upstream-sync/rules.ts) — commit-message patterns (`[codex]` coordinated refactor = take; marketing / mobile-EAS = reject), path heuristics (`packages/contracts`, `apps/server|web|desktop` = take; `apps/marketing`, disabled workflows = reject), and the FORK.md divergence surfaces (`wireIdentity`, internal `t3://` protocol, `infra/relay/src` = defer).
+3. Applies the rules in [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts) — commit-message patterns (`[codex]` coordinated refactor = take; marketing / mobile-EAS = reject), path heuristics (`packages/contracts`, `apps/server|web|desktop` = take; `apps/marketing`, disabled workflows = reject), and the FORK.md divergence surfaces (`wireIdentity`, internal `t3://` protocol, `infra/relay/src` = defer).
 4. Emits `sync-plan.md` grouped by verdict, with rationale for each commit.
 
 **Read every verdict, especially the Defer bucket.** The classifier is a starting point, not a final decision. For commits flagged take+defer (a `[codex]` refactor that touches a fork divergence surface), plan for manual conflict resolution rather than a clean take. Confirm Take/Reject before merging, and record new Rejects in the [FORK.md divergence log](../../FORK.md#divergence-log) **before** merging so rejected work is not re-debated next sync.
@@ -48,7 +48,7 @@ The script:
 ## Step 1 — Predict conflict zones
 
 ```bash
-node scripts/upstream-sync/conflict-zones.ts --out conflict-zones.md
+node .agents/skills/upstream-sync/scripts/conflict-zones.ts --out conflict-zones.md
 ```
 
 Intersects upstream-changed paths with fork-changed paths since baseline and the [FORK.md high-conflict zone catalog](../../FORK.md#high-conflict-zones). The zone rollup tells you where to budget resolution time (e.g. "196 conflicting files in apps/server"). Use it to scope the merge session and to decide whether a wave-based absorb is worth the extra PRs.
@@ -187,4 +187,4 @@ Before a large fork-only feature, ask: _can this live in a new module upstream d
 - [Fork setup spec](/specs/fork-setup.md)
 - [FORK.md](../../FORK.md)
 - [upstream-sync skill](../../.agents/skills/upstream-sync/SKILL.md)
-- Classifier rules: [`scripts/upstream-sync/rules.ts`](../../scripts/upstream-sync/rules.ts)
+- Classifier rules: [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts)
