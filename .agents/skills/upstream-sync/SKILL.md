@@ -1,6 +1,6 @@
 ---
 name: upstream-sync
-description: Selective upstream sync runbook for the Kata Code fork of T3 Code. Use when the user wants to sync, merge, or pull changes from upstream (pingdotgg/t3code), inventory what's new upstream, classify commits as Take/Reject/Defer, predict merge conflicts, absorb an upstream feature or fix, run an episodic upstream merge, cherry-pick an upstream commit, or update the FORK.md baseline. Also covers "what changed upstream since last sync" and "should we take this upstream change." This skill IS the runbook: follow it end-to-end so the process stays repeatable and does not drift across syncs.
+description: "Selective upstream sync runbook for the Kata Code fork of T3 Code. Use when the user wants to sync, merge, or pull changes from upstream (pingdotgg/t3code), inventory what's new upstream, classify commits as Take/Reject/Defer, predict merge conflicts, absorb an upstream feature or fix, run an episodic upstream merge, cherry-pick an upstream commit, or update the FORK.md baseline. Also covers 'what changed upstream since last sync' and 'should we take this upstream change.' This skill IS the runbook; follow it end-to-end so the process stays repeatable and does not drift across syncs."
 ---
 
 # Upstream sync
