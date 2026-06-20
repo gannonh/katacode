@@ -1,5 +1,9 @@
 # Guides log
 
+## 2026-06-20 (upstream-sync runbook rewrite)
+
+- Rewrote [upstream-sync guide](/guides/upstream-sync.md) as the canonical selective-sync runbook (bulk-merge default, classifier + conflict-zone steps, fork-policy resolution rules, verify gates). Mirrors the new `.agents/skills/upstream-sync/SKILL.md` and points at `scripts/upstream-sync/`.
+
 ## 2026-06-17 (upstream sync)
 
 - Added [upstream sync guide](/guides/upstream-sync.md) for selective T3 Code merges; links [ADR 0003](/adrs/0003-episodic-upstream-sync.md) and [FORK.md — Phase 3](../../FORK.md#phase-3--upstream-sync-runbook).

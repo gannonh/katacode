@@ -1,5 +1,16 @@
 # OKF bundle log
 
+## 2026-06-20 (upstream-sync runbook + skill + classifier scripts)
+
+- Rewrote [upstream-sync guide](/guides/upstream-sync.md) as the canonical selective-sync runbook: bulk-merge default, integrated inventory+classify and conflict-zone scripts, fork-policy resolution rules, verify gates, land+record steps.
+- Added `.agents/skills/upstream-sync/SKILL.md` — the agent-facing runbook that IS the sync process (mirrors the guide, points at the scripts and ADRs).
+- Added `scripts/upstream-sync/`:
+  - `rules.ts` — Take/Cherry-pick/Reject/Defer classification rules (source of truth the classifier runs against).
+  - `classify-upstream.ts` — inventories upstream commits since baseline and emits a draft classification table.
+  - `conflict-zones.ts` — intersects upstream-changed and fork-changed paths with the FORK.md high-conflict zone catalog; zone-level rollup.
+- Validated against the real 80-commit upstream diff since baseline `708d5383`: 63 take / 2 reject / 15 defer; conflict-zones predicts 649 intersecting paths (450 in high-blast zones, heaviest in apps/server and apps/web).
+- Did **not** perform the merge in this change; scripts are read-only runbook tooling. Baseline in [FORK.md](../../FORK.md) unchanged.
+
 ## 2026-06-19 (stable v0.0.29 released + full UAT pass)
 
 - Stable `v0.0.29` released ([run 27854360066](https://github.com/gannonh/kata-code/actions/runs/27854360066)); `@kata-sh/code-cli@0.0.29` published to npm.
