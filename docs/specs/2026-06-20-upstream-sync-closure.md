@@ -4,8 +4,8 @@ title: "2026-06-20 upstream sync closure"
 description: "Closure plan for the first episodic upstream sync: the bulk merge of 80 pingdotgg/t3code commits into Kata Code on branch upstream-sync-2026-06-20, plus the sync-scoped follow-up work (branding re-application, Clerk build-injection verification, OKF integration of absorbed Effect conventions, classifier rule gaps) that must land on the integration branch before it merges to main."
 tags: [fork, upstream-sync, closure, spec]
 timestamp: 2026-06-20T00:00:00Z
-status: Draft
-approved_at:
+status: Approved
+approved_at: 2026-06-20T00:00:00Z
 ---
 
 # 2026-06-20 upstream sync closure
