@@ -421,7 +421,17 @@ Record intentional permanent differences from upstream.
 
 ### Rejected upstream
 
-_(none yet)_
+- `3bdaa6e1` — `Polish marketing homepage: nav, hero, and endorsements (#3137)` — 2026-06-20 — Upstream marketing homepage; Kata Code ships its own web surfaces (`apps/web/vercel.ts`, hosted `app.kata.sh`).
+- `9544e72d` (partial) — `chore: run eas only when labelled (#3208)` — 2026-06-20 — The label-gate improvement was **ported** to the disabled workflow (see below); the rest of the upstream commit (re-adding `.github/workflows/mobile-eas-preview.yml` at the non-disabled path, the `blacksmith-8vcpu-ubuntu-2404` runner) is rejected.
+
+### Ported upstream improvements (modified)
+
+Upstream improvements hand-ported into fork-divergent locations during a sync, with modifications. Recorded so future syncs do not re-port them.
+
+- **`9544e72d` — EAS preview label gate** (sync `2026-06-20`). Upstream added a `🚀 Mobile Continuous Deployment` PR-label gate so EAS previews run only when explicitly requested, instead of on every push. Ported into `.github/disabled/mobile-eas-preview.yml` (workflow stays disabled until the mobile phase ships — feature flag off). Added:
+  - `types: [opened, reopened, synchronize, labeled, unlabeled]` under `on: pull_request:`
+  - `if: contains(github.event.pull_request.labels.*.name, '🚀 Mobile Continuous Deployment')` under the `preview:` job
+  - **Not** ported: upstream's `runs-on: blacksmith-8vcpu-ubuntu-2404` runner (Blacksmith is upstream-specific; keep `ubuntu-24.04`).
 
 ### Deferred upstream wire compatibility (Phase 2)
 
