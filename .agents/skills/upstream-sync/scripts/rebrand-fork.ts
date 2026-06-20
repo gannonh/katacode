@@ -73,8 +73,13 @@ const T3_SERVER_PACKAGE_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
 ];
 
 /**
- * Build-time define renames (vite/electron injection). Word-boundary not
- * needed: these are exact-match defines.
+ * Exact-match string renames applied via plain split/join. Covers build-time
+ * defines (vite/electron injection), the Context.Service deterministic-key
+ * prefixes the package renames above don't reach, and OTel service/attribute
+ * names upstream reintroduces in fork-shaped form.
+ *
+ * Order constraint: no entry may be a prefix of a later one (split/join is
+ * greedy per entry). The current set is mutually non-overlapping.
  */
 const IDENTITY_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
   [
@@ -82,6 +87,14 @@ const IDENTITY_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
     "__KATACODE_BUILD_CLERK_PUBLISHABLE_KEY__",
     "build define",
   ],
+  // Context.Service deterministic-key prefixes: apps/server (`t3` -> @kata-sh/code-cli)
+  // and infra/relay (`t3code-relay` -> @kata-sh/code-relay).
+  ['"t3/', '"@kata-sh/code-cli/', "service key"],
+  ['"t3code-relay/', '"@kata-sh/code-relay/', "service key"],
+  // OTel service + attribute names reintroduced upstream in fork-shaped form.
+  ['"t3.client.surface"', '"kata.client.surface"', "otel"],
+  ['"t3-headless-relay-client"', '"kata-headless-relay-client"', "otel"],
+  ['"t3-server"', '"kata-server"', "otel"],
 ];
 
 /**
@@ -90,6 +103,19 @@ const IDENTITY_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
  */
 const ENV_PREFIX_PATTERN: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bT3CODE_([A-Z0-9_]+)/g, "KATACODE_$1"],
+];
+
+/**
+ * Property/identifier renames the plain-string rules can't make safely.
+ * Word-boundary anchored so partial tokens (e.g. `something.t3`) are untouched.
+ *   t3Home  -> katacodeHome  (state-dir config property)
+ *   t3-env: -> kata-env:     (JWT issuer prefix)
+ *   ~/.t3   -> ~/.katacode   (state-dir literal, anchored to leading `~`)
+ */
+const PROPERTY_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/\bt3Home\b/g, "katacodeHome"],
+  [/t3-env:/g, "kata-env:"],
+  [/~\/\.t3\b/g, "~/.katacode"],
 ];
 
 interface CliArgs {
@@ -207,6 +233,14 @@ function applyToContent(content: string): { rewritten: string; hits: Array<Renam
       hits.push({ from: re.source, to, category: "env prefix T3CODE_*", count: matches.length });
     }
   }
+  for (const [re, to] of PROPERTY_PATTERNS) {
+    re.lastIndex = 0;
+    const matches = rewritten.match(re);
+    if (matches) {
+      rewritten = rewritten.replace(re, to);
+      hits.push({ from: re.source, to, category: "property/identifier", count: matches.length });
+    }
+  }
   return { rewritten, hits };
 }
 
@@ -223,8 +257,9 @@ function main() {
         "  --check   exit 1 if any fork-identity regressions remain (closure gate)",
         "",
         "Rename scope: @t3tools/* packages, the `t3` server package, T3CODE_* env",
-        "and build constants. Does NOT rename the internal t3:// static-asset",
-        "scheme (deferred Phase 2 per FORK.md).",
+        "and build constants, Context.Service key prefixes, OTel service/attribute",
+        "names, and the t3Home / t3-env: / ~/.t3 property literals. Does NOT rename",
+        "the internal t3:// static-asset scheme (deferred Phase 2 per FORK.md).",
       ].join("\n") + "\n",
     );
     return;
