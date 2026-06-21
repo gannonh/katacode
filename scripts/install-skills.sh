@@ -17,6 +17,7 @@ GANNONH_SKILLS=(
   plan-build-verify
   simplify
   strict-quality-review
+  pull-requests
   user-acceptance
 )
 
