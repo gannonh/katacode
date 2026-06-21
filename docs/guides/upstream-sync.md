@@ -1,107 +1,112 @@
 ---
 type: Guide
 title: "Upstream sync"
-description: "Selective upstream sync runbook for Kata Code: inventory, classify, bulk-merge, resolve, verify, record. Pairs with the upstream-sync skill and its helper scripts."
+description: "Selective vendor-pull runbook for Kata Code: scan upstream, analyze commits for effort and risk, port individual changes as fork-original commits. Pairs with the upstream-sync skill and its helper scripts."
 tags: [fork, git, upstream, guide, runbook]
-timestamp: 2026-06-20T00:00:00Z
+timestamp: 2026-06-21T00:00:00Z
 ---
 
 # Upstream sync
 
-Runbook for pulling changes from [pingdotgg/t3code](https://github.com/pingdotgg/t3code) into [gannonh/kata-code](https://github.com/gannonh/kata-code).
+Runbook for absorbing changes from [pingdotgg/t3code](https://github.com/pingdotgg/t3code) into [gannonh/kata-code](https://github.com/gannonh/kata-code).
 
-**Policy:** [ADR 0003 — Episodic upstream sync](/adrs/0003-episodic-upstream-sync.md). **Fork mechanics & divergence log:** [FORK.md](../../FORK.md) (Phase 3 runbook, Phase 4 divergence boundaries). **Agent-facing process:** [.agents/skills/upstream-sync/SKILL.md](../../.agents/skills/upstream-sync/SKILL.md).
+**Policy:** [ADR 0004 — Selective vendor-pull](/adrs/0004-selective-vendor-pull.md). **Fork mechanics & divergence log:** [FORK.md](../../FORK.md). **Agent-facing process:** [.agents/skills/upstream-sync/SKILL.md](../../.agents/skills/upstream-sync/SKILL.md).
 
-Kata Code does **not** aim for parity with `upstream/main`. Sync when there is a concrete reason. The full process is codified as the `upstream-sync` skill so it stays repeatable and does not drift across syncs.
+Kata Code does **not** aim for parity with `upstream/main`. Absorb upstream changes when there is a concrete reason. Each change is ported as a fork-original commit with branding already in place.
 
-## Strategy
+## Why vendor-pull, not merge
 
-Default to a **single bulk merge** of `upstream/main` (or a pinned upstream SHA) on a sync branch. Use cherry-pick only for an individual hotfix when a full merge is not ready.
+The first upstream sync attempt used the bulk-merge strategy from ADR 0003. It scoped to 80 commits, consumed an entire agent session building tooling, and never completed the merge. The gap grew to 253 commits (205 `[codex]` Effect refactor + 48 others) before the attempt was abandoned.
 
-Bulk merge beats cherry-picking when the upstream diff contains coordinated refactors that depend on each other — the `[codex]` Effect service migration is the canonical example. Cherry-picking those commits individually tends to break compilation because they assume each other.
+Bulk merges compound: larger gaps produce more conflicts, more classification work, and more branding-regression closure tasks. The `[codex]` Effect refactor — 200+ coupled intermediate commits — made cherry-picking impossible and bulk-merging impractical.
 
-Use the **inventory + classify** step below to confirm the diff shape before committing to a strategy. If the diff is a handful of independent fixes, cherry-pick or wave-based absorbs are reasonable. If it is one or more coordinated refactors, bulk merge.
+Vendor-pull addresses this by porting individual upstream changes (or small clusters) as fork-original commits. Each port is small, self-contained, and correctly branded from the start. No merge conflicts, no branding re-application pass, no closure tasks. Coordinated upstream refactors are deferred until they stabilize, then the net result is ported once.
+
+See [the strategy analysis](/specs/2026-06-21-upstream-sync-strategy-analysis.md) for the full evaluation.
 
 ## Prerequisites
 
 - `origin` → `gannonh/kata-code`, `upstream` → `https://github.com/pingdotgg/t3code.git` (read-only; never push)
 - Clean working tree on `main`
-- The **Last upstream sync** block in [FORK.md](../../FORK.md) records the baseline SHA (`Upstream SHA:` line). The classifier reads it from there.
+- The **Last upstream scan** block in [FORK.md](../../FORK.md) records the baseline SHA. The classifier reads it from there.
 
-## Step 0 — Prepare a clean integration branch
+## Step 0 — Scan upstream
 
-Start here. The classifier and conflict-zones scripts write `sync-plan.md` / `conflict-zones.md` into the working tree; keep those artifacts (and the eventual merge) isolated on an integration branch so `main` stays clean.
+See what's new since the last scan.
 
 ```bash
-git checkout main
-git status --short        # must be empty before continuing
-git pull origin main
 git fetch upstream --tags
-git checkout -b upstream-sync-$(date +%Y-%m-%d)
+node .agents/skills/upstream-sync/scripts/classify-upstream.ts --since-scan --out sync-plan.md
 ```
 
-If you are already on a `upstream-sync-*` branch (or in a dedicated worktree for this sync), stay there: confirm `git status --short` is clean, re-fetch upstream (`git fetch upstream --tags`) so you see any commits landed since the pause, then continue to Step 1. Resume by default; a fresh branch loses prior conflict-resolution work.
+The script reads the last-scanned SHA from `FORK.md` (or `--base <sha>`, else `git merge-base main upstream/main`), lists every non-merge upstream commit since that SHA, applies the rules in [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts), and writes `sync-plan.md` grouped by area and verdict. `sync-plan.md` is a gitignored scratch artifact, regenerated on each run.
 
-## Step 1 — Inventory and classify upstream commits
+The baseline SHA represents the last-scanned upstream tip, not the last-merged commit. Advance it in Step 3 after every scan.
 
-Produce a draft classification table, then review it.
+## Step 1 — Analyze and recommend
+
+Group related commits into clusters. For each cluster, assess:
+
+- **What it does** — functional summary.
+- **Fork intersection** — which fork-modified files it touches. Run `conflict-zones.ts` for intersection analysis:
 
 ```bash
-node .agents/skills/upstream-sync/scripts/classify-upstream.ts --out sync-plan.md
+node .agents/skills/upstream-sync/scripts/conflict-zones.ts --commits <sha1>,<sha2> --out conflict-zones.md
 ```
 
-The script:
+- **Effort** — Trivial (additive, non-divergent files) / Moderate (touches fork-modified files) / Significant (structural change across packages).
+- **Risk** — Low (isolated) / Medium (touches shared types/contracts) / High (touches divergence surfaces: wire identifiers, branding, relay).
+- **Recommendation** — Port / Defer / Skip / Watch.
 
-1. Reads the baseline SHA from `FORK.md` (or `--base <sha>`, else `git merge-base main upstream/main`).
-2. Lists every non-merge upstream commit since baseline.
-3. Applies the rules in [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts) — commit-message patterns (`[codex]` coordinated refactor = take; marketing / mobile-EAS = reject), path heuristics (`packages/contracts`, `apps/server|web|desktop` = take; `apps/marketing`, disabled workflows = reject), and the FORK.md divergence surfaces (`wireIdentity`, internal `t3://` protocol, `infra/relay/src` = defer).
-4. Emits `sync-plan.md` grouped by verdict, with rationale for each commit. (`sync-plan.md` and `conflict-zones.md` are gitignored scratch artifacts, regenerated on each run.)
+**Verdict vocabulary.** Port (re-implement on the fork), Skip (permanently ignore; log in FORK.md), Defer (tied to a named fork project phase; cross-sync), Watch (active upstream refactor; defer until stable, then port the net result).
 
-**Read every verdict, especially anything not a clean Take.** Use precise vocabulary: Take (absorb cleanly), Reject (permanently skip; log in FORK.md), Defer (tied to a named fork project phase or revisit trigger, cross-sync, see [deferred-work registry](../../docs/specs/deferred-work.md)), and Review (unclassified by the rules — the human assigns it to Take/Reject/Defer; not tied to any un-integrated feature). For commits flagged take+defer (a `[codex]` refactor that touches a fork divergence surface), plan for manual conflict resolution rather than a clean take. Confirm Take/Reject before merging, and record new Rejects in the [FORK.md divergence log](../../FORK.md#divergence-log) **before** merging so rejected work is not re-debated next sync.
+**Coordinated refactors.** When upstream ships a large coupled refactor, recommend **Watch**. The `[codex]` Effect migration is the archetype: port the net result once it stabilizes, not intermediate states of a moving target.
 
-To pin to a specific upstream tip instead of `upstream/main`, note the SHA from `sync-plan.md` and use `git merge <upstream-sha>` in Step 3.
+**Hard human gate.** Present the analysis and pause. The human decides which changes to port. Do not auto-proceed.
 
-**Hard human gate.** This step is not auto-proceedable. Present the classification to the human and pause; do not start Step 3 (merge) until they confirm Take/Reject/Defer/Review verdicts.
+## Step 2 — Port (per approved change)
 
-**Where decisions go** (carried forward into Step 6 closure): Rejects → [FORK.md divergence log](../../FORK.md#divergence-log) (before merge). take+defer resolution plans → sync PR description / scratch note, carried into the Step 6 closure spec. Anything newly deferring to a fork project phase → [deferred-work registry](../../docs/specs/deferred-work.md). You make resolution decisions at Step 3 and record them in the Step 6 closure spec — keep notes now so closure has the input.
-
-## Step 2 — Predict conflict zones
+Re-implement the upstream change as a fork-original commit.
 
 ```bash
-node .agents/skills/upstream-sync/scripts/conflict-zones.ts --out conflict-zones.md
+# Create feature branch
+git checkout main && git pull origin main
+git checkout -b port-upstream/<short-description>
+
+# Read the upstream diff
+git show <commit>                         # single commit
+git diff <first-parent>..<last-commit>    # cluster
 ```
 
-Intersects upstream-changed paths with fork-changed paths since baseline and the [FORK.md high-conflict zone catalog](../../FORK.md#high-conflict-zones). The zone rollup tells you where to budget resolution time (e.g. "196 conflicting files in apps/server"). Use it to scope the merge session and to decide whether a single bulk merge is sane or whether a wave-based absorb is worth the extra PRs.
+Apply the change to the fork codebase with fork branding already in place. This is a re-implementation, not a merge.
 
-## Step 3 — Merge and resolve conflicts
+After applying:
 
 ```bash
-git merge upstream/main   # or the pinned SHA from Step 1
+node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --check   # gate: exit 1 on regressions
+vp check
+vp run typecheck
 ```
 
-**Resolution order matters — the trap that bit the first sync.** Resolve conflicts by zone **before staging**: `git checkout --theirs/--ours <path>` then `git add` per file. Do not `git add -u` mid-resolution, and never write upstream versions with `git show :3:$f > $f` — when a `:3` stage is unavailable (after partial staging) that truncates files to empty silently. Use the bundled [`take-upstream.sh`](../../.agents/skills/upstream-sync/scripts/take-upstream.sh) helper, which wraps the safe `git checkout --theirs` form and refuses to run once stages are gone.
+Commit with conventional commit format. Reference upstream SHAs in the commit body:
 
-Once all conflicts are resolved and staged, rebrand the whole merged tree before regenerating the lockfile:
+```
+feat(server): port upstream session timeout fix
+
+Upstream: abc1234, def5678
+```
+
+If vendored reference repos (`.repos/`) need updating because the ported change bumps a dep:
 
 ```bash
-node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --apply   # restore @kata-sh/* etc.
-node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --check    # gate: exit 1 on regressions
-vp i                                                                 # then regen pnpm-lock.yaml
+vp run sync:repos --repo <id>
 ```
 
-### Resolution rules
+Merge to main (direct push or PR depending on scope).
 
-These rules encode fork policy. Apply them consistently so the fork does not silently drift back toward upstream identity.
+### High-divergence zones
 
-- **Restore Kata Code branding** on every product surface: `Kata Code`, `KATACODE_*`, `katacode://` / `katacode-dev://`, `@kata-sh/code-*`, `com.katacode.app`. Never reintroduce `@t3tools/*` or `T3CODE_*` without an explicit [FORK.md](../../FORK.md) decision. The [`rebrand-fork.ts`](../../.agents/skills/upstream-sync/scripts/rebrand-fork.ts) script applies the FORK.md identity table deterministically; prefer it to hand-editing.
-- **Prefer fork extension modules** over inlining fork logic into shared upstream files. When upstream moved a file the fork also moved, keep the fork location and reapply the divergence there.
-- **Do not hand-merge `pnpm-lock.yaml`.** Delete it, run `vp i`, let pnpm regenerate it. Do this **after** the rebrand so the regenerated lockfile references `@kata-sh/code-*` not `@t3tools/*`.
-- **Keep fork rebrand test fixtures** upstream-shaped where they must be: product surfaces use Kata identity, but fixture repo names may remain `octocat/t3code`. See [CI runbook — fork rebrand test fixtures](/operations/ci.md#fork-rebrand-test-fixtures).
-- **Resolution choices of `ours` vs `theirs` are decisions, not defaults.** Note non-obvious resolutions in the sync PR description so the next maintainer can follow the reasoning. `take-upstream.sh` accepts zone filters so you can take upstream for `apps/mobile` while resolving `infra/relay` by hand.
-
-### High-conflict zones
-
-The zones the conflict-zones script rolls up. Expect the most effort here:
+These areas require extra care when porting. Upstream changes here are more likely to intersect with fork-modified files.
 
 | Zone                         | Why                                       |
 | ---------------------------- | ----------------------------------------- |
@@ -111,95 +116,35 @@ The zones the conflict-zones script rolls up. Expect the most effort here:
 | `packages/contracts/`        | Protocol/schema changes ripple everywhere |
 | `packages/shared/`           | Shared runtime utilities                  |
 | `scripts/dev-runner.ts`      | Dev env and ports                         |
-| `pnpm-lock.yaml`             | Always regenerate with `vp i` after merge |
 | `package.json` (root + apps) | Scripts, filters, version bumps           |
 
-## Step 4 — Sync vendored reference repos (if deps changed)
+## Step 3 — Record
 
-If upstream bumped Effect, Alchemy, or another dependency with a vendored subtree under `.repos/`:
+Update [FORK.md](../../FORK.md):
 
-```bash
-vp run sync:repos
-# or one repo:
-node scripts/sync-reference-repos.ts --repo <id>
-```
+- Advance the `Last upstream scan` date and tip SHA.
+- Log ported changes under `Ported upstream changes` with upstream SHA, fork SHA, and date.
+- Log new Skip decisions in the divergence log with rationale.
+- Log Watch clusters with their stabilization trigger.
 
-Keep `.repos/` matched to the installed dependency version in the same sync.
-
-## Step 5 — Verify
-
-```bash
-vp i                                              # after lockfile regen
-vp run --filter @kata-sh/code-desktop ensure:electron   # if desktop touched
-vp check
-vp run typecheck
-vp run test
-vp run release:smoke                              # if release paths touched
-```
-
-Smoke session UX and providers manually when those areas changed:
-
-```bash
-pnpm run dev          # web + server
-pnpm run dev:desktop  # Electron
-```
-
-If changing native mobile code, also run `vp run lint:mobile`.
-
-Do not land the merge until `vp check` and `vp run typecheck` pass. These gates are required by [AGENTS.md](../../AGENTS.md) before a task is considered complete.
-
-## Step 6 — Post-merge closure
-
-Almost every non-trivial merge produces a tail of follow-up work **caused by this merge** that must land on **this integration branch** before it merges to `main`. This is distinct from the [deferred-work registry](../../docs/specs/deferred-work.md) (cross-sync backlog): closure work is scoped to this sync, has acceptance criteria, and is part of this sync's definition of done.
-
-Common closure work: branding re-application the merge reverted, build-injection verification for new build-time constants or env (e.g. a Clerk publishable key define flowing from the release workflow's `production` environment), [OKF bundle](../../docs/index.md) integration of upstream-internal docs the merge absorbed (`.macroscope/*` Effect conventions → `docs/reference/` or `docs/operations/`), classifier rule updates when the merge exposed a rule gap, and vendored-repo follow-up if Step 4 could not fully converge.
-
-Route closure through the **`plan-build-verify`** skill: author a spec at `docs/specs/YYYY-MM-DD-upstream-sync-closure.md` with a `## Acceptance criteria` section, build against it, and verify with evidence artifacts. Link the spec from the [specs roadmap](../../docs/specs/index.md) row for this sync and promote that row to Active.
-
-If `plan-build-verify` is not installed, add it first: `npx skills add https://github.com/gannonh/skills --skill plan-build-verify -y`. This is the only external skill this runbook depends on.
-
-Trivial syncs may skip this step, but the bar for "trivial" is concrete: the merge introduced zero `@t3tools/*` / `T3CODE_*` regressions, zero new build-time constants or env, and zero absorbed upstream-internal docs needing OKF integration. If any of those is non-zero, run closure. State the trivial-skip decision explicitly in the Step 7 record.
-
-Do not merge the branch to `main` (Step 7) until closure is complete and its acceptance criteria pass.
-
-## Step 7 — Land and record
-
-```bash
-git checkout main
-git merge upstream-sync-$(date +%Y-%m-%d)
-git push origin main
-```
-
-Update the **Last upstream sync** block in [FORK.md](../../FORK.md):
+Update OKF logs (`docs/log.md`, relevant section logs) per the OKF workflow.
 
 ```text
-Last upstream sync: YYYY-MM-DD
-Upstream SHA:       <merged-upstream-tip-or-pin>
-Fork SHA after merge: <main-commit>
-Conflicts resolved in: <paths or zones>
-Verification:       vp check && vp run typecheck && vp run test
-Closure spec:       docs/specs/YYYY-MM-DD-upstream-sync-closure.md (or 'n/a — trivial merge')
+Last upstream scan: YYYY-MM-DD
+Upstream tip SHA:   <scanned-upstream-tip>
+Ported:             <upstream-sha> → <fork-sha> (<description>)
+Skipped:            <upstream-sha> — <rationale>
+Watching:           <cluster> — stabilization trigger: <trigger>
 ```
 
-Record any **Reject** entries in the [divergence log](../../FORK.md#divergence-log). Record cherry-picks outside full merges under **Cherry-picks (outside full merges)**. After landing, update the OKF bundle (`docs/log.md`; `docs/specs/log.md`; add the closure spec to the [specs roadmap](../../docs/specs/index.md)).
+## Hard rules
 
-## Cherry-pick path (urgent single commit)
+These are non-negotiable fork policy:
 
-```bash
-git checkout main
-git status --short        # must be empty
-git pull origin main
-git fetch upstream
-git checkout -b cherry-pick-<short-sha>
-git cherry-pick <upstream-commit-sha>
-# verify (vp check + vp run typecheck), then run Step 6 closure if branding/build constants/docs absorbed, merge to main, push
-```
-
-Log the SHA under **Cherry-picks (outside full merges)** in [FORK.md](../../FORK.md#divergence-log). Cherry-picks that touch branding, build injection, or absorb docs run the same Step 6 closure check as a bulk merge, under the same concrete "trivial" bar.
-
-## When not to "disconnect" upstream
-
-Removing the `upstream` remote or unlinking the GitHub fork badge does not make merges easier. Shared git history is what makes selective merges tractable. Independence is expressed through product identity, release pipeline, and the divergence log, not by severing ancestry.
+- Never push to the `upstream` remote.
+- Never reintroduce `@t3tools/*`, `T3CODE_*`, or upstream product strings (`t3code://`, `app.t3.codes`) without an explicit [FORK.md](../../FORK.md) decision.
+- Never sever the `upstream` remote or unlink the GitHub fork badge. Shared git history provides traceability. Independence is expressed through product identity, release pipeline, and the divergence log.
+- Never commit secrets (`.env`, signing certs, Clerk/relay credentials).
 
 ## Developing fork features with future syncs in mind
 
@@ -217,7 +162,8 @@ Before a large fork-only feature, ask: _can this live in a new module upstream d
 ## Related
 
 - [ADR 0001 — Connected fork](/adrs/0001-connected-fork-upstream-merge.md)
-- [ADR 0003 — Episodic sync policy](/adrs/0003-episodic-upstream-sync.md)
+- [ADR 0004 — Selective vendor-pull](/adrs/0004-selective-vendor-pull.md) (supersedes [ADR 0003](/adrs/0003-episodic-upstream-sync.md))
+- [Strategy analysis](/specs/2026-06-21-upstream-sync-strategy-analysis.md)
 - [Fork setup spec](/specs/fork-setup.md)
 - [FORK.md](../../FORK.md)
 - [upstream-sync skill](../../.agents/skills/upstream-sync/SKILL.md)
