@@ -502,7 +502,7 @@ OTLP export:
 - `KATACODE_OTLP_TRACES_URL`: OTLP trace endpoint
 - `KATACODE_OTLP_METRICS_URL`: OTLP metric endpoint
 - `KATACODE_OTLP_EXPORT_INTERVAL_MS`: export interval, default `10000`
-- `KATACODE_OTLP_SERVICE_NAME`: service name, default `t3-server`
+- `KATACODE_OTLP_SERVICE_NAME`: service name, default `kata-server`
 
 If the OTLP URLs are unset, local tracing still works and metrics stay in-process only.
 

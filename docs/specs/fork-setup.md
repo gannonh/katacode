@@ -21,14 +21,14 @@ Kata Code is a hard fork of [pingdotgg/t3code](https://github.com/pingdotgg/t3co
 
 ## Current status
 
-| Item                                                                                 | Status                                                            |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| Fork / upstream remotes                                                              | Done                                                              |
-| Phase 1 — packages, branding, `KATACODE_*`, `~/.katacode`                            | **Done**                                                          |
-| Phase 1 — PR [#1](https://github.com/gannonh/kata-code/pull/1) & CI gates            | **Done**                                                          |
-| Phase 2 — desktop/web release ([PR #2](https://github.com/gannonh/kata-code/pull/2)) | **Ready to merge**                                                |
-| Phase 2 — remaining infra (relay, mobile EAS, marketing)                             | **Planned**                                                       |
-| First upstream merge since `708d5383`                                                | Not started — see [upstream sync guide](/guides/upstream-sync.md) |
+| Item                                                                                 | Status                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fork / upstream remotes                                                              | Done                                                                                                                                                                                                                                   |
+| Phase 1 — packages, branding, `KATACODE_*`, `~/.katacode`                            | **Done**                                                                                                                                                                                                                               |
+| Phase 1 — PR [#1](https://github.com/gannonh/kata-code/pull/1) & CI gates            | **Done**                                                                                                                                                                                                                               |
+| Phase 2 — desktop/web release ([PR #2](https://github.com/gannonh/kata-code/pull/2)) | **Done** (merged)                                                                                                                                                                                                                      |
+| Phase 2 — remaining infra (relay, mobile EAS, marketing)                             | **Planned**                                                                                                                                                                                                                            |
+| First upstream merge since `708d5383`                                                | **Active** on branch `upstream-sync-2026-06-20` — pre-merge tooling and fork hardening landed; bulk merge pending ([handoff](/specs/2026-06-20-upstream-sync-handoff.md) · [closure spec](/specs/2026-06-20-upstream-sync-closure.md)) |
 
 ## Phase 1 delivery (PR #1)
 

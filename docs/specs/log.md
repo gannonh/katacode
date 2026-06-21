@@ -1,5 +1,11 @@
 # Specs log
 
+## 2026-06-21 (upstream-sync branch OKF finalize — pre-merge)
+
+- Refreshed [closure spec](/specs/2026-06-20-upstream-sync-closure.md) current state and branch-progress table; recorded Closure Task 4 audit (no new rules beyond `review` bucket).
+- Updated [resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) to handoff HEAD `774da08bc`; last-mile rebrand work marked committed; resume sequence corrected.
+- Updated [fork-setup spec](/specs/fork-setup.md): Phase 2 merged; first upstream sync **Active** on `upstream-sync-2026-06-20` (bulk merge pending).
+
 ## 2026-06-20 (upstream sync handoff doc added)
 
 Added [resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) as the rollback target + sub-agent handoff contract for the paused merge. Distinct from the closure spec: the closure spec is the _what / acceptance_, the handoff is the _where-we-are / resume-from-here_ with the exact suggested sequence, the last-mile `rebrand-fork.ts` enhancements to bake in before re-running (PROPERTY_PATTERNS for `t3Home`/`t3-env:`/`~/.t3`, the `"t3/` and `"t3code-relay/` Context.Service key-prefix renames, the OTel brand fixes), the fork-file restorations after the bulk `take-upstream.sh` pass, and the one real code fix (`server.ts` `anyUnknownInErrorContext` from the Effect 4.0.0-beta.78 bump). Promoted the roadmap Active row to lead with the handoff doc.

@@ -1,5 +1,17 @@
 # OKF bundle log
 
+## 2026-06-21 (upstream-sync branch OKF finalize — pre-merge)
+
+Documented finalized pre-merge state on `upstream-sync-2026-06-20` after simplify and strict-quality-review passes.
+
+- Updated [closure spec](/specs/2026-06-20-upstream-sync-closure.md) **Current state** and added [branch progress table](/specs/2026-06-20-upstream-sync-closure.md#branch-progress-pre-merge-landed-on-integration-branch): helpers, rebrand rules, classifier `review` bucket, hard-fork branding drop, and desktop dev fixes are landed; bulk merge and post-merge closure Tasks 2, 3, 5 remain blocked.
+- Recorded Closure Task 4 pre-merge audit (no additional classifier rules beyond `review` bucket).
+- Refreshed [resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) to `774da08bc`; marked last-mile `rebrand-fork.ts` work as committed; fixed resume sequence.
+- Updated [fork-setup spec](/specs/fork-setup.md) and [bundle index](/index.md): Phase 2 merged; first upstream sync active on integration branch.
+- Fixed OTLP default service name in [observability runbook](/operations/observability.md) (`kata-server`, matching source).
+
+**Intentionally unchanged:** FORK.md "Last upstream sync" block (merge not landed). Closure Task 3 (Effect conventions OKF synthesis) — blocked until `.macroscope/check-run-agents/effect-service-conventions.md` arrives with the bulk merge.
+
 ## 2026-06-20 (upstream-sync skill: rerun audit fixes)
 
 Reran the updated skill from Step 0 against the real 80-commit diff as if for the first time; fixed seven gaps the rerun surfaced.
