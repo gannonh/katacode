@@ -35,57 +35,50 @@ export const APP_BUNDLE_ID = isDevelopment
   ? `com.katacode.dev.${devBundleIdSuffix || "local"}`
   : "com.katacode.app";
 const APP_PROTOCOL_SCHEMES = isDevelopment ? ["katacode-dev"] : ["katacode"];
-const LAUNCHER_VERSION = 11;
+const LAUNCHER_VERSION = 13;
 const defaultIconPath = join(desktopDir, "resources", "icon.icns");
 const developmentMacIconPngPath = join(desktopDir, "resources", "source.png");
 // oxlint-disable-next-line kata-code/no-global-process-runtime -- Standalone launcher script has no Effect runtime.
 const hostPlatform = NodeOS.platform();
 
-function resolveDevelopmentProtocolCallbackPort() {
+export function resolveDevelopmentProtocolCallbackUrl() {
   const configuredPort = Number.parseInt(process.env.KATACODE_PORT ?? "", 10);
-  if (Number.isInteger(configuredPort) && configuredPort > 0 && configuredPort < 65535) {
-    return configuredPort + 1;
+  const port =
+    Number.isInteger(configuredPort) && configuredPort > 0 && configuredPort < 65535
+      ? configuredPort + 1
+      : 13774;
+  return `http://127.0.0.1:${port}/auth/callback`;
+}
+
+function setPlistValue(plistPath, key, type, serialized) {
+  const replaceResult = spawnSync("plutil", ["-replace", key, `-${type}`, serialized, plistPath], {
+    encoding: "utf8",
+  });
+  if (replaceResult.status === 0) {
+    return;
   }
-  return 13774;
+
+  const insertResult = spawnSync("plutil", ["-insert", key, `-${type}`, serialized, plistPath], {
+    encoding: "utf8",
+  });
+  if (insertResult.status === 0) {
+    return;
+  }
+
+  const details = [replaceResult.stderr, insertResult.stderr].filter(Boolean).join("\n");
+  throw new Error(`Failed to update plist key "${key}" at ${plistPath}: ${details}`.trim());
 }
 
 function setPlistString(plistPath, key, value) {
-  const replaceResult = spawnSync("plutil", ["-replace", key, "-string", value, plistPath], {
-    encoding: "utf8",
-  });
-  if (replaceResult.status === 0) {
-    return;
-  }
-
-  const insertResult = spawnSync("plutil", ["-insert", key, "-string", value, plistPath], {
-    encoding: "utf8",
-  });
-  if (insertResult.status === 0) {
-    return;
-  }
-
-  const details = [replaceResult.stderr, insertResult.stderr].filter(Boolean).join("\n");
-  throw new Error(`Failed to update plist key "${key}" at ${plistPath}: ${details}`.trim());
+  setPlistValue(plistPath, key, "string", value);
 }
 
 function setPlistJson(plistPath, key, value) {
-  const serialized = JSON.stringify(value);
-  const replaceResult = spawnSync("plutil", ["-replace", key, "-json", serialized, plistPath], {
-    encoding: "utf8",
-  });
-  if (replaceResult.status === 0) {
-    return;
-  }
+  setPlistValue(plistPath, key, "json", JSON.stringify(value));
+}
 
-  const insertResult = spawnSync("plutil", ["-insert", key, "-json", serialized, plistPath], {
-    encoding: "utf8",
-  });
-  if (insertResult.status === 0) {
-    return;
-  }
-
-  const details = [replaceResult.stderr, insertResult.stderr].filter(Boolean).join("\n");
-  throw new Error(`Failed to update plist key "${key}" at ${plistPath}: ${details}`.trim());
+function setPlistBool(plistPath, key, value) {
+  setPlistValue(plistPath, key, "bool", value ? "YES" : "NO");
 }
 
 function runChecked(command, args) {
@@ -102,9 +95,159 @@ function shellSingleQuote(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
+export const AUTH_CALLBACK_RETRY_DELAYS_MS = [0, 200, 500, 1000];
+
+export function createDevelopmentLauncherScript({ envEntries, electronBinaryPath, shimEntryPath }) {
+  const shellRetryDelays = AUTH_CALLBACK_RETRY_DELAYS_MS.map((ms) =>
+    ms === 0 ? "0" : String(ms / 1000),
+  ).join(" ");
+  return [
+    "#!/bin/sh",
+    ...envEntries.map(([name, value]) => `export ${name}=${shellSingleQuote(value)}`),
+    "forward_auth_callback() {",
+    '  if [ -z "$KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL" ]; then',
+    '    echo "Kata Code dev auth callback URL is not configured." >&2',
+    "    return 1",
+    "  fi",
+    "",
+    "  for delay in " + shellRetryDelays + "; do",
+    '    if [ "$delay" != "0" ]; then',
+    '      /bin/sleep "$delay"',
+    "    fi",
+    '    /usr/bin/curl -fsS --connect-timeout 1 --max-time 2 -X POST --data-binary "$1" "$KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL" >/dev/null 2>&1 && return 0',
+    "  done",
+    "",
+    '  echo "Kata Code dev auth callback forward failed: $KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL" >&2',
+    "  return 1",
+    "}",
+    "",
+    'for arg in "$@"; do',
+    '  case "$arg" in',
+    "    katacode-dev://auth/callback*)",
+    '      forward_auth_callback "$arg"',
+    "      exit $?",
+    "      ;;",
+    "  esac",
+    "done",
+    `exec ${shellSingleQuote(electronBinaryPath)} --katacode-dev-root=${shellSingleQuote(desktopDir)} ${shellSingleQuote(shimEntryPath)} "$@"`,
+    "",
+  ].join("\n");
+}
+
+export function createDevelopmentLauncherShim() {
+  const retryDelaysLiteral = JSON.stringify(AUTH_CALLBACK_RETRY_DELAYS_MS);
+  return [
+    'const { app } = require("electron");',
+    'const http = require("node:http");',
+    'const { URL } = require("node:url");',
+    "",
+    "const callbackForwardUrl = process.env.KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL;",
+    "let callbackHandled = false;",
+    "",
+    "function isAuthCallback(rawUrl) {",
+    '  return typeof rawUrl === "string" && rawUrl.startsWith("katacode-dev://auth/callback");',
+    "}",
+    "",
+    "function delay(milliseconds) {",
+    "  return new Promise((resolve) => setTimeout(resolve, milliseconds));",
+    "}",
+    "",
+    "function postCallback(rawUrl) {",
+    "  return new Promise((resolve, reject) => {",
+    "    if (!callbackForwardUrl) {",
+    '      reject(new Error("Kata Code dev auth callback URL is not configured."));',
+    "      return;",
+    "    }",
+    "",
+    "    let target;",
+    "    try {",
+    "      target = new URL(callbackForwardUrl);",
+    "    } catch (error) {",
+    "      reject(error);",
+    "      return;",
+    "    }",
+    "",
+    '    if (target.protocol !== "http:") {',
+    "      reject(new Error(`Unsupported Kata Code dev auth callback URL: ${target.protocol}`));",
+    "      return;",
+    "    }",
+    "",
+    "    const request = http.request(",
+    "      {",
+    "        hostname: target.hostname,",
+    '        method: "POST",',
+    "        path: `${target.pathname}${target.search}`,",
+    "        port: target.port,",
+    "        timeout: 2_000,",
+    "      },",
+    "      (response) => {",
+    "        response.resume();",
+    '        response.on("end", () => {',
+    "          const ok = response.statusCode >= 200 && response.statusCode < 300;",
+    "          if (ok) {",
+    "            resolve();",
+    "            return;",
+    "          }",
+    "          reject(new Error(`Kata Code dev auth callback returned HTTP ${response.statusCode}`));",
+    "        });",
+    "      },",
+    "    );",
+    "",
+    '    request.on("timeout", () => {',
+    '      request.destroy(new Error("Kata Code dev auth callback timed out."));',
+    "    });",
+    '    request.on("error", reject);',
+    "    request.end(rawUrl);",
+    "  });",
+    "}",
+    "",
+    "async function forwardAuthCallback(rawUrl) {",
+    "  callbackHandled = true;",
+    "  let lastError;",
+    "",
+    "  for (const waitMs of " + retryDelaysLiteral + ") {",
+    "    if (waitMs > 0) {",
+    "      await delay(waitMs);",
+    "    }",
+    "",
+    "    try {",
+    "      await postCallback(rawUrl);",
+    "      app.exit(0);",
+    "      return;",
+    "    } catch (error) {",
+    "      lastError = error;",
+    "    }",
+    "  }",
+    "",
+    '  console.error("Kata Code dev auth callback forward failed.", lastError);',
+    "  app.exit(1);",
+    "}",
+    "",
+    'app.on("open-url", (event, rawUrl) => {',
+    "  if (!isAuthCallback(rawUrl)) {",
+    "    return;",
+    "  }",
+    "  event.preventDefault();",
+    "  void forwardAuthCallback(rawUrl);",
+    "});",
+    "",
+    "const callbackArg = process.argv.find(isAuthCallback);",
+    "if (callbackArg) {",
+    "  void forwardAuthCallback(callbackArg);",
+    "} else {",
+    "  setTimeout(() => {",
+    "    if (!callbackHandled) {",
+    "      app.exit(0);",
+    "    }",
+    "  }, 2000);",
+    "}",
+    "",
+  ].join("\n");
+}
+
 function writeDevelopmentLauncherScript(targetBinaryPath, electronBinaryPath) {
-  const mainEntryPath = join(desktopDir, "dist-electron", "main.cjs");
-  const protocolCallbackUrl = `http://127.0.0.1:${resolveDevelopmentProtocolCallbackPort()}/auth/callback`;
+  const shimEntryPath = join(dirname(targetBinaryPath), "katacode-dev-callback.cjs");
+  const protocolCallbackUrl = resolveDevelopmentProtocolCallbackUrl();
   const envEntries = [
     ["VITE_DEV_SERVER_URL", process.env.VITE_DEV_SERVER_URL],
     ["KATACODE_PORT", process.env.KATACODE_PORT],
@@ -116,23 +259,10 @@ function writeDevelopmentLauncherScript(targetBinaryPath, electronBinaryPath) {
     ["KATACODE_DESKTOP_PROTOCOL_REGISTRATION_MANAGED", "1"],
     ["KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL", protocolCallbackUrl],
   ].filter((entry) => typeof entry[1] === "string" && entry[1].trim().length > 0);
+  writeFileSync(shimEntryPath, createDevelopmentLauncherShim());
   writeFileSync(
     targetBinaryPath,
-    [
-      "#!/bin/sh",
-      ...envEntries.map(([name, value]) => `export ${name}=${shellSingleQuote(value)}`),
-      'for arg in "$@"; do',
-      '  case "$arg" in',
-      "    katacode-dev://auth/callback*)",
-      '      if [ -n "$KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL" ]; then',
-      '        /usr/bin/curl -fsS --max-time 2 -X POST --data-binary "$arg" "$KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL" >/dev/null 2>&1 && exit 0',
-      "      fi",
-      "      ;;",
-      "  esac",
-      "done",
-      `exec ${shellSingleQuote(electronBinaryPath)} --katacode-dev-root=${shellSingleQuote(desktopDir)} ${shellSingleQuote(mainEntryPath)} "$@"`,
-      "",
-    ].join("\n"),
+    createDevelopmentLauncherScript({ envEntries, electronBinaryPath, shimEntryPath }),
   );
   chmodSync(targetBinaryPath, 0o755);
 }
@@ -227,6 +357,9 @@ function patchMainBundleInfoPlist(appBundlePath, iconPath) {
       CFBundleURLSchemes: APP_PROTOCOL_SCHEMES,
     },
   ]);
+  if (isDevelopment) {
+    setPlistBool(infoPlistPath, "LSUIElement", true);
+  }
 
   const resourcesDir = join(appBundlePath, "Contents", "Resources");
   copyFileSync(iconPath, join(resourcesDir, "icon.icns"));
@@ -306,7 +439,7 @@ function buildMacLauncher(electronBinaryPath) {
     return targetBinaryPath;
   }
 
-  rmSync(targetAppBundlePath, { recursive: true, force: true });
+  rmSync(targetAppBundlePath, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   // verbatimSymlinks keeps the framework's relative symlinks intact
   // (e.g. Resources -> Versions/Current/Resources). Without it cpSync
   // rewrites them to absolute paths into node_modules, which escape the
@@ -348,11 +481,15 @@ function resolveLinuxSandboxArgs(electronBinaryPath) {
   return ["--no-sandbox"];
 }
 
-export function resolveElectronPath() {
+export function resolveElectronBinaryPath() {
   ensureElectronRuntime();
 
   const require = createRequire(import.meta.url);
-  const electronBinaryPath = require("electron");
+  return require("electron");
+}
+
+export function resolveElectronPath() {
+  const electronBinaryPath = resolveElectronBinaryPath();
 
   if (hostPlatform !== "darwin") {
     return electronBinaryPath;
@@ -361,12 +498,20 @@ export function resolveElectronPath() {
   return buildMacLauncher(electronBinaryPath);
 }
 
-export function resolveElectronLaunchCommand(args = []) {
-  const electronPath = resolveElectronPath();
+function resolveElectronLaunchCommandFrom(resolvePath, args = []) {
+  const electronPath = resolvePath();
   return {
     electronPath,
     args: [...resolveLinuxSandboxArgs(electronPath), ...args],
   };
+}
+
+export function resolveElectronLaunchCommand(args = []) {
+  return resolveElectronLaunchCommandFrom(resolveElectronPath, args);
+}
+
+export function resolveRawElectronLaunchCommand(args = []) {
+  return resolveElectronLaunchCommandFrom(resolveElectronBinaryPath, args);
 }
 
 export function resolveDevProtocolClient() {
@@ -374,9 +519,7 @@ export function resolveDevProtocolClient() {
     return null;
   }
 
-  const require = createRequire(import.meta.url);
-  const electronBinaryPath = require("electron");
-  const launcherBinaryPath = buildMacLauncher(electronBinaryPath);
+  const launcherBinaryPath = buildMacLauncher(resolveElectronBinaryPath());
   return {
     appBundlePath: resolve(launcherBinaryPath, "..", "..", ".."),
     appBundleId: APP_BUNDLE_ID,

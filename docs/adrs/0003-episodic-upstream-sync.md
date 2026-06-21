@@ -10,7 +10,7 @@ timestamp: 2026-06-17T23:30:00Z
 
 ## Status
 
-Accepted
+Superseded by [ADR 0004](/adrs/0004-selective-vendor-pull.md)
 
 ## Context
 

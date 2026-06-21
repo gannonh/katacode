@@ -1,10 +1,46 @@
 # OKF bundle log
 
+## 2026-06-21 (upstream-sync branch OKF finalize — pre-merge)
+
+Documented finalized pre-merge state on `upstream-sync-2026-06-20` after simplify and strict-quality-review passes.
+
+- Updated [closure spec](/specs/2026-06-20-upstream-sync-closure.md) **Current state** and added [branch progress table](/specs/2026-06-20-upstream-sync-closure.md#branch-progress-pre-merge-landed-on-integration-branch): helpers, rebrand rules, classifier `review` bucket, hard-fork branding drop, and desktop dev fixes are landed; bulk merge and post-merge closure Tasks 2, 3, 5 remain blocked.
+- Recorded Closure Task 4 pre-merge audit (no additional classifier rules beyond `review` bucket).
+- Refreshed [resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) to `774da08bc`; marked last-mile `rebrand-fork.ts` work as committed; fixed resume sequence.
+- Updated [fork-setup spec](/specs/fork-setup.md) and [bundle index](/index.md): Phase 2 merged; first upstream sync active on integration branch.
+- Fixed OTLP default service name in [observability runbook](/operations/observability.md) (`kata-server`, matching source).
+
+**Intentionally unchanged:** FORK.md "Last upstream sync" block (merge not landed). Closure Task 3 (Effect conventions OKF synthesis) — blocked until `.macroscope/check-run-agents/effect-service-conventions.md` arrives with the bulk merge.
+
+## 2026-06-20 (upstream-sync skill: rerun audit fixes)
+
+Reran the updated skill from Step 0 against the real 80-commit diff as if for the first time; fixed seven gaps the rerun surfaced.
+
+- **Classifier vocabulary end-to-end:** added `review` to `rules.ts` `Classification` type. The "no rule matched" and "conflicting take+reject" cases now emit `review` instead of `defer`, so the script output (four buckets) matches the runbook vocabulary. Validated against the real diff: 63 take / 2 reject / 11 defer / 4 review (was 63/2/15/0 — the 4 mis-bucketed defers were the unrelated mobile/ssh/TTL/typography commits, not project-phase deferrals). Breaks the prior circularity where the fix was scoped to "closure work" during the very sync that needed it pre-merge.
+- **Step 1 hard human gate:** made the classification checkpoint an explicit pause for agent-driven execution ("present to human, do not auto-proceed to Step 3").
+- **Step 1 decisions-where:** documented that Rejects go to FORK.md (pre-merge), take+defer plans go to a scratch note carried into the Step 6 closure spec, and new deferrals go to `docs/specs/deferred-work.md`. Resolves the Step-3-make / Step-6-record tension.
+- **Step 0 resume path:** resume branch now re-fetches upstream (`git fetch upstream --tags`) so a resumed sync sees commits landed since the pause.
+- **Step 6 trivial bar:** "trivial sync may skip closure" now has a concrete test (zero `@t3tools` regressions, zero new build constants/env, zero absorbed upstream-internal docs).
+- **Cherry-pick path:** now follows clean-main-first discipline and runs the same Step 6 closure check under the same concrete trivial bar.
+- Mirrored all fixes in [docs/guides/upstream-sync.md](/guides/upstream-sync.md).
+
+## 2026-06-20 (upstream-sync skill: post-merge closure phase + vocabulary fix)
+
+- Added **Step 6 — Post-merge closure** to the [upstream-sync skill](../../.agents/skills/upstream-sync/SKILL.md) and [guide](/guides/upstream-sync.md): a sync-scoped follow-up phase (branding re-application, build-injection verification, OKF integration of absorbed internal docs, classifier rule updates, vendored-repo follow-up) that lands on the integration branch before it merges to `main`. Routed through the `plan-build-verify` skill, producing a `docs/specs/YYYY-MM-DD-upstream-sync-closure.md` spec with acceptance criteria. Old Step 6 (land) renumbered to Step 7, gated on closure completion.
+- Added `plan-build-verify` install fallback (`npx skills add https://github.com/gannonh/skills --skill plan-build-verify -y`) for environments missing the skill.
+- Fixed the classification vocabulary in the runbook: split the single `defer` into `Take` / `Reject` / `Defer` (project-phase-tied, cross-sync, see [deferred-work registry](/specs/deferred-work.md)) / `Review` (unclassified, pending human verdict). Documented that `rules.ts` still emits only `take|cherry-pick|reject|defer`; aligning the code's `Classification` type with this vocabulary is tracked closure work for the 2026-06-20 sync.
+- Gitignored `sync-plan.md` / `conflict-zones.md` (script scratch artifacts) at the repo root so they no longer pollute `git status` or trip `vp check`.
+
+## 2026-06-20 (upstream-sync scripts moved into the skill)
+
+- Moved the three upstream-sync helper scripts from `scripts/upstream-sync/` into the skill bundle at `.agents/skills/upstream-sync/scripts/` (`rules.ts`, `classify-upstream.ts`, `conflict-zones.ts`) so the skill is self-contained and portable, matching how other tracked skills (babysit-pr, fix-github-ci, okf) bundle their scripts.
+- Updated [upstream-sync guide](/guides/upstream-sync.md) and [`.agents/skills/upstream-sync/SKILL.md`](../../.agents/skills/upstream-sync/SKILL.md) command examples and references to point at the new in-skill paths.
+- Scripts no longer typecheck under `vp run typecheck` (they left the `@kata-sh/code-scripts` workspace); they remain linted by `vp check`. Run via `node .agents/skills/upstream-sync/scripts/<name>.ts` from the repo root.
+
 ## 2026-06-20 (upstream-sync runbook + skill + classifier scripts)
 
 - Rewrote [upstream-sync guide](/guides/upstream-sync.md) as the canonical selective-sync runbook: bulk-merge default, integrated inventory+classify and conflict-zone scripts, fork-policy resolution rules, verify gates, land+record steps.
-- Added `.agents/skills/upstream-sync/SKILL.md` — the agent-facing runbook that IS the sync process (mirrors the guide, points at the scripts and ADRs).
-- Added `scripts/upstream-sync/`:
+- Added `.agents/skills/upstream-sync/SKILL.md` — the agent-facing runbook that IS the sync process (mirrors the guide, points at the scripts and ADRs). Helper scripts are bundled inside the skill at `.agents/skills/upstream-sync/scripts/`:
   - `rules.ts` — Take/Cherry-pick/Reject/Defer classification rules (source of truth the classifier runs against).
   - `classify-upstream.ts` — inventories upstream commits since baseline and emits a draft classification table.
   - `conflict-zones.ts` — intersects upstream-changed and fork-changed paths with the FORK.md high-conflict zone catalog; zone-level rollup.

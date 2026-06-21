@@ -30,7 +30,7 @@ If you want a log message to show up in the trace file, emit it inside an active
 
 ### Traces
 
-Completed spans are written as NDJSON records to `serverTracePath` (by default, `~/.t3/userdata/logs/server.trace.ndjson`).
+Completed spans are written as NDJSON records to `serverTracePath` (by default, `~/.katacode/userdata/logs/server.trace.ndjson`).
 
 Important fields in each record:
 
@@ -73,7 +73,7 @@ You do not need any extra env vars. Just run the app normally and inspect `serve
 Examples:
 
 ```bash
-npx katacode
+npx @kata-sh/code-cli
 ```
 
 ```bash
@@ -124,7 +124,7 @@ export KATACODE_TRACE_TIMING_ENABLED=true
 CLI:
 
 ```bash
-npx katacode
+npx @kata-sh/code-cli
 ```
 
 Monorepo web/server dev:
@@ -502,7 +502,7 @@ OTLP export:
 - `KATACODE_OTLP_TRACES_URL`: OTLP trace endpoint
 - `KATACODE_OTLP_METRICS_URL`: OTLP metric endpoint
 - `KATACODE_OTLP_EXPORT_INTERVAL_MS`: export interval, default `10000`
-- `KATACODE_OTLP_SERVICE_NAME`: service name, default `t3-server`
+- `KATACODE_OTLP_SERVICE_NAME`: service name, default `kata-server`
 
 If the OTLP URLs are unset, local tracing still works and metrics stay in-process only.
 

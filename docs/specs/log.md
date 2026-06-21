@@ -1,5 +1,40 @@
 # Specs log
 
+## 2026-06-21 (upstream-sync branch OKF finalize — pre-merge)
+
+- Refreshed [closure spec](/specs/2026-06-20-upstream-sync-closure.md) current state and branch-progress table; recorded Closure Task 4 audit (no new rules beyond `review` bucket).
+- Updated [resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) to handoff HEAD `774da08bc`; last-mile rebrand work marked committed; resume sequence corrected.
+- Updated [fork-setup spec](/specs/fork-setup.md): Phase 2 merged; first upstream sync **Active** on `upstream-sync-2026-06-20` (bulk merge pending).
+
+## 2026-06-20 (upstream sync handoff doc added)
+
+Added [resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) as the rollback target + sub-agent handoff contract for the paused merge. Distinct from the closure spec: the closure spec is the _what / acceptance_, the handoff is the _where-we-are / resume-from-here_ with the exact suggested sequence, the last-mile `rebrand-fork.ts` enhancements to bake in before re-running (PROPERTY_PATTERNS for `t3Home`/`t3-env:`/`~/.t3`, the `"t3/` and `"t3code-relay/` Context.Service key-prefix renames, the OTel brand fixes), the fork-file restorations after the bulk `take-upstream.sh` pass, and the one real code fix (`server.ts` `anyUnknownInErrorContext` from the Effect 4.0.0-beta.78 bump). Promoted the roadmap Active row to lead with the handoff doc.
+
+## 2026-06-20 (upstream sync merge attempt — paused at clean checkpoint)
+
+The first full merge of upstream (baseline `708d5383` -> tip `97e5cd3bf`, 80 commits) ran long and hit repeated git-state disruptions (SIGPIPE-truncated first attempt, index-lock race, stash/restore chain). The branch was hard-reset to the clean baseline `20ef549a7` to preserve the durable deliverables and discard the thrashed in-progress merge state.
+
+**Durable deliverables (committed, safe):** full upstream-sync skill (Steps 0-7 with post-merge closure phase + Take/Reject/Defer/Review vocabulary + staging-order warning + helper references), the five helper scripts (`rules.ts`, `classify-upstream.ts`, `conflict-zones.ts`, `rebrand-fork.ts`, `take-upstream.sh`), the Approved [closure spec](/specs/2026-06-20-upstream-sync-closure.md), and the FORK.md divergence log (rejects + EAS ported improvement).
+
+**The merge itself was not committed.** It was content-resolved at one point (1236 staged files, 0 conflict markers) but the merge commit was never made before git-state thrash destroyed the index state. Re-doing it with the committed helpers should be far faster and safer than the manual grind.
+
+**Last-mile work lost to the thrash — redo on next attempt, then bake into the helpers as rules:**
+
+- `rebrand-fork.ts` needs a `PROPERTY_PATTERNS` block (word-boundary regexes): `\bt3Home\b`->`katacodeHome`, `t3-env:`->`kata-env:` (16 occ), `~/\.t3\b`->`~/.katacode`, plus two more `IDENTITY_RENAMES`: `"t3/`->`"@kata-sh/code-cli/` (apps/server Context.Service keys, 56 occ) and `"t3code-relay/`->`"@kata-sh/code-relay/` (23 occ).
+- `devRemoteT3ServerEntryPath`->`devRemoteServerEntryPath` normalization across apps/desktop (fork's canonical name).
+- Restoring fork release scripts (`scripts/build-desktop-artifact.ts` + tests + `scripts/lib/*`) from `HEAD` after the bulk `take-upstream.sh scripts` pass — those are fork-divergent.
+- Restoring `packages/shared/package.json` `./branding` + `./relayTracing` subpath exports after the bulk `take-upstream.sh packages` pass.
+- `packages/shared/src/relayTracing.ts` OTel brand: `"t3.client.surface"`->`"kata.client.surface"`; `apps/server/src/cloud/relayTracing.ts` service names `"t3-headless-relay-client"`->`"kata-headless-relay-client"`, `"t3-server"`->`"kata-server"`.
+- The one real code fix beyond rebrand: `apps/server/src/server.ts:481/494` `anyUnknownInErrorContext`. Root cause: the Effect `4.0.0-beta.78` bump + the `[codex]` refactor made `OtlpTracer.layer` return `Layer<never, never, OtlpSerialization | HttpClient.HttpClient>` (now also requires `HttpClient`); the fork's `makeRelayClientTracingLayer` in `packages/shared/src/relayTracing.ts` only provides `OtlpSerialization`, leaking `unknown` into the composing layer. The pre-merge HEAD does NOT have this error. Correct fix: provide HttpClient legitimately into `tracerLayer`, OR widen the declared `Layer.Layer<never, never, HttpClient.HttpClient>` return type. (Tried `FetchHttpClient.layer` from `@effect/platform-node` — wrong, returns `any`.)
+
+**Suggested resume sequence:** with branch clean at `20ef549a7`, run `git fetch upstream --tags && git merge upstream/main --no-edit`, then resolve zone-by-zone with `take-upstream.sh` BEFORE staging (apps/mobile, apps/web, apps/server, apps/desktop, packages/client-runtime, packages, scripts, workflows, docs, then infra/relay by hand for kata-wire identity), then restore fork release scripts + shared exports, then bake the property-pattern + key-prefix rules into `rebrand-fork.ts` and run `rebrand-fork.ts --apply` + `--check`, then `rm -f pnpm-lock.yaml && vp i`, fix `pnpm-workspace.yaml` by hand, then `vp check && vp run typecheck` (expect only the `server.ts` OtlpTracer fix remaining), then `git commit --no-edit` to conclude the merge. Then Step 4 (vendored repos — Effect was bumped to `4.0.0-beta.78`, so `vp run sync:repos` runs), Step 5 (verify gates), Step 6 (closure via `plan-build-verify`), Step 7 (land + record in FORK.md).
+
+## 2026-06-20 (upstream sync closure spec drafted)
+
+- Added [2026-06-20 upstream sync closure spec](/specs/2026-06-20-upstream-sync-closure.md) capturing Decisions 1-10 (single bulk merge of 80 upstream commits since baseline `708d5383` → tip `97e5cd3bf`) plus five post-merge closure tasks: branding re-application, Clerk publishable-key build-injection verification, OKF Effect conventions synthesis, classifier rule gaps, vendored-repo convergence (Effect bumped to `4.0.0-beta.78`).
+- Adversarial spec review by the `reviewer` sub-agent (separate from the author) found one blocker (Decision 8 mis-bucketed `b19fc1b87b`, which is `defer` not `review`) and seven actionable notes; all applied: split `b19fc1b87b` into Decision 9, fixed stale fork-divergence count (72→82), tightened the `t3://` scan exemption to the named path + literal, hardened the "blocked test" and "Build stops and asks" escape hatches, committed Phase 2 to definite action (Effect was bumped), listed the five docs-only SHAs in Decision 4, fixed the Task-2-below cross-ref to Task 3.
+- Promoted the "Upstream sync (first merge)" roadmap row from Planned to Active. Spec status: Draft, awaiting user review before Build (the merge).
+
 ## 2026-06-19 (stable v0.0.29 UAT pass)
 
 - Stable `v0.0.29` UAT passed on `app.kata.sh`: chat, Files, Connect relay, network access, manual environment add.

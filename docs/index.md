@@ -22,7 +22,7 @@ Open Knowledge Format (OKF) documentation for the [Kata Code](https://github.com
 
 ## Fork status (summary)
 
-Phase 1 (package rename, branding, `KATACODE_*`, `~/.katacode`) is **complete** ([PR #1](https://github.com/gannonh/kata-code/pull/1)). Phase 2 desktop/web release is **on `main`** ([PR #2](https://github.com/gannonh/kata-code/pull/2) merged); Kata brand icons and hosted web favicons ship from `apps/desktop/resources/source.png` ([FORK.md — brand marks](../../FORK.md#brand-logo-marks)). See [fork setup spec](/specs/fork-setup.md) and [release runbook](/operations/release.md).
+Phase 1 (package rename, branding, `KATACODE_*`, `~/.katacode`) is **complete** ([PR #1](https://github.com/gannonh/kata-code/pull/1)). Phase 2 desktop/web release is **on `main`** ([PR #2](https://github.com/gannonh/kata-code/pull/2) merged); Kata brand icons and hosted web favicons ship from `apps/desktop/resources/source.png` ([FORK.md — brand marks](../../FORK.md#brand-logo-marks)). Phase 3 first upstream sync is **in progress** on branch `upstream-sync-2026-06-20` ([resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) · [closure spec](/specs/2026-06-20-upstream-sync-closure.md)). See [fork setup spec](/specs/fork-setup.md) and [release runbook](/operations/release.md).
 
 ## Package map (quick)
 

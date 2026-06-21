@@ -205,6 +205,12 @@
       "skillPath": "plan-build-verify/SKILL.md",
       "computedHash": "2757e0347cd42478da725e13ff495e1ae7f6ea88a4f9cee56dfe41e7d5dabaa7"
     },
+    "pull-requests": {
+      "source": "gannonh/skills",
+      "sourceType": "github",
+      "skillPath": "pull-requests/SKILL.md",
+      "computedHash": "5095e3ec6aabe1b4612af616294b9007718e7549f6a32c699922f521d50b6a9e"
+    },
     "simplify": {
       "source": "gannonh/skills",
       "sourceType": "github",
