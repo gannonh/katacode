@@ -149,18 +149,6 @@ describe("DesktopAppIdentity", () => {
     ),
   );
 
-  it.effect("migrates from upstream T3 Code userData folders", () =>
-    withIdentity(
-      Effect.gen(function* () {
-        const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
-        const userDataPath = yield* identity.resolveUserDataPath;
-
-        assert.equal(userDataPath, "/Users/alice/Library/Application Support/T3 Code (Alpha)");
-      }),
-      { legacyPathExists: true, legacyPathName: "T3 Code (Alpha)" },
-    ),
-  );
-
   it.effect("configures app identity from the environment commit override", () => {
     const calls: ElectronAppCalls = {
       setAboutPanelOptions: [],

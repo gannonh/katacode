@@ -7,6 +7,7 @@ import {
   desktopDir,
   resolveDevProtocolClient,
   resolveElectronLaunchCommand,
+  resolveRawElectronLaunchCommand,
 } from "./electron-launcher.mjs";
 import { waitForResources } from "./wait-for-resources.mjs";
 
@@ -46,11 +47,6 @@ await waitForResources({
 
 const childEnv = { ...process.env };
 delete childEnv.ELECTRON_RUN_AS_NODE;
-const devProtocolClient = resolveDevProtocolClient();
-if (devProtocolClient) {
-  childEnv.KATACODE_DESKTOP_APP_USER_MODEL_ID = devProtocolClient.appBundleId;
-  childEnv.KATACODE_DESKTOP_PROTOCOL_REGISTRATION_MANAGED = "1";
-}
 
 let shuttingDown = false;
 let restartTimer = null;
@@ -83,10 +79,14 @@ function startApp() {
   const electronArgs = remoteDebuggingPort
     ? [`--remote-debugging-port=${remoteDebuggingPort}`]
     : [];
-  const launchArgs = devProtocolClient
-    ? electronArgs
-    : [...electronArgs, `--katacode-dev-root=${desktopDir}`, "dist-electron/main.cjs"];
-  const electronCommand = resolveElectronLaunchCommand(launchArgs);
+  const launchArgs = [
+    ...electronArgs,
+    `--katacode-dev-root=${desktopDir}`,
+    "dist-electron/main.cjs",
+  ];
+  const electronCommand = devProtocolClient
+    ? resolveRawElectronLaunchCommand(launchArgs)
+    : resolveElectronLaunchCommand(launchArgs);
   const app = spawn(electronCommand.electronPath, electronCommand.args, {
     cwd: desktopDir,
     env: childEnv,
@@ -228,8 +228,14 @@ async function shutdown(exitCode) {
   process.exit(exitCode);
 }
 
-startWatchers();
 cleanupStaleDevApps();
+const devProtocolClient = resolveDevProtocolClient();
+if (devProtocolClient) {
+  childEnv.KATACODE_DESKTOP_APP_USER_MODEL_ID = devProtocolClient.appBundleId;
+  childEnv.KATACODE_DESKTOP_PROTOCOL_REGISTRATION_MANAGED = "1";
+}
+
+startWatchers();
 startApp();
 
 process.once("SIGINT", () => {

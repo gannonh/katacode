@@ -35,7 +35,7 @@ export const APP_BUNDLE_ID = isDevelopment
   ? `com.katacode.dev.${devBundleIdSuffix || "local"}`
   : "com.katacode.app";
 const APP_PROTOCOL_SCHEMES = isDevelopment ? ["katacode-dev"] : ["katacode"];
-const LAUNCHER_VERSION = 12;
+const LAUNCHER_VERSION = 13;
 const defaultIconPath = join(desktopDir, "resources", "icon.icns");
 const developmentMacIconPngPath = join(desktopDir, "resources", "source.png");
 // oxlint-disable-next-line kata-code/no-global-process-runtime -- Standalone launcher script has no Effect runtime.
@@ -78,6 +78,26 @@ function setPlistJson(plistPath, key, value) {
   }
 
   const insertResult = spawnSync("plutil", ["-insert", key, "-json", serialized, plistPath], {
+    encoding: "utf8",
+  });
+  if (insertResult.status === 0) {
+    return;
+  }
+
+  const details = [replaceResult.stderr, insertResult.stderr].filter(Boolean).join("\n");
+  throw new Error(`Failed to update plist key "${key}" at ${plistPath}: ${details}`.trim());
+}
+
+function setPlistBool(plistPath, key, value) {
+  const serialized = value ? "YES" : "NO";
+  const replaceResult = spawnSync("plutil", ["-replace", key, "-bool", serialized, plistPath], {
+    encoding: "utf8",
+  });
+  if (replaceResult.status === 0) {
+    return;
+  }
+
+  const insertResult = spawnSync("plutil", ["-insert", key, "-bool", serialized, plistPath], {
     encoding: "utf8",
   });
   if (insertResult.status === 0) {
@@ -143,9 +163,7 @@ export function createDevelopmentLauncherShim() {
     'const { URL } = require("node:url");',
     "",
     "const callbackForwardUrl = process.env.KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL;",
-    "const mainEntryPath = process.env.KATACODE_DESKTOP_DEV_MAIN_ENTRY;",
     "let callbackHandled = false;",
-    "let mainStarted = false;",
     "",
     "function isAuthCallback(rawUrl) {",
     '  return typeof rawUrl === "string" && rawUrl.startsWith("katacode-dev://auth/callback");',
@@ -226,24 +244,8 @@ export function createDevelopmentLauncherShim() {
     "  app.exit(1);",
     "}",
     "",
-    "function startMain() {",
-    "  if (callbackHandled || mainStarted) {",
-    "    return;",
-    "  }",
-    "  mainStarted = true;",
-    "",
-    "  if (!mainEntryPath) {",
-    '    console.error("Kata Code dev main entry is not configured.");',
-    "    app.exit(1);",
-    "    return;",
-    "  }",
-    "",
-    "  process.argv[1] = mainEntryPath;",
-    "  require(mainEntryPath);",
-    "}",
-    "",
     'app.on("open-url", (event, rawUrl) => {',
-    "  if (mainStarted || !isAuthCallback(rawUrl)) {",
+    "  if (!isAuthCallback(rawUrl)) {",
     "    return;",
     "  }",
     "  event.preventDefault();",
@@ -254,15 +256,18 @@ export function createDevelopmentLauncherShim() {
     "if (callbackArg) {",
     "  void forwardAuthCallback(callbackArg);",
     "} else {",
-    "  setTimeout(startMain, 500);",
+    "  setTimeout(() => {",
+    "    if (!callbackHandled) {",
+    "      app.exit(0);",
+    "    }",
+    "  }, 2000);",
     "}",
     "",
   ].join("\n");
 }
 
 function writeDevelopmentLauncherScript(targetBinaryPath, electronBinaryPath) {
-  const mainEntryPath = join(desktopDir, "dist-electron", "main.cjs");
-  const shimEntryPath = join(dirname(targetBinaryPath), "katacode-dev-main.cjs");
+  const shimEntryPath = join(dirname(targetBinaryPath), "katacode-dev-callback.cjs");
   const protocolCallbackUrl = `http://127.0.0.1:${resolveDevelopmentProtocolCallbackPort()}/auth/callback`;
   const envEntries = [
     ["VITE_DEV_SERVER_URL", process.env.VITE_DEV_SERVER_URL],
@@ -274,7 +279,6 @@ function writeDevelopmentLauncherScript(targetBinaryPath, electronBinaryPath) {
     ["KATACODE_DESKTOP_APP_USER_MODEL_ID", APP_BUNDLE_ID],
     ["KATACODE_DESKTOP_PROTOCOL_REGISTRATION_MANAGED", "1"],
     ["KATACODE_DESKTOP_PROTOCOL_CALLBACK_URL", protocolCallbackUrl],
-    ["KATACODE_DESKTOP_DEV_MAIN_ENTRY", mainEntryPath],
   ].filter((entry) => typeof entry[1] === "string" && entry[1].trim().length > 0);
   writeFileSync(shimEntryPath, createDevelopmentLauncherShim());
   writeFileSync(
@@ -374,6 +378,9 @@ function patchMainBundleInfoPlist(appBundlePath, iconPath) {
       CFBundleURLSchemes: APP_PROTOCOL_SCHEMES,
     },
   ]);
+  if (isDevelopment) {
+    setPlistBool(infoPlistPath, "LSUIElement", true);
+  }
 
   const resourcesDir = join(appBundlePath, "Contents", "Resources");
   copyFileSync(iconPath, join(resourcesDir, "icon.icns"));
@@ -453,7 +460,7 @@ function buildMacLauncher(electronBinaryPath) {
     return targetBinaryPath;
   }
 
-  rmSync(targetAppBundlePath, { recursive: true, force: true });
+  rmSync(targetAppBundlePath, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   // verbatimSymlinks keeps the framework's relative symlinks intact
   // (e.g. Resources -> Versions/Current/Resources). Without it cpSync
   // rewrites them to absolute paths into node_modules, which escape the
@@ -495,11 +502,15 @@ function resolveLinuxSandboxArgs(electronBinaryPath) {
   return ["--no-sandbox"];
 }
 
-export function resolveElectronPath() {
+export function resolveElectronBinaryPath() {
   ensureElectronRuntime();
 
   const require = createRequire(import.meta.url);
-  const electronBinaryPath = require("electron");
+  return require("electron");
+}
+
+export function resolveElectronPath() {
+  const electronBinaryPath = resolveElectronBinaryPath();
 
   if (hostPlatform !== "darwin") {
     return electronBinaryPath;
@@ -510,6 +521,14 @@ export function resolveElectronPath() {
 
 export function resolveElectronLaunchCommand(args = []) {
   const electronPath = resolveElectronPath();
+  return {
+    electronPath,
+    args: [...resolveLinuxSandboxArgs(electronPath), ...args],
+  };
+}
+
+export function resolveRawElectronLaunchCommand(args = []) {
+  const electronPath = resolveElectronBinaryPath();
   return {
     electronPath,
     args: [...resolveLinuxSandboxArgs(electronPath), ...args],

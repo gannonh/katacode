@@ -20,7 +20,7 @@ function runLauncherScript(args) {
       createDevelopmentLauncherScript({
         envEntries: [],
         electronBinaryPath: "/bin/echo",
-        shimEntryPath: "/tmp/katacode-dev-main.cjs",
+        shimEntryPath: "/tmp/katacode-dev-callback.cjs",
       }),
     );
     chmodSync(scriptPath, 0o755);
@@ -31,12 +31,12 @@ function runLauncherScript(args) {
 }
 
 describe("electron development launcher", () => {
-  it("includes a shim that can catch macOS open-url callbacks before main loads", () => {
+  it("includes a shim that catches macOS open-url callbacks without loading main", () => {
     const shim = createDevelopmentLauncherShim();
 
     assert.include(shim, 'app.on("open-url"');
-    assert.include(shim, "KATACODE_DESKTOP_DEV_MAIN_ENTRY");
-    assert.include(shim, "require(mainEntryPath)");
+    assert.notInclude(shim, "KATACODE_DESKTOP_DEV_MAIN_ENTRY");
+    assert.notInclude(shim, "require(mainEntryPath)");
   });
 
   it("does not start Electron when auth callback forwarding is unavailable", () => {
@@ -45,14 +45,14 @@ describe("electron development launcher", () => {
     ]);
 
     assert.equal(result.status, 1);
-    assert.notInclude(result.stdout, "/tmp/katacode-dev-main.cjs");
+    assert.notInclude(result.stdout, "/tmp/katacode-dev-callback.cjs");
     assert.include(result.stderr, "Kata Code dev auth callback URL is not configured.");
   });
 
-  it("starts Electron for regular development launches", () => {
+  it("starts the callback shim for regular launcher invocations", () => {
     const result = runLauncherScript(["--opened-from-dock"]);
 
     assert.equal(result.status, 0);
-    assert.include(result.stdout, "/tmp/katacode-dev-main.cjs --opened-from-dock");
+    assert.include(result.stdout, "/tmp/katacode-dev-callback.cjs --opened-from-dock");
   });
 });
