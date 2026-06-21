@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
-import { watch } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
 import * as NodeOS from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import {
   desktopDir,
@@ -36,8 +36,66 @@ const forcedShutdownTimeoutMs = 1_500;
 const restartDebounceMs = 120;
 const childTreeGracePeriodMs = 1_200;
 const remoteDebuggingPort = process.env.KATACODE_DESKTOP_REMOTE_DEBUGGING_PORT?.trim();
+const singletonLockDir = join(desktopDir, ".electron-runtime", "dev-electron.lock");
+const singletonPidPath = join(singletonLockDir, "pid");
 // oxlint-disable-next-line kata-code/no-global-process-runtime -- Standalone dev script has no Effect runtime.
 const hostPlatform = NodeOS.platform();
+
+function readPidFile(path) {
+  try {
+    const pid = Number.parseInt(readFileSync(path, "utf8").trim(), 10);
+    return Number.isInteger(pid) && pid > 0 ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+function processExists(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function acquireSingletonOrExit() {
+  mkdirSync(dirname(singletonLockDir), { recursive: true });
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      mkdirSync(singletonLockDir);
+      writeFileSync(singletonPidPath, `${process.pid}\n`);
+      return;
+    } catch (error) {
+      if (error?.code !== "EEXIST") {
+        throw error;
+      }
+
+      const existingPid = readPidFile(singletonPidPath);
+      if (existingPid && processExists(existingPid)) {
+        process.stderr.write(
+          `Kata Code desktop dev launcher already running (pid ${existingPid}); reusing it.\n`,
+        );
+        process.exit(0);
+      }
+
+      rmSync(singletonLockDir, { recursive: true, force: true });
+    }
+  }
+
+  process.stderr.write("Kata Code desktop dev launcher lock is busy; skipping duplicate launch.\n");
+  process.exit(0);
+}
+
+function releaseSingleton() {
+  if (readPidFile(singletonPidPath) === process.pid) {
+    rmSync(singletonLockDir, { recursive: true, force: true });
+  }
+}
+
+acquireSingletonOrExit();
+process.once("exit", releaseSingleton);
 
 await waitForResources({
   baseDir: desktopDir,
