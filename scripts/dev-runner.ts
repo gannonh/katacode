@@ -182,6 +182,11 @@ export function createDevRunnerEnv({
       output.VITE_WS_URL = `ws://localhost:${serverPort}`;
     } else {
       output.KATACODE_PORT = String(serverPort);
+      // Bind vite to the same IPv4 loopback the desktop renderer loads. Without
+      // this, vite defaults to "localhost" which resolves to ::1 (IPv6) on some
+      // machines, while the desktop loads http://127.0.0.1 (IPv4). The mismatch
+      // makes the renderer fail to connect and stick on chrome-error.
+      output.HOST = DESKTOP_DEV_LOOPBACK_HOST;
       output.VITE_HTTP_URL = `http://${DESKTOP_DEV_LOOPBACK_HOST}:${serverPort}`;
       output.VITE_WS_URL = `ws://${DESKTOP_DEV_LOOPBACK_HOST}:${serverPort}`;
       delete output.KATACODE_MODE;
