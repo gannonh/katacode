@@ -20,7 +20,7 @@ on:
           - stable
           - nightly
       version:
-        description: "Release version (for example 1.2.3 or v1.2.3)"
+        description: "Release version (e.g. 1.2.3 or v1.2.3). Optional: stable defaults to the latest nightly's version; nightly ignores this."
         required: false
         type: string
       dry_run:
@@ -143,10 +143,19 @@ jobs:
             if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
               raw="${DISPATCH_VERSION}"
               if [[ -z "$raw" ]]; then
-                if [[ "${DISPATCH_DRY_RUN:-}" == "true" ]]; then
+                # No version input: derive from the most recent nightly tag's
+                # stable core (vX.Y.Z-nightly.* -> X.Y.Z). A stable release always
+                # ships the version last validated on nightly.
+                latest_nightly="$(git tag --list 'v*-nightly.*' --sort=-creatordate | head -n 1)"
+                if [[ -n "$latest_nightly" ]]; then
+                  raw="${latest_nightly#v}"
+                  raw="${raw%%-nightly.*}"
+                  echo "No version input; derived stable version '$raw' from latest nightly '$latest_nightly'."
+                elif [[ "${DISPATCH_DRY_RUN:-}" == "true" ]]; then
+                  # Fresh repo with no nightly tag yet: keep dry runs working.
                   raw="0.0.0-dryrun.${NIGHTLY_RUN_NUMBER}"
                 else
-                  echo "workflow_dispatch stable releases require the version input." >&2
+                  echo "No version input and no nightly tag to derive the stable version from. Cut a nightly first or pass version." >&2
                   exit 1
                 fi
               fi
