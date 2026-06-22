@@ -53,27 +53,26 @@ describe("readClerkPrerequisites", () => {
 });
 
 describe("readGoogleTestUserPrerequisites", () => {
-  const keys = ["KATACODE_E2E_GOOGLE_EMAIL", "KATACODE_E2E_GOOGLE_PASSWORD"] as const;
-  const previous: Record<string, string | undefined> = {};
+  const key = "KATACODE_E2E_GOOGLE_EMAIL";
+  let previous: string | undefined;
 
   afterEach(() => {
-    for (const key of keys) {
-      if (previous[key] === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = previous[key];
-      }
+    if (previous === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = previous;
     }
   });
 
-  it("requires Google test-user credentials for UI auth flows", () => {
-    for (const key of keys) {
-      previous[key] = process.env[key];
-      delete process.env[key];
-    }
+  it("requires the Google test-user email for Clerk ticket sign-in", () => {
+    previous = process.env[key];
+    delete process.env[key];
 
     const result = readGoogleTestUserPrerequisites();
     expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.missing).toEqual(["KATACODE_E2E_GOOGLE_EMAIL"]);
+    }
   });
 });
 

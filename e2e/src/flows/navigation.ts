@@ -24,9 +24,14 @@ export function resolveAppRouteUrl(page: Page, route: string): string {
 
 export async function dismissBlockingToasts(page: Page): Promise<void> {
   const closeButtons = page.locator('[data-slot="toast-close"]');
-  for (let index = 0; index < (await closeButtons.count()); index += 1) {
+  while (
     await closeButtons
-      .nth(index)
+      .first()
+      .isVisible()
+      .catch(() => false)
+  ) {
+    await closeButtons
+      .first()
       .click()
       .catch(() => undefined);
   }

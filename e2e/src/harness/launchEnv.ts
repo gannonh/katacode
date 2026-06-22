@@ -2,12 +2,15 @@ import type { E2ERunContext } from "./isolatedRun.ts";
 
 const DEV_ONLY_ENV_KEYS = ["VITE_DEV_SERVER_URL", "PORT", "VITE_HTTP_URL", "VITE_WS_URL"] as const;
 
-export function resolveRendererPort(context: E2ERunContext): number {
-  return context.launchTarget === "release" ? context.serverPort : context.webPort;
-}
+export function resolveRendererTarget(context: E2ERunContext): {
+  readonly port: number;
+  readonly label: string;
+} {
+  if (context.launchTarget === "release") {
+    return { port: context.serverPort, label: "embedded server" };
+  }
 
-export function resolveRendererPortLabel(context: E2ERunContext): string {
-  return context.launchTarget === "release" ? "embedded server" : "Vite";
+  return { port: context.webPort, label: "Vite" };
 }
 
 export function buildElectronLaunchEnv(context: E2ERunContext): NodeJS.ProcessEnv {

@@ -12,19 +12,10 @@ import type { E2ERunContext } from "./isolatedRun.ts";
 import { registerCleanup } from "./isolatedRun.ts";
 import { withTimeout } from "./withTimeout.ts";
 import { resolveReleaseExecutablePath } from "./releaseTarget.ts";
-import {
-  buildElectronLaunchEnv,
-  isRendererWindow,
-  resolveRendererPort,
-  resolveRendererPortLabel,
-} from "./launchEnv.ts";
+import { buildElectronLaunchEnv, isRendererWindow, resolveRendererTarget } from "./launchEnv.ts";
 
 function logLaunchPhase(message: string): void {
   process.stdout.write(`[e2e] ${message}\n`);
-}
-
-async function resolveRepoDesktopDir(repoRoot: string): Promise<string> {
-  return join(repoRoot, "apps/desktop");
 }
 
 async function resolveDevElectronLaunchCommand(
@@ -109,7 +100,7 @@ async function resolveRendererWindow(
 }
 
 export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
-  const repoDesktopDir = await resolveRepoDesktopDir(context.repoRoot);
+  const repoDesktopDir = join(context.repoRoot, "apps/desktop");
   const mainBundle = join(repoDesktopDir, "dist-electron/main.cjs");
 
   if (context.launchTarget === "dev") {
@@ -123,8 +114,7 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
   }
 
   const env = buildElectronLaunchEnv(context);
-  const rendererPort = resolveRendererPort(context);
-  const rendererPortLabel = resolveRendererPortLabel(context);
+  const { port: rendererPort, label: rendererPortLabel } = resolveRendererTarget(context);
 
   const remoteDebuggingPort = context.devEnv.KATACODE_DESKTOP_REMOTE_DEBUGGING_PORT?.trim();
   const launchArgs = [
@@ -134,23 +124,21 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
   ];
   logLaunchPhase("Launching Electron...");
 
-  const devLaunch =
-    context.launchTarget === "release" ? null : await resolveDevElectronLaunchCommand(launchArgs);
-
-  const launchOptions =
-    context.launchTarget === "release"
-      ? {
-          executablePath: resolveReleaseExecutablePath(),
-          env,
-        }
-      : {
-          executablePath: devLaunch!.electronPath,
-          args: devLaunch!.args,
-          cwd: repoDesktopDir,
-          env,
-        };
-
-  const electronApp = await electron.launch(launchOptions);
+  let electronApp: ElectronApplication;
+  if (context.launchTarget === "release") {
+    electronApp = await electron.launch({
+      executablePath: resolveReleaseExecutablePath(),
+      env,
+    });
+  } else {
+    const devLaunch = await resolveDevElectronLaunchCommand(launchArgs);
+    electronApp = await electron.launch({
+      executablePath: devLaunch.electronPath,
+      args: devLaunch.args,
+      cwd: repoDesktopDir,
+      env,
+    });
+  }
   registerCleanup(context, async () => {
     await electronApp.close();
   });

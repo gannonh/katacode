@@ -1,7 +1,11 @@
 import { expect, type Page } from "@playwright/test";
 
 import { E2E_TIMEOUTS } from "../config/timeouts.ts";
-import { formatMissingPrerequisiteError, readAgentProviderPrerequisites } from "../harness/env.ts";
+import {
+  formatMissingPrerequisiteError,
+  readAgentProviderConfig,
+  readAgentProviderPrerequisites,
+} from "../harness/env.ts";
 import { dismissBlockingToasts } from "./navigation.ts";
 
 export interface DeterministicAgentTurn {
@@ -17,8 +21,7 @@ export function assertAgentPrerequisites(phase: string): DeterministicAgentTurn 
     throw new Error(formatMissingPrerequisiteError(phase, prerequisites.missing));
   }
 
-  const provider = process.env.KATACODE_E2E_AGENT_PROVIDER!.trim();
-  const model = process.env.KATACODE_E2E_AGENT_MODEL!.trim();
+  const { provider, model } = readAgentProviderConfig();
   const runId = crypto.randomUUID().slice(0, 8);
   const expected = `E2E_AGENT_OK_${runId}`;
   const prompt = `Reply to this message with exactly: ${expected}`;

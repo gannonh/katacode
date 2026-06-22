@@ -4,9 +4,11 @@ import { clerk } from "@clerk/testing/playwright";
 import {
   formatMissingPrerequisiteError,
   readClerkPrerequisites,
+  readGoogleTestUserEmail,
   readGoogleTestUserPrerequisites,
 } from "../harness/env.ts";
 import { E2E_TIMEOUTS } from "../config/timeouts.ts";
+import { expectAppSurfaceVisible } from "../assertions/appAssertions.ts";
 import { openSettings } from "./navigation.ts";
 
 export function assertAuthPrerequisites(phase: string): void {
@@ -22,39 +24,28 @@ export function assertAuthPrerequisites(phase: string): void {
 }
 
 async function waitForClerkOnAppShell(page: Page): Promise<void> {
-  await page
-    .getByTestId("command-palette-trigger")
-    .waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+  await expectAppSurfaceVisible(page);
   await clerk.loaded({ page });
 }
 
 export async function signInWithClerkGoogleTestUser(page: Page): Promise<void> {
   assertAuthPrerequisites("Google test-user auth");
-
-  const email = process.env.KATACODE_E2E_GOOGLE_EMAIL?.trim();
-  if (!email) {
-    throw new Error(
-      formatMissingPrerequisiteError("Google test-user auth", ["KATACODE_E2E_GOOGLE_EMAIL"]),
-    );
-  }
+  const email = readGoogleTestUserEmail();
 
   await waitForClerkOnAppShell(page);
   await clerk.signIn({ page, emailAddress: email });
 }
 
 export async function expectSignedInClerkState(page: Page): Promise<void> {
-  assertAuthPrerequisites("signed-in Clerk verification");
-  await waitForClerkOnAppShell(page);
-
-  await page
-    .waitForFunction(() => window.Clerk?.user != null, undefined, {
+  try {
+    await page.waitForFunction(() => window.Clerk?.user != null, undefined, {
       timeout: E2E_TIMEOUTS.authMs,
-    })
-    .catch(() => {
-      throw new Error(
-        "Google test-user auth: Clerk did not reach a signed-in state. Confirm the Google test user exists in Clerk, environment pairing completed, and Clerk testing setup documented in e2e/README.md.",
-      );
     });
+  } catch {
+    throw new Error(
+      "Google test-user auth: Clerk did not reach a signed-in state. Confirm the Google test user exists in Clerk, environment pairing completed, and Clerk testing setup documented in e2e/README.md.",
+    );
+  }
 
   const avatar = page.locator(".cl-userButton-root").first();
   if (await avatar.isVisible().catch(() => false)) {

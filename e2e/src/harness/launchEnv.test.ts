@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { E2ERunContext } from "./isolatedRun.ts";
-import {
-  buildElectronLaunchEnv,
-  isRendererWindow,
-  resolveRendererPort,
-  resolveRendererPortLabel,
-} from "./launchEnv.ts";
+import { buildElectronLaunchEnv, isRendererWindow, resolveRendererTarget } from "./launchEnv.ts";
 
 function makeContext(launchTarget: "dev" | "release"): E2ERunContext {
   return {
@@ -30,15 +25,17 @@ function makeContext(launchTarget: "dev" | "release"): E2ERunContext {
 
 describe("launchEnv", () => {
   it("uses the embedded server port for release renderer detection", () => {
-    const context = makeContext("release");
-    expect(resolveRendererPort(context)).toBe(13773);
-    expect(resolveRendererPortLabel(context)).toBe("embedded server");
+    expect(resolveRendererTarget(makeContext("release"))).toEqual({
+      port: 13773,
+      label: "embedded server",
+    });
   });
 
   it("uses the Vite port for dev renderer detection", () => {
-    const context = makeContext("dev");
-    expect(resolveRendererPort(context)).toBe(5733);
-    expect(resolveRendererPortLabel(context)).toBe("Vite");
+    expect(resolveRendererTarget(makeContext("dev"))).toEqual({
+      port: 5733,
+      label: "Vite",
+    });
   });
 
   it("strips dev-only env vars for release launches", () => {

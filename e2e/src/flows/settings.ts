@@ -4,11 +4,17 @@ import { dismissBlockingToasts } from "./navigation.ts";
 
 export type ThemePreference = "system" | "light" | "dark";
 
+const THEME_OPTION_LABELS: Record<ThemePreference, string> = {
+  system: "System",
+  light: "Light",
+  dark: "Dark",
+};
+
 export async function setTheme(page: Page, theme: ThemePreference): Promise<void> {
   await dismissBlockingToasts(page);
   const trigger = page.getByLabel("Theme preference");
   await trigger.click();
-  const label = theme === "system" ? "System" : theme === "light" ? "Light" : "Dark";
+  const label = THEME_OPTION_LABELS[theme];
   await page.getByRole("option", { name: label }).click();
   await expectResolvedTheme(page, theme === "dark" ? "dark" : "light");
 }

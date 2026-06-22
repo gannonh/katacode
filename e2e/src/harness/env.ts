@@ -40,15 +40,40 @@ export function readClerkPrerequisites(): PrerequisiteResult {
 }
 
 export function readGoogleTestUserPrerequisites(): PrerequisiteResult {
-  const missing: string[] = [];
   if (!firstNonEmpty(process.env.KATACODE_E2E_GOOGLE_EMAIL)) {
-    missing.push("KATACODE_E2E_GOOGLE_EMAIL");
-  }
-  if (!firstNonEmpty(process.env.KATACODE_E2E_GOOGLE_PASSWORD)) {
-    missing.push("KATACODE_E2E_GOOGLE_PASSWORD");
+    return { ok: false, missing: ["KATACODE_E2E_GOOGLE_EMAIL"] };
   }
 
-  return missing.length === 0 ? { ok: true } : { ok: false, missing };
+  return { ok: true };
+}
+
+export function readGoogleTestUserEmail(): string {
+  const email = firstNonEmpty(process.env.KATACODE_E2E_GOOGLE_EMAIL);
+  if (!email) {
+    throw new Error(
+      formatMissingPrerequisiteError("Google test-user auth", ["KATACODE_E2E_GOOGLE_EMAIL"]),
+    );
+  }
+
+  return email;
+}
+
+export function readAgentProviderConfig(): { readonly provider: string; readonly model: string } {
+  const provider = firstNonEmpty(process.env.KATACODE_E2E_AGENT_PROVIDER);
+  const model = firstNonEmpty(process.env.KATACODE_E2E_AGENT_MODEL);
+  const missing: string[] = [];
+
+  if (!provider) {
+    missing.push("KATACODE_E2E_AGENT_PROVIDER");
+  }
+  if (!model) {
+    missing.push("KATACODE_E2E_AGENT_MODEL");
+  }
+  if (missing.length > 0) {
+    throw new Error(formatMissingPrerequisiteError("Agent provider config", missing));
+  }
+
+  return { provider, model };
 }
 
 export function readAgentProviderPrerequisites(): PrerequisiteResult {
