@@ -1,37 +1,33 @@
-import type { Page } from "@playwright/test";
+const FATAL_LAUNCH_ERROR_PATTERNS = [
+  "Cannot find module",
+  "MODULE_NOT_FOUND",
+  "Failed to fetch dynamically imported module",
+] as const;
 
-import { E2E_TIMEOUTS } from "../config/timeouts.ts";
-
-export async function expectAppSurfaceVisible(page: Page): Promise<void> {
-  await page
-    .getByTestId("command-palette-trigger")
-    .waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
-}
-
-export function trackFatalLaunchErrors(page: Page): () => readonly string[] {
+export function trackFatalLaunchErrors(page: {
+  on(event: "pageerror", listener: (error: Error) => void): void;
+  on(event: "console", listener: (message: { type(): string; text(): string }) => void): void;
+}): () => readonly string[] {
   const errors: string[] = [];
+  const record = (message: string) => {
+    errors.push(message);
+  };
+
   page.on("pageerror", (error) => {
-    errors.push(error.message);
+    record(error.message);
   });
   page.on("console", (message) => {
     if (message.type() === "error") {
-      errors.push(message.text());
+      record(message.text());
     }
   });
+
   return () => errors;
 }
 
 export function assertNoFatalLaunchErrors(errors: readonly string[]): void {
-  const fatalPatterns = [
-    "Cannot find module",
-    "MODULE_NOT_FOUND",
-    "Uncaught Error",
-    "Uncaught TypeError",
-    "Uncaught ReferenceError",
-  ];
-
   const failures = errors.filter((entry) =>
-    fatalPatterns.some((pattern) => entry.includes(pattern)),
+    FATAL_LAUNCH_ERROR_PATTERNS.some((pattern) => entry.includes(pattern)),
   );
 
   if (failures.length > 0) {

@@ -112,7 +112,10 @@ Additional outputs:
 
 - `e2e/src/harness/` — reusable Electron/process/isolation helpers (no Kata product selectors)
 - `e2e/src/flows/` — Kata-specific UI workflows (auth, settings, workspace, agent chat)
+- `e2e/src/assertions/` — launch health checks only (`assertNoFatalLaunchErrors`)
 - `e2e/tests/` — small starter specs composing harness + flows
+
+Default `vp run e2e` targets the `desktop-dev` project. Use `vp run e2e:release` for packaged app validation.
 
 Service mocking (`route().fulfill()`, HAR replay, MSW, fake backends) is out of scope. Native OS dialog control through Electron main-process hooks is allowed only for OS UI determinism and must be documented at the call site.
 
@@ -128,3 +131,7 @@ KATACODE_E2E_RELEASE_APP="/path/to/Kata Code.app" vp run e2e:release --grep @set
 ## Authoring new tests
 
 See `.agents/skills/e2e-test-author/SKILL.md` for agent-oriented guidance.
+
+## Adopting this foundation in other repos
+
+See [docs/guides/e2e-foundation-adoption.md](../docs/guides/e2e-foundation-adoption.md) for Kata Agents and Skillr App rollout steps, env mapping, and lessons learned.

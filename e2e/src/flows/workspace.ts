@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 
+import { E2E_TIMEOUTS } from "../config/timeouts.ts";
 import type { E2ERunContext } from "../harness/isolatedRun.ts";
 import { seedWorkspace } from "../harness/seededWorkspace.ts";
 import { openCommandPalette } from "./navigation.ts";
@@ -24,4 +25,7 @@ export async function createOrOpenProject(page: Page, workspacePath: string): Pr
   await palette.getByText("Local folder", { exact: true }).click();
   await page.getByPlaceholder(ADD_PROJECT_SUBMENU_PLACEHOLDER).fill(workspacePath);
   await page.getByRole("button", { name: "Add (Enter)" }).click();
+  await page
+    .getByTestId("composer-editor")
+    .waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
 }

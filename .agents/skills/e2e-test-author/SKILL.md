@@ -58,12 +58,12 @@ The harness forwards `KATACODE_DESKTOP_REMOTE_DEBUGGING_PORT` as `--remote-debug
 
 ## Architecture (do not fight this)
 
-| Layer                                | Role                                                                                      |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `dev-runner` + Vite (`dev:web` only) | Serves the renderer; Playwright owns Electron                                             |
-| `appLaunch.ts`                       | Launches **raw Electron binary** (not the macOS `.app` dev shim)                          |
-| `pairing.ts`                         | Waits for embedded API + app shell (`command-palette-trigger`), not backend token polling |
-| `testFixtures.ts`                    | `appWindow`, `runContext`, isolated `KATACODE_HOME`, ports                                |
+| Layer                                | Role                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| `dev-runner` + Vite (`dev:web` only) | Serves the renderer; Playwright owns Electron                                        |
+| `appLaunch.ts`                       | Technical Electron launch (renderer window + fatal-error tracking)                   |
+| `pairing.ts` / `shell.ts`            | Embedded API + app shell readiness (`appWindow` fixture)                             |
+| `testFixtures.ts`                    | `appWindow`, `authenticatedAppWindow`, `runContext`, isolated `KATACODE_HOME`, ports |
 
 Do not run `dev:desktop` inside E2E — it would spawn a second Electron and cause EPIPE / duplicate backends.
 
@@ -86,8 +86,7 @@ Do not run `dev:desktop` inside E2E — it would spawn a second Electron and cau
 ### Navigation
 
 - Electron uses **hash history** (`#/settings/general`). Bare `page.goto("/settings/…")` is invalid.
-- Prefer **in-app clicks** (`openSettings` clicks the sidebar Settings `data-sidebar="menu-button"`).
-- When a hash URL is required, use `resolveAppRouteUrl(page, "/path")`.
+- Prefer **in-app clicks** (`openSettings` in `settings.ts` clicks the sidebar Settings `data-sidebar="menu-button"`).
 - Settings title on Electron is a `<span>`, not a heading — wait on a panel control (e.g. `getByLabel("Theme preference")`).
 
 ### Toasts and overlays
@@ -105,35 +104,44 @@ Do not run `dev:desktop` inside E2E — it would spawn a second Electron and cau
 
 ### Harness (`e2e/src/harness/`)
 
-- `testFixtures.ts` — `test`, `appWindow`, `runContext`, `launchTarget`
-- `appLaunch.ts` — isolated dev stack + Electron launch
-- `isolatedRun.ts` — temp `KATACODE_HOME`, ports, cleanup
+- `testFixtures.ts` — `test`, `appWindow`, `authenticatedAppWindow`, `runContext`, `launchTarget`
+- `appLaunch.ts` — dev stack + Electron launch (technical readiness only)
+- `isolatedRun.ts` — temp `KATACODE_HOME`, shared dev-runner port allocation, cleanup
+- `readiness.ts` — TCP / Vite readiness probes
 - `env.ts` — prerequisite checks (`readClerkPrerequisites`, `readAgentProviderPrerequisites`, …)
 
 ### Flows (`e2e/src/flows/`)
 
 | Module          | Key exports                                                                                       |
 | --------------- | ------------------------------------------------------------------------------------------------- |
-| `pairing.ts`    | `waitForAppEnvironmentReady` (used by launch; specs rarely call directly)                         |
+| `shell.ts`      | `waitForAppShell`                                                                                 |
+| `pairing.ts`    | `waitForAppEnvironmentReady` (used by `appWindow` fixture)                                        |
 | `auth.ts`       | `signInWithClerkGoogleTestUser`, `expectSignedInClerkState`, `assertAuthPrerequisites`            |
-| `navigation.ts` | `openSettings`, `openCommandPalette`, `dismissBlockingToasts`, `resolveAppRouteUrl`               |
-| `settings.ts`   | `setTheme`, `expectResolvedTheme`                                                                 |
+| `navigation.ts` | `openCommandPalette`, `dismissBlockingToasts`                                                     |
+| `settings.ts`   | `openSettings`, `setTheme`, `expectResolvedTheme`                                                 |
 | `workspace.ts`  | `createSeededWorkspace`, `createOrOpenProject`                                                    |
 | `agentChat.ts`  | `assertAgentPrerequisites`, `selectComposerModel`, `sendAgentInstruction`, `expectAssistantReply` |
 
-Re-exported assertions live in `e2e/src/assertions/` when specs need them.
+### Assertions (`e2e/src/assertions/`)
+
+Launch health checks only (`assertNoFatalLaunchErrors`). Import flows directly for actions and UI waits.
 
 ## Typical test shapes
 
 ### Smoke (`@smoke`) — no auth
 
 ```ts
+import { assertNoFatalLaunchErrors } from "../../src/assertions/appAssertions.ts";
 import { E2E_TAGS } from "../../src/config/tags.ts";
 import { test, expect } from "../../src/harness/testFixtures.ts";
 
 test.describe(`App launch ${E2E_TAGS.smoke}`, () => {
-  test("launches Electron past pairing and reaches the app shell", async ({ appWindow }) => {
+  test("launches Electron past pairing and reaches the app shell", async ({
+    launchedApp,
+    appWindow,
+  }) => {
     await expect(appWindow.getByTestId("command-palette-trigger")).toBeVisible();
+    assertNoFatalLaunchErrors(launchedApp.readFatalErrors());
   });
 });
 ```
@@ -142,20 +150,16 @@ test.describe(`App launch ${E2E_TAGS.smoke}`, () => {
 
 ```ts
 import { E2E_TAGS } from "../../src/config/tags.ts";
-import { expectSignedInClerkState, signInWithClerkGoogleTestUser } from "../../src/flows/auth.ts";
-import { openSettings } from "../../src/flows/navigation.ts";
-import { expectResolvedTheme, setTheme } from "../../src/flows/settings.ts";
+import { expectResolvedTheme, openSettings, setTheme } from "../../src/flows/settings.ts";
 import { test } from "../../src/harness/testFixtures.ts";
 
 test.describe(`Settings theme ${E2E_TAGS.settings}`, () => {
-  test("persists dark theme after reload", async ({ appWindow }) => {
-    await signInWithClerkGoogleTestUser(appWindow);
-    await expectSignedInClerkState(appWindow);
-    await openSettings(appWindow);
-    await setTheme(appWindow, "dark");
-    await appWindow.reload();
-    await openSettings(appWindow);
-    await expectResolvedTheme(appWindow, "dark");
+  test("persists dark theme after reload", async ({ authenticatedAppWindow }) => {
+    await openSettings(authenticatedAppWindow);
+    await setTheme(authenticatedAppWindow, "dark");
+    await authenticatedAppWindow.reload();
+    await openSettings(authenticatedAppWindow);
+    await expectResolvedTheme(authenticatedAppWindow, "dark");
   });
 });
 ```
@@ -168,8 +172,7 @@ import {
   expectAssistantReply,
   selectComposerModel,
   sendAgentInstruction,
-} from "../../src/assertions/agentAssertions.ts";
-import { expectSignedInClerkState, signInWithClerkGoogleTestUser } from "../../src/flows/auth.ts";
+} from "../../src/flows/agentChat.ts";
 import { createOrOpenProject, createSeededWorkspace } from "../../src/flows/workspace.ts";
 import { E2E_TAGS } from "../../src/config/tags.ts";
 import { E2E_TIMEOUTS } from "../../src/config/timeouts.ts";
@@ -179,17 +182,15 @@ test.describe(`Deterministic agent chat ${E2E_TAGS.agent}`, () => {
   test.describe.configure({ timeout: E2E_TIMEOUTS.agentTestMs });
 
   test("returns the exact expected assistant message from a real provider", async ({
-    appWindow,
+    authenticatedAppWindow,
     runContext,
   }) => {
     const turn = assertAgentPrerequisites("deterministic agent chat");
-    await signInWithClerkGoogleTestUser(appWindow);
-    await expectSignedInClerkState(appWindow);
     const seededPath = await createSeededWorkspace(runContext, "agent-chat-basic");
-    await createOrOpenProject(appWindow, seededPath);
-    await selectComposerModel(appWindow, turn.model);
-    await sendAgentInstruction(appWindow, turn.prompt);
-    await expectAssistantReply(appWindow, turn.expected, turn);
+    await createOrOpenProject(authenticatedAppWindow, seededPath);
+    await selectComposerModel(authenticatedAppWindow, turn.model);
+    await sendAgentInstruction(authenticatedAppWindow, turn.prompt);
+    await expectAssistantReply(authenticatedAppWindow, turn.expected, turn);
   });
 });
 ```

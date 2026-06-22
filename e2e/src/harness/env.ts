@@ -73,23 +73,26 @@ export function readAgentProviderConfig(): { readonly provider: string; readonly
     throw new Error(formatMissingPrerequisiteError("Agent provider config", missing));
   }
 
-  return { provider, model };
+  return { provider, model } as { readonly provider: string; readonly model: string };
 }
 
 export function readAgentProviderPrerequisites(): PrerequisiteResult {
   const missing: string[] = [];
-  if (!firstNonEmpty(process.env.KATACODE_E2E_AGENT_PROVIDER)) {
+  const provider = firstNonEmpty(process.env.KATACODE_E2E_AGENT_PROVIDER);
+  const model = firstNonEmpty(process.env.KATACODE_E2E_AGENT_MODEL);
+
+  if (!provider) {
     missing.push("KATACODE_E2E_AGENT_PROVIDER");
   }
-  if (!firstNonEmpty(process.env.KATACODE_E2E_AGENT_MODEL)) {
+  if (!model) {
     missing.push("KATACODE_E2E_AGENT_MODEL");
   }
 
-  const provider = process.env.KATACODE_E2E_AGENT_PROVIDER?.trim().toLowerCase();
-  if (provider === "openai" && !firstNonEmpty(process.env.OPENAI_API_KEY)) {
+  const providerKey = provider?.trim().toLowerCase();
+  if (providerKey === "openai" && !firstNonEmpty(process.env.OPENAI_API_KEY)) {
     missing.push("OPENAI_API_KEY");
   }
-  if (provider === "anthropic" && !firstNonEmpty(process.env.ANTHROPIC_API_KEY)) {
+  if (providerKey === "anthropic" && !firstNonEmpty(process.env.ANTHROPIC_API_KEY)) {
     missing.push("ANTHROPIC_API_KEY");
   }
 

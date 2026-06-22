@@ -2,6 +2,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { closeSync, mkdirSync, openSync } from "node:fs";
 import { join } from "node:path";
 
+import { appendProcessLog } from "./artifacts.ts";
 import type { E2ERunContext } from "./isolatedRun.ts";
 
 export interface LoggedChildProcess {
@@ -35,23 +36,32 @@ export function spawnWithArtifactLogs(
   closeSync(stdoutFd);
   closeSync(stderrFd);
 
-  child.on("error", () => {
-    // Avoid crashing the runner if the child fails to spawn.
+  child.on("error", (error) => {
+    void appendProcessLog(
+      context,
+      `${input.label}-spawn-error`,
+      `${input.command} ${input.args.join(" ")}\ncwd=${input.cwd}\n${error.message}\n`,
+    );
   });
 
   return { process: child };
 }
 
 export async function terminateChildProcess(child: ChildProcess): Promise<void> {
-  if (child.killed || child.exitCode !== null) {
+  if (child.exitCode !== null) {
     return;
   }
 
   await new Promise<void>((resolve) => {
     child.once("exit", () => resolve());
+    if (child.exitCode !== null) {
+      resolve();
+      return;
+    }
+
     child.kill("SIGTERM");
     setTimeout(() => {
-      if (!child.killed && child.exitCode === null) {
+      if (child.exitCode === null && !child.killed) {
         child.kill("SIGKILL");
       }
     }, 5_000).unref();

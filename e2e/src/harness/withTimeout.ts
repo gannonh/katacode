@@ -21,7 +21,7 @@ export class TimeoutError extends Error {
 export async function withTimeout<T>(
   label: string,
   timeoutMs: number,
-  operation: () => Promise<T>,
+  operation: (signal: AbortSignal) => Promise<T>,
   details?: string | (() => Promise<string | undefined>),
 ): Promise<T> {
   const abortController = new AbortController();
@@ -32,7 +32,7 @@ export async function withTimeout<T>(
   })();
 
   try {
-    return await Promise.race([operation(), timeoutTask]);
+    return await Promise.race([operation(abortController.signal), timeoutTask]);
   } finally {
     abortController.abort();
   }

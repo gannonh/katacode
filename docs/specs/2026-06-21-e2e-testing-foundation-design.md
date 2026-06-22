@@ -96,8 +96,13 @@ e2e/
     harness/                     # reusable Electron E2E foundation
       appLaunch.ts
       artifacts.ts
+      desktopArtifacts.ts
+      devStack.ts
+      devStackEnv.ts
       isolatedRun.ts
+      log.ts
       ports.ts
+      readiness.ts
       releaseTarget.ts
       seededWorkspace.ts
       testFixtures.ts
@@ -105,14 +110,15 @@ e2e/
       agentChat.ts
       auth.ts
       navigation.ts
+      pairing.ts
       settings.ts
+      shell.ts
       workspace.ts
     assertions/
-      agentAssertions.ts
       appAssertions.ts
     config/
-      env.ts
       tags.ts
+      timeouts.ts
   tests/
     smoke/app-launch.spec.ts
     settings/theme.spec.ts
@@ -449,16 +455,16 @@ KATACODE_E2E_RELEASE_APP=/path/to/Kata\ Code.app vp run e2e:release -- --grep @s
 
 Captured during headed verification on macOS with built desktop artifacts, Clerk test keys, Google test user, and OpenAI provider credentials.
 
-| Area           | Lesson                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------- |
-| Dev launch     | Vite-only dev stack + raw Electron binary; pairing waits for app shell, not backend token polling |
-| Auth           | `@clerk/testing` ticket sign-in — not in-page Google OAuth (opens external browser on desktop)    |
-| Navigation     | Hash history (`#/settings/general`); use sidebar clicks or `resolveAppRouteUrl`                   |
-| Settings UI    | Wait on panel controls (`Theme preference`), not a Settings heading                               |
-| Toasts         | Provider update toasts block clicks — call `dismissBlockingToasts` before theme/model selection   |
-| Agent          | Explicit `selectComposerModel` before `sendAgentInstruction`; set `KATACODE_E2E_AGENT_MODEL`      |
-| Exploration    | Prefer `vp run e2e:ui` / `PWDEBUG=1 vp run e2e:headed` over CDP attach for new flows              |
-| CDP (optional) | `KATACODE_DESKTOP_REMOTE_DEBUGGING_PORT` forwards `--remote-debugging-port` on Electron launch    |
+| Area           | Lesson                                                                                              |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| Dev launch     | Vite-only dev stack + raw Electron binary; pairing waits for app shell, not backend token polling   |
+| Auth           | `@clerk/testing` ticket sign-in — not in-page Google OAuth (opens external browser on desktop)      |
+| Navigation     | Hash history (`#/settings/general`); prefer in-app sidebar clicks (`openSettings` in `settings.ts`) |
+| Settings UI    | Wait on panel controls (`Theme preference`), not a Settings heading                                 |
+| Toasts         | Provider update toasts block clicks — call `dismissBlockingToasts` before theme/model selection     |
+| Agent          | Explicit `selectComposerModel` before `sendAgentInstruction`; set `KATACODE_E2E_AGENT_MODEL`        |
+| Exploration    | Prefer `vp run e2e:ui` / `PWDEBUG=1 vp run e2e:headed` over CDP attach for new flows                |
+| CDP (optional) | `KATACODE_DESKTOP_REMOTE_DEBUGGING_PORT` forwards `--remote-debugging-port` on Electron launch      |
 
 Authoring guidance lives in [.agents/skills/e2e-test-author/SKILL.md](../../.agents/skills/e2e-test-author/SKILL.md). Operational commands and env vars live in [e2e/README.md](../../e2e/README.md).
 

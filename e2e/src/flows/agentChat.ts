@@ -15,18 +15,32 @@ export interface DeterministicAgentTurn {
   readonly expected: string;
 }
 
-export function assertAgentPrerequisites(phase: string): DeterministicAgentTurn {
+export function assertAgentProviderConfigured(phase: string): {
+  readonly provider: string;
+  readonly model: string;
+} {
   const prerequisites = readAgentProviderPrerequisites();
   if (!prerequisites.ok) {
     throw new Error(formatMissingPrerequisiteError(phase, prerequisites.missing));
   }
 
-  const { provider, model } = readAgentProviderConfig();
+  return readAgentProviderConfig();
+}
+
+export function buildDeterministicAgentTurn(
+  provider: string,
+  model: string,
+): DeterministicAgentTurn {
   const runId = crypto.randomUUID().slice(0, 8);
   const expected = `E2E_AGENT_OK_${runId}`;
   const prompt = `Reply to this message with exactly: ${expected}`;
 
   return { provider, model, prompt, expected };
+}
+
+export function assertAgentPrerequisites(phase: string): DeterministicAgentTurn {
+  const { provider, model } = assertAgentProviderConfigured(phase);
+  return buildDeterministicAgentTurn(provider, model);
 }
 
 function modelSlugToPickerPattern(modelSlug: string): RegExp {

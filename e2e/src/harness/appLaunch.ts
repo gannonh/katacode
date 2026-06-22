@@ -1,22 +1,17 @@
-import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { _electron as electron, type ElectronApplication, type Page } from "@playwright/test";
 
 import { appendProcessLog } from "./artifacts.ts";
 import { E2E_TIMEOUTS } from "../config/timeouts.ts";
-import { waitForAppEnvironmentReady } from "../flows/pairing.ts";
 import { cleanupStaleDesktopDevApps } from "./cleanupStaleDesktopDev.ts";
+import { assertDesktopBuildArtifacts } from "./desktopArtifacts.ts";
 import { startDevStack } from "./devStack.ts";
 import type { E2ERunContext } from "./isolatedRun.ts";
 import { registerCleanup } from "./isolatedRun.ts";
-import { withTimeout } from "./withTimeout.ts";
+import { logHarnessPhase } from "./log.ts";
 import { resolveReleaseExecutablePath } from "./releaseTarget.ts";
 import { buildElectronLaunchEnv, isRendererWindow, resolveRendererTarget } from "./launchEnv.ts";
-
-function logLaunchPhase(message: string): void {
-  process.stdout.write(`[e2e] ${message}\n`);
-}
 
 async function resolveDevElectronLaunchCommand(
   args: string[],
@@ -43,9 +38,28 @@ function attachElectronLogging(context: E2ERunContext, app: ElectronApplication)
   });
 }
 
+function attachFatalLaunchErrorTracking(page: Page): () => readonly string[] {
+  const errors: string[] = [];
+  const record = (message: string) => {
+    errors.push(message);
+  };
+
+  page.on("pageerror", (error) => {
+    record(error.message);
+  });
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      record(message.text());
+    }
+  });
+
+  return () => errors;
+}
+
 export interface LaunchedApp {
   readonly electronApp: ElectronApplication;
   readonly window: Page;
+  readonly readFatalErrors: () => readonly string[];
 }
 
 async function resolveRendererWindow(
@@ -53,6 +67,7 @@ async function resolveRendererWindow(
   rendererPort: number,
   rendererPortLabel: string,
   timeoutMs: number,
+  signal: AbortSignal,
 ): Promise<Page> {
   const deadline = Date.now() + timeoutMs;
 
@@ -75,6 +90,11 @@ async function resolveRendererWindow(
 
     const poll = async () => {
       while (Date.now() < deadline) {
+        if (signal.aborted) {
+          fail(signal.reason instanceof Error ? signal.reason : new Error("Renderer wait aborted"));
+          return;
+        }
+
         for (const page of electronApp.windows()) {
           const url = page.url();
           if (isRendererWindow(url, rendererPort)) {
@@ -84,7 +104,7 @@ async function resolveRendererWindow(
           }
         }
 
-        await delay(250);
+        await delay(250, undefined, { signal });
       }
 
       const windowUrls = electronApp.windows().map((page) => page.url());
@@ -101,16 +121,11 @@ async function resolveRendererWindow(
 
 export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
   const repoDesktopDir = join(context.repoRoot, "apps/desktop");
-  const mainBundle = join(repoDesktopDir, "dist-electron/main.cjs");
 
   if (context.launchTarget === "dev") {
     cleanupStaleDesktopDevApps(context.repoRoot);
+    await assertDesktopBuildArtifacts(context.repoRoot);
     await startDevStack(context);
-    await access(mainBundle).catch(() => {
-      throw new Error(
-        `desktop-dev launch: missing ${mainBundle}. Run "vp run --filter @kata-sh/code-desktop ensure:electron" and build desktop before E2E.`,
-      );
-    });
   }
 
   const env = buildElectronLaunchEnv(context);
@@ -122,7 +137,7 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
     `--katacode-dev-root=${repoDesktopDir}`,
     "dist-electron/main.cjs",
   ];
-  logLaunchPhase("Launching Electron...");
+  logHarnessPhase("Launching Electron...");
 
   let electronApp: ElectronApplication;
   if (context.launchTarget === "release") {
@@ -144,23 +159,17 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
   });
 
   attachElectronLogging(context, electronApp);
-  logLaunchPhase("Waiting for the Electron renderer window...");
-  const window = await withTimeout(
-    "Electron renderer window",
+  logHarnessPhase("Waiting for the Electron renderer window...");
+  const window = await resolveRendererWindow(
+    electronApp,
+    rendererPort,
+    rendererPortLabel,
     E2E_TIMEOUTS.electronWindowMs,
-    () =>
-      resolveRendererWindow(
-        electronApp,
-        rendererPort,
-        rendererPortLabel,
-        E2E_TIMEOUTS.electronWindowMs,
-      ),
-    `artifactRoot=${context.artifactRoot}`,
+    AbortSignal.timeout(E2E_TIMEOUTS.electronWindowMs),
   );
-  logLaunchPhase("Electron renderer window is ready.");
-  logLaunchPhase("Waiting for embedded API bootstrap...");
-  await waitForAppEnvironmentReady(window, context);
-  logLaunchPhase("Embedded API bootstrap is ready.");
+  logHarnessPhase("Electron renderer window is ready.");
 
-  return { electronApp, window };
+  const readFatalErrors = attachFatalLaunchErrorTracking(window);
+
+  return { electronApp, window, readFatalErrors };
 }

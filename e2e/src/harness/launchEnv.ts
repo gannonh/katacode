@@ -1,4 +1,5 @@
 import type { E2ERunContext } from "./isolatedRun.ts";
+import { buildDevStackEnv } from "./devStackEnv.ts";
 
 const DEV_ONLY_ENV_KEYS = ["VITE_DEV_SERVER_URL", "PORT", "VITE_HTTP_URL", "VITE_WS_URL"] as const;
 
@@ -28,13 +29,7 @@ export function buildElectronLaunchEnv(context: E2ERunContext): NodeJS.ProcessEn
     return env;
   }
 
-  return {
-    ...env,
-    PORT: String(context.webPort),
-    VITE_DEV_SERVER_URL: `http://127.0.0.1:${context.webPort}`,
-    VITE_HTTP_URL: `http://127.0.0.1:${context.serverPort}`,
-    VITE_WS_URL: `ws://127.0.0.1:${context.serverPort}`,
-  };
+  return buildDevStackEnv(context);
 }
 
 export function isRendererWindow(url: string, rendererPort: number): boolean {
@@ -42,5 +37,17 @@ export function isRendererWindow(url: string, rendererPort: number): boolean {
     return false;
   }
 
-  return url.includes(`127.0.0.1:${rendererPort}`) || url.includes(`localhost:${rendererPort}`);
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    const port =
+      parsed.port.length > 0
+        ? Number.parseInt(parsed.port, 10)
+        : parsed.protocol === "https:"
+          ? 443
+          : 80;
+    return (host === "127.0.0.1" || host === "localhost") && port === rendererPort;
+  } catch {
+    return false;
+  }
 }

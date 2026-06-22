@@ -8,8 +8,8 @@ import {
   readGoogleTestUserPrerequisites,
 } from "../harness/env.ts";
 import { E2E_TIMEOUTS } from "../config/timeouts.ts";
-import { expectAppSurfaceVisible } from "../assertions/appAssertions.ts";
-import { openSettings } from "./navigation.ts";
+import { openSettings } from "./settings.ts";
+import { waitForAppShell } from "./shell.ts";
 
 export function assertAuthPrerequisites(phase: string): void {
   const clerkPrereqs = readClerkPrerequisites();
@@ -24,7 +24,7 @@ export function assertAuthPrerequisites(phase: string): void {
 }
 
 async function waitForClerkOnAppShell(page: Page): Promise<void> {
-  await expectAppSurfaceVisible(page);
+  await waitForAppShell(page, E2E_TIMEOUTS.assertionMs);
   await clerk.loaded({ page });
 }
 
@@ -48,10 +48,8 @@ export async function expectSignedInClerkState(page: Page): Promise<void> {
   }
 
   const avatar = page.locator(".cl-userButton-root").first();
-  if (await avatar.isVisible().catch(() => false)) {
-    return;
-  }
-
-  await openSettings(page);
-  await avatar.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.authMs });
+  await avatar.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.authMs }).catch(async () => {
+    await openSettings(page);
+    await avatar.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.authMs });
+  });
 }

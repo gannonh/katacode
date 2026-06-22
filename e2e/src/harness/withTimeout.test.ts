@@ -9,8 +9,14 @@ describe("withTimeout", () => {
 
   it("rejects with a labeled timeout error", async () => {
     await expect(
-      withTimeout("slow op", 25, async () => {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      withTimeout("slow op", 25, async (signal) => {
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(resolve, 100);
+          signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(signal.reason);
+          });
+        });
         return "late";
       }),
     ).rejects.toBeInstanceOf(TimeoutError);
