@@ -4,7 +4,7 @@ title: "Local Electron E2E testing foundation"
 description: "Design for a local-only Playwright E2E foundation for Kata Code desktop, dev, and release validation."
 tags: [testing, e2e, electron, playwright, desktop]
 timestamp: 2026-06-21T00:00:00Z
-status: Draft
+status: Implemented
 ---
 
 # Local Electron E2E testing foundation
@@ -439,6 +439,24 @@ KATACODE_E2E_RELEASE_APP=/path/to/Kata\ Code.app vp run e2e:release -- --grep @s
 - **Shared test account limits parallelism.** Default mutable authenticated tests to one worker until per-worker accounts exist.
 - **Release app path varies by machine.** Require explicit `KATACODE_E2E_RELEASE_APP` and fail loudly when absent.
 - **Reusable harness can over-abstract too early.** Keep generic harness utilities limited to Electron/process/isolation concerns. Put Kata product behavior in `flows/`.
+
+## Build completion report
+
+- **Spec:** `docs/specs/2026-06-21-e2e-testing-foundation-design.md`
+- **Base SHA:** `a97383915184da1b0730dd4dde036d8af7e2a884`
+- **Tasks completed:** Phases 1–5 (config/scripts, harness, flows, starter tests, e2e-test-author skill, OKF index update)
+- **Review gates:** TDD harness unit tests (8 passing); single-agent path (no subagent reviewers); spec compliance self-review; code quality self-review
+- **Verification:**
+  - `vp check` — pass
+  - `vp run typecheck` — pass
+  - `vp test run e2e/src/harness` — 8 passed
+  - `vp run e2e --list` — lists 8 tests in 4 files
+  - `vp run e2e --list --grep @smoke` — filters to smoke tests
+  - `vp run e2e --project desktop-dev --grep @smoke` — fails at desktop build prerequisite with clear message (no local `dist-electron` in agent environment)
+  - `vp run e2e:release --grep @smoke` — fails at `KATACODE_E2E_RELEASE_APP` prerequisite with clear message
+- **Approved deviations:** `vp run e2e` forwards Playwright args directly (omit the extra `--` shown in some spec examples); runtime auth/agent/release success requires maintainer credentials and built desktop artifacts
+- **Known follow-up:** Run full smoke/settings/agent/release suites locally with Clerk, Google test user, provider keys, and built desktop/release app before nightly promotion
+- **Independent subagent review:** not used (single-agent build path)
 
 ## Explicitly deferred work
 
