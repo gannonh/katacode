@@ -12,6 +12,12 @@ import type { E2ERunContext } from "./isolatedRun.ts";
 import { registerCleanup } from "./isolatedRun.ts";
 import { withTimeout } from "./withTimeout.ts";
 import { resolveReleaseExecutablePath } from "./releaseTarget.ts";
+import {
+  buildElectronLaunchEnv,
+  isRendererWindow,
+  resolveRendererPort,
+  resolveRendererPortLabel,
+} from "./launchEnv.ts";
 
 function logLaunchPhase(message: string): void {
   process.stdout.write(`[e2e] ${message}\n`);
@@ -51,17 +57,10 @@ export interface LaunchedApp {
   readonly window: Page;
 }
 
-function isRendererWindow(url: string, webPort: number): boolean {
-  if (!url || url === "about:blank" || url.startsWith("devtools://")) {
-    return false;
-  }
-
-  return url.includes(`127.0.0.1:${webPort}`) || url.includes(`localhost:${webPort}`);
-}
-
 async function resolveRendererWindow(
   electronApp: ElectronApplication,
-  webPort: number,
+  rendererPort: number,
+  rendererPortLabel: string,
   timeoutMs: number,
 ): Promise<Page> {
   const deadline = Date.now() + timeoutMs;
@@ -76,7 +75,7 @@ async function resolveRendererWindow(
       const windowUrls = electronApp.windows().map((page) => page.url());
       fail(
         new Error(
-          `Electron exited before the renderer window opened (expected Vite on port ${webPort}). Last windows: ${windowUrls.join(", ") || "(none)"}`,
+          `Electron exited before the renderer window opened (expected ${rendererPortLabel} on port ${rendererPort}). Last windows: ${windowUrls.join(", ") || "(none)"}`,
         ),
       );
     };
@@ -87,7 +86,7 @@ async function resolveRendererWindow(
       while (Date.now() < deadline) {
         for (const page of electronApp.windows()) {
           const url = page.url();
-          if (isRendererWindow(url, webPort)) {
+          if (isRendererWindow(url, rendererPort)) {
             electronApp.off("close", onClose);
             resolve(page);
             return;
@@ -100,7 +99,7 @@ async function resolveRendererWindow(
       const windowUrls = electronApp.windows().map((page) => page.url());
       fail(
         new Error(
-          `Electron renderer window not found within ${timeoutMs}ms (expected Vite on port ${webPort}). Open windows: ${windowUrls.join(", ") || "(none)"}`,
+          `Electron renderer window not found within ${timeoutMs}ms (expected ${rendererPortLabel} on port ${rendererPort}). Open windows: ${windowUrls.join(", ") || "(none)"}`,
         ),
       );
     };
@@ -123,18 +122,16 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
     });
   }
 
-  const env: NodeJS.ProcessEnv = {
-    ...context.devEnv,
-    KATACODE_PORT: String(context.serverPort),
-    PORT: String(context.webPort),
-    VITE_DEV_SERVER_URL: `http://127.0.0.1:${context.webPort}`,
-    VITE_HTTP_URL: `http://127.0.0.1:${context.serverPort}`,
-    VITE_WS_URL: `ws://127.0.0.1:${context.serverPort}`,
-    ELECTRON_ENABLE_LOGGING: "1",
-  };
-  delete env.ELECTRON_RUN_AS_NODE;
+  const env = buildElectronLaunchEnv(context);
+  const rendererPort = resolveRendererPort(context);
+  const rendererPortLabel = resolveRendererPortLabel(context);
 
-  const launchArgs = [`--katacode-dev-root=${repoDesktopDir}`, "dist-electron/main.cjs"];
+  const remoteDebuggingPort = context.devEnv.KATACODE_DESKTOP_REMOTE_DEBUGGING_PORT?.trim();
+  const launchArgs = [
+    ...(remoteDebuggingPort ? [`--remote-debugging-port=${remoteDebuggingPort}`] : []),
+    `--katacode-dev-root=${repoDesktopDir}`,
+    "dist-electron/main.cjs",
+  ];
   logLaunchPhase("Launching Electron...");
 
   const devLaunch =
@@ -163,7 +160,13 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
   const window = await withTimeout(
     "Electron renderer window",
     E2E_TIMEOUTS.electronWindowMs,
-    () => resolveRendererWindow(electronApp, context.webPort, E2E_TIMEOUTS.electronWindowMs),
+    () =>
+      resolveRendererWindow(
+        electronApp,
+        rendererPort,
+        rendererPortLabel,
+        E2E_TIMEOUTS.electronWindowMs,
+      ),
     `artifactRoot=${context.artifactRoot}`,
   );
   logLaunchPhase("Electron renderer window is ready.");

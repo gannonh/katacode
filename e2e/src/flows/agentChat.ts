@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 
 import { E2E_TIMEOUTS } from "../config/timeouts.ts";
 import { formatMissingPrerequisiteError, readAgentProviderPrerequisites } from "../harness/env.ts";
+import { dismissBlockingToasts } from "./navigation.ts";
 
 export interface DeterministicAgentTurn {
   readonly provider: string;
@@ -23,6 +24,43 @@ export function assertAgentPrerequisites(phase: string): DeterministicAgentTurn 
   const prompt = `Reply to this message with exactly: ${expected}`;
 
   return { provider, model, prompt, expected };
+}
+
+function modelSlugToPickerPattern(modelSlug: string): RegExp {
+  const pattern = modelSlug
+    .split("-")
+    .map((segment) => segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[-.\\s]");
+  return new RegExp(pattern, "i");
+}
+
+function modelSlugToSearchQuery(modelSlug: string): string {
+  return modelSlug.replace(/-/g, " ");
+}
+
+export async function selectComposerModel(page: Page, modelSlug: string): Promise<void> {
+  await dismissBlockingToasts(page);
+  await page
+    .getByTestId("composer-editor")
+    .waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+
+  const modelPicker = page.locator('[data-chat-provider-model-picker="true"]');
+  await modelPicker.click();
+
+  const modelList = page.locator(".model-picker-list");
+  await modelList.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+
+  await page.getByPlaceholder("Search models...").fill(modelSlugToSearchQuery(modelSlug));
+
+  const modelOption = page
+    .getByRole("option", { name: modelSlugToPickerPattern(modelSlug) })
+    .first();
+  await modelOption.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+  await modelOption.click();
+
+  await modelList
+    .waitFor({ state: "hidden", timeout: E2E_TIMEOUTS.assertionMs })
+    .catch(() => undefined);
 }
 
 export async function sendAgentInstruction(page: Page, text: string): Promise<void> {

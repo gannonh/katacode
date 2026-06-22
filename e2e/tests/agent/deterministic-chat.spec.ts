@@ -4,6 +4,7 @@ import { E2E_TIMEOUTS } from "../../src/config/timeouts.ts";
 import {
   assertAgentPrerequisites,
   expectAssistantReply,
+  selectComposerModel,
   sendAgentInstruction,
 } from "../../src/assertions/agentAssertions.ts";
 import { expectSignedInClerkState, signInWithClerkGoogleTestUser } from "../../src/flows/auth.ts";
@@ -24,7 +25,7 @@ test.describe(`Deterministic agent chat ${E2E_TAGS.agent}`, () => {
     const seededPath = await createSeededWorkspace(runContext, "agent-chat-basic");
     await writeRunManifest(runContext);
     await createOrOpenProject(appWindow, seededPath);
-
+    await selectComposerModel(appWindow, turn.model);
     await sendAgentInstruction(appWindow, turn.prompt);
     await expectAssistantReply(appWindow, turn.expected, turn);
   });

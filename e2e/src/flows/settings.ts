@@ -1,9 +1,12 @@
 import { expect, type Page } from "@playwright/test";
 
+import { dismissBlockingToasts } from "./navigation.ts";
+
 export type ThemePreference = "system" | "light" | "dark";
 
 export async function setTheme(page: Page, theme: ThemePreference): Promise<void> {
-  const trigger = page.getByRole("button", { name: "Theme preference" });
+  await dismissBlockingToasts(page);
+  const trigger = page.getByLabel("Theme preference");
   await trigger.click();
   const label = theme === "system" ? "System" : theme === "light" ? "Light" : "Dark";
   await page.getByRole("option", { name: label }).click();

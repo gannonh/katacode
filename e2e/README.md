@@ -46,6 +46,8 @@ Canonical `KATACODE_CLERK_PUBLISHABLE_KEY` / `VITE_CLERK_PUBLISHABLE_KEY` are al
 | -------------------------- | --------------------------------------------------------------------------------- |
 | `KATACODE_E2E_RELEASE_APP` | Absolute path to a built `.app` bundle, for example `/Applications/Kata Code.app` |
 
+Release launches use isolated `KATACODE_HOME` and `KATACODE_PORT` only. The harness strips dev-only env such as `VITE_DEV_SERVER_URL` so the packaged app loads from its embedded server instead of a non-running Vite dev server.
+
 ### Runner controls
 
 | Variable               | Default | Purpose                                                                                                                   |
@@ -62,18 +64,20 @@ From the repo root:
 # List tests
 vp run e2e --list
 
-# Unattended local run (default Playwright runner mode)
+# Dev target (desktop-dev)
 vp run e2e --project desktop-dev --grep @smoke
 
-# Headed debugging
-vp run e2e:headed --grep @smoke
+# Dev target with Playwright --headed (inspector / PWDEBUG workflows)
+vp run e2e:headed --project desktop-dev --grep @smoke
 
 # Interactive Playwright UI
 vp run e2e:ui --grep @settings
 
-# Release app validation
+# Release target (desktop-release) — visible packaged app window on macOS
 KATACODE_E2E_RELEASE_APP="/path/to/Kata Code.app" vp run e2e:release --grep @smoke
 ```
+
+On macOS, Playwright Electron launches always open a visible app window. **`e2e:release` is headed** — you do not need `e2e:headed` for release validation. Use `e2e:headed` on `desktop-dev` when you want Playwright's explicit headed flag (for example with `PWDEBUG=1`).
 
 ### Feature tags
 

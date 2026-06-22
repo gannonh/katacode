@@ -15,6 +15,13 @@ Setup, user workflows, providers, cloud, and integrations.
 | [Quick start](/getting-started/quick-start.md)                 | Dev commands, ports, `KATACODE_*` |
 | [Codex prerequisites](/getting-started/codex-prerequisites.md) | Codex CLI setup                   |
 
+## Testing
+
+| Document                                                                    | Summary                                                                    |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| [e2e/README](../../e2e/README.md)                                           | Local Playwright Electron E2E commands, env vars, and artifact paths       |
+| [E2E foundation design](/specs/2026-06-21-e2e-testing-foundation-design.md) | Spec, acceptance criteria, implementation notes, and verification evidence |
+
 ## User
 
 | Document                                | Summary                  |
