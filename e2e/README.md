@@ -130,7 +130,7 @@ KATACODE_E2E_RELEASE_APP="/path/to/Kata Code.app" vp run e2e:release --grep @set
 
 ## Authoring new tests
 
-See `.agents/skills/e2e-test-author/SKILL.md` for agent-oriented guidance.
+See `.agents/skills/kata-code-e2e-testing/SKILL.md` for agent-oriented guidance when that local skill is installed.
 
 ## Adopting this foundation in other repos
 

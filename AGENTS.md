@@ -22,7 +22,7 @@ Prove each acceptance criterion for user-facing features before marking work com
    For Electron flows, use `playwright-cli attach --cdp=chrome` against the dev app.
 
 2. **Author E2E tests:** After manual validation, encode each proven criterion as a Playwright
-   test under `e2e/tests/`. Follow the `e2e-test-author` skill — compose from `e2e/src/harness/`
+   test under `e2e/tests/`. Follow the local `kata-code-e2e-testing` skill when installed — compose from `e2e/src/harness/`
    and `e2e/src/flows/`, tag with the relevant feature tag, and verify with:
 
    ```bash
