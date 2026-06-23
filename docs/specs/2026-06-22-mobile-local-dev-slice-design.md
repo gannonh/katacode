@@ -4,7 +4,8 @@ title: "Mobile local dev slice — iOS Simulator end-to-end"
 description: "Bring up the Kata Code mobile app on the iOS Simulator and prove a full local end-to-end loop: build the dev client, pair to a local katacode server over loopback, start a thread from the phone, and get a real agent response. Distribution, physical device, QR scan, and cloud Connect are out of scope."
 tags: [mobile, ios, dev-build, pairing, end-to-end, slice]
 timestamp: 2026-06-22T00:00:00Z
-status: Draft
+status: Approved
+approved_at: 2026-06-22T00:00:00Z
 ---
 
 # Mobile local dev slice — iOS Simulator end-to-end
