@@ -21,6 +21,20 @@ describe("development app variant assets", () => {
 
     expect(iconBytes).toBe(brandBytes);
     expect(statSync(splashPath).size).toBe(brandBytes);
+    expect(statSync(splashPath).size).toBeLessThan(500_000);
+  });
+
+  it("does not keep legacy upstream T3 splash or icon composer assets", () => {
+    const legacyAssetPaths = [
+      "assets/icon-composer-dev.icon/Assets/T3.svg",
+      "assets/icon-composer-dev.icon/Assets/logo-mark.svg",
+      "assets/icon-composer-prod.icon/Assets/T3.svg",
+      "assets/icon-composer-prod.icon/Assets/logo-mark.svg",
+    ];
+
+    for (const relativePath of legacyAssetPaths) {
+      expect(existsSync(resolve(mobileRoot, relativePath))).toBe(false);
+    }
   });
 
   it("uses the desktop Liquid Glass icon bundle for the iOS home screen", () => {
