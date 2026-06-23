@@ -6,34 +6,21 @@
     {
       "layers": [
         {
-          "hidden": false,
-          "image-name": "gpt-image-1.5-jd70szmrd03p36z4zv48ycsbax81egvr.png",
-          "name": "gpt-image-1.5-jd70szmrd03p36z4zv48ycsbax81egvr",
+          "image-name": "kanji.png",
+          "name": "kanji",
           "position": {
-            "scale": 1.1,
+            "scale": 0.64,
             "translation-in-points": [0, 0]
           }
-        },
-        {
-          "image-name": "logo-mark.svg",
-          "name": "T3",
-          "position": {
-            "scale": 10,
-            "translation-in-points": [0, 0]
-          }
-        },
-        {
-          "hidden": true,
-          "image-name": "Texturelabs_Paper_381XL.jpg",
-          "name": "Texturelabs_Paper_381XL"
         }
       ],
       "shadow": {
         "kind": "neutral",
         "opacity": 0.5
       },
+      "specular": false,
       "translucency": {
-        "enabled": true,
+        "enabled": false,
         "value": 0.5
       }
     }

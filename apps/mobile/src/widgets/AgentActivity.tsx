@@ -5,6 +5,7 @@ import {
   type LiveActivityComponent,
   type LiveActivityLayout,
 } from "expo-widgets";
+import { PRODUCT_ABBREVIATION } from "@kata-sh/code-shared/branding";
 
 type LiveActivityEnvironment = Parameters<LiveActivityComponent<AgentActivityProps>>[1];
 
@@ -201,7 +202,9 @@ export function AgentActivity(
       </VStack>
     ),
     compactLeading: (
-      <Text modifiers={[font({ weight: "bold", size: 11 }), foregroundStyle(tint)]}>T3</Text>
+      <Text modifiers={[font({ weight: "bold", size: 11 }), foregroundStyle(tint)]}>
+        {PRODUCT_ABBREVIATION}
+      </Text>
     ),
     compactTrailing: (
       <Text modifiers={[font({ weight: "semibold", size: 11 }), foregroundStyle(tint)]}>
@@ -209,7 +212,9 @@ export function AgentActivity(
       </Text>
     ),
     minimal: (
-      <Text modifiers={[font({ weight: "bold", size: 11 }), foregroundStyle(tint)]}>T3</Text>
+      <Text modifiers={[font({ weight: "bold", size: 11 }), foregroundStyle(tint)]}>
+        {PRODUCT_ABBREVIATION}
+      </Text>
     ),
     expandedLeading: (
       <VStack modifiers={[padding({ all: 8 })]}>

@@ -6,13 +6,12 @@ import {
   useFonts,
 } from "@expo-google-fonts/dm-sans";
 import Stack from "expo-router/stack";
+import { useEffect } from "react";
 import { StatusBar, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useResolveClassNames } from "uniwind";
-
-import { LoadingScreen } from "../components/LoadingScreen";
 
 import {
   useRemoteEnvironmentBootstrap,
@@ -22,9 +21,9 @@ import { RegistryContext } from "@effect/atom-react";
 import { appAtomRegistry } from "../state/atom-registry";
 import { CloudAuthProvider } from "../features/cloud/CloudAuthProvider";
 import { useAgentNotificationNavigation } from "../features/agent-awareness/notificationNavigation";
+import { hideSplashScreenWhenReady } from "../lib/splashScreen";
 
 function AppNavigator() {
-  const { isLoadingSavedConnection } = useRemoteEnvironmentState();
   const colorScheme = useColorScheme();
   const statusBarBg = colorScheme === "dark" ? "#0a0a0a" : "#f2f2f7";
   const sheetStyle = useResolveClassNames("bg-sheet");
@@ -52,10 +51,6 @@ function AppNavigator() {
     ...connectionSheetScreenOptions,
     sheetAllowedDetents: [0.7],
   };
-
-  if (isLoadingSavedConnection) {
-    return <LoadingScreen message="Loading remote workspace…" />;
-  }
 
   return (
     <>
@@ -91,6 +86,23 @@ function AppNavigator() {
   );
 }
 
+function RootLayoutShell(props: { readonly fontsLoaded: boolean }) {
+  const { isLoadingSavedConnection } = useRemoteEnvironmentState();
+  const isAppReady = props.fontsLoaded && !isLoadingSavedConnection;
+
+  useEffect(() => {
+    if (isAppReady) {
+      void hideSplashScreenWhenReady();
+    }
+  }, [isAppReady]);
+
+  if (!isAppReady) {
+    return null;
+  }
+
+  return <AppNavigator />;
+}
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     DMSans_400Regular,
@@ -105,11 +117,7 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider statusBarTranslucent>
             <SafeAreaProvider>
-              {fontsLoaded ? (
-                <AppNavigator />
-              ) : (
-                <LoadingScreen message="Loading remote workspace…" />
-              )}
+              <RootLayoutShell fontsLoaded={fontsLoaded} />
             </SafeAreaProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>

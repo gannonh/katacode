@@ -6,10 +6,10 @@
     {
       "layers": [
         {
-          "image-name": "logo-mark.svg",
-          "name": "Kata Code",
+          "image-name": "kanji.png",
+          "name": "kanji",
           "position": {
-            "scale": 1,
+            "scale": 0.64,
             "translation-in-points": [0, 0]
           }
         }
@@ -18,8 +18,9 @@
         "kind": "neutral",
         "opacity": 0.5
       },
+      "specular": false,
       "translucency": {
-        "enabled": true,
+        "enabled": false,
         "value": 0.5
       }
     }

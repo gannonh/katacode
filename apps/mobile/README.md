@@ -34,6 +34,12 @@ Build and run the local iOS dev client:
 vp run ios:dev
 ```
 
+The development variant uses synced `assets/icon.png` and `splash-icon.png` rasters for splash and the dev menu. The iOS home screen uses `icon-composer-prod.icon` (desktop Liquid Glass `kanji.png` at 0.64 scale). Re-run `vp run ios:dev` after icon changes.
+
+The Expo dev tools floating button is disabled in development builds (`toolsButton: false`) so it does not cover the app settings control. Open the dev menu with **⌘D** in Simulator (or shake the device) when you need it.
+
+See [Mobile local dev (iOS Simulator)](../../docs/guides/mobile-local-dev-ios-simulator.md) for the full loopback pairing runbook.
+
 Build and run the local iOS preview app:
 
 ```bash

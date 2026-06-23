@@ -1,5 +1,8 @@
 export const APP_BASE_NAME = "Kata Code" as const;
 
+/** Compact product abbreviation for space-constrained surfaces (live activity, status bar). */
+export const PRODUCT_ABBREVIATION = "KC" as const;
+
 export const CLOUD_PRODUCT_NAME = "Kata Code Connect" as const;
 
 /** Pre-rebrand compact display name kept for Application Support folder migration. */

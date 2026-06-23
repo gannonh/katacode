@@ -1,0 +1,57 @@
+const { withXcodeProject } = require("expo/config-plugins");
+
+const WIDGET_TARGET_NAME = "ExpoWidgetsTarget";
+
+function normalizeBuildSetting(value) {
+  return String(value ?? "").replaceAll('"', "");
+}
+
+module.exports = function withIosWidgetTargetBuildSettings(config) {
+  return withXcodeProject(config, (nextConfig) => {
+    const marketingVersion = nextConfig.version ?? "0.1.0";
+    const deploymentTarget = nextConfig.ios?.deploymentTarget ?? "18.0";
+    const mainBundleId = normalizeBuildSetting(nextConfig.ios?.bundleIdentifier);
+    if (mainBundleId.length === 0) {
+      console.warn(
+        "[withIosWidgetTargetBuildSettings] ios.bundleIdentifier is unset; skipping main-app MARKETING_VERSION sync (widget sync still applies).",
+      );
+    }
+    const configurations = nextConfig.modResults.pbxXCBuildConfigurationSection();
+
+    let widgetTargetFound = false;
+    for (const configuration of Object.values(configurations)) {
+      const buildSettings = configuration?.buildSettings;
+      if (!buildSettings) {
+        continue;
+      }
+
+      const infoPlist = normalizeBuildSetting(buildSettings.INFOPLIST_FILE);
+
+      if (infoPlist === `${WIDGET_TARGET_NAME}/Info.plist`) {
+        widgetTargetFound = true;
+        buildSettings.MARKETING_VERSION = marketingVersion;
+        buildSettings.IPHONEOS_DEPLOYMENT_TARGET = deploymentTarget;
+        continue;
+      }
+
+      if (!infoPlist.endsWith("/Info.plist") || infoPlist.includes("Pods")) {
+        continue;
+      }
+
+      const productBundleIdentifier = normalizeBuildSetting(
+        buildSettings.PRODUCT_BUNDLE_IDENTIFIER,
+      );
+      if (mainBundleId.length > 0 && productBundleIdentifier === mainBundleId) {
+        buildSettings.MARKETING_VERSION = marketingVersion;
+      }
+    }
+
+    if (!widgetTargetFound) {
+      console.warn(
+        `[withIosWidgetTargetBuildSettings] No "${WIDGET_TARGET_NAME}" target found; MARKETING_VERSION and IPHONEOS_DEPLOYMENT_TARGET were not applied to the widget.`,
+      );
+    }
+
+    return nextConfig;
+  });
+};
