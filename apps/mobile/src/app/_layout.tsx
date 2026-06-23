@@ -24,7 +24,6 @@ import { useAgentNotificationNavigation } from "../features/agent-awareness/noti
 import { hideSplashScreenWhenReady } from "../lib/splashScreen";
 
 function AppNavigator() {
-  const { isLoadingSavedConnection } = useRemoteEnvironmentState();
   const colorScheme = useColorScheme();
   const statusBarBg = colorScheme === "dark" ? "#0a0a0a" : "#f2f2f7";
   const sheetStyle = useResolveClassNames("bg-sheet");
@@ -52,10 +51,6 @@ function AppNavigator() {
     ...connectionSheetScreenOptions,
     sheetAllowedDetents: [0.7],
   };
-
-  if (isLoadingSavedConnection) {
-    return null;
-  }
 
   return (
     <>

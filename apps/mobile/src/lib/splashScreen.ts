@@ -12,5 +12,9 @@ export async function hideSplashScreenWhenReady(): Promise<void> {
   }
 
   splashScreenReady = true;
-  await SplashScreen.hideAsync();
+  try {
+    await SplashScreen.hideAsync();
+  } catch {
+    splashScreenReady = false;
+  }
 }

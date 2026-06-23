@@ -18,6 +18,7 @@ module.exports = function withIosWidgetTargetBuildSettings(config) {
     }
     const configurations = nextConfig.modResults.pbxXCBuildConfigurationSection();
 
+    let widgetTargetFound = false;
     for (const configuration of Object.values(configurations)) {
       const buildSettings = configuration?.buildSettings;
       if (!buildSettings) {
@@ -27,6 +28,7 @@ module.exports = function withIosWidgetTargetBuildSettings(config) {
       const infoPlist = normalizeBuildSetting(buildSettings.INFOPLIST_FILE);
 
       if (infoPlist === `${WIDGET_TARGET_NAME}/Info.plist`) {
+        widgetTargetFound = true;
         buildSettings.MARKETING_VERSION = marketingVersion;
         buildSettings.IPHONEOS_DEPLOYMENT_TARGET = deploymentTarget;
         continue;
@@ -42,6 +44,12 @@ module.exports = function withIosWidgetTargetBuildSettings(config) {
       if (mainBundleId.length > 0 && productBundleIdentifier === mainBundleId) {
         buildSettings.MARKETING_VERSION = marketingVersion;
       }
+    }
+
+    if (!widgetTargetFound) {
+      console.warn(
+        `[withIosWidgetTargetBuildSettings] No "${WIDGET_TARGET_NAME}" target found; MARKETING_VERSION and IPHONEOS_DEPLOYMENT_TARGET were not applied to the widget.`,
+      );
     }
 
     return nextConfig;
