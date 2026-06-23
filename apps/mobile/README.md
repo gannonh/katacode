@@ -34,7 +34,7 @@ Build and run the local iOS dev client:
 vp run ios:dev
 ```
 
-The development variant uses the Kata `icon-composer-prod.icon` bundle on iOS and synced `assets/icon.png` / `splash-icon.png` rasters (from `pnpm run generate:brand-rasters`). Re-run `vp run ios:dev` after icon or splash changes.
+The development variant uses synced `assets/icon.png` and `splash-icon.png` rasters for splash and the dev menu. The iOS home screen uses `icon-composer-prod.icon` (desktop Liquid Glass `kanji.png` at 0.64 scale). Re-run `vp run ios:dev` after icon changes.
 
 The Expo dev tools floating button is disabled in development builds (`toolsButton: false`) so it does not cover the app settings control. Open the dev menu with **⌘D** in Simulator (or shake the device) when you need it.
 

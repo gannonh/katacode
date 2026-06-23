@@ -14,7 +14,6 @@ const VARIANT_CONFIG: Record<
   {
     readonly appName: string;
     readonly scheme: string;
-    readonly iosIcon: string;
     readonly iosBundleIdentifier: string;
     readonly androidPackage: string;
   }
@@ -22,21 +21,18 @@ const VARIANT_CONFIG: Record<
   development: {
     appName: "Kata Code Dev",
     scheme: "katacode-dev",
-    iosIcon: "./assets/icon-composer-prod.icon",
     iosBundleIdentifier: "com.katacode.dev",
     androidPackage: "com.katacode.dev",
   },
   preview: {
     appName: "Kata Code Preview",
     scheme: "katacode-preview",
-    iosIcon: "./assets/icon-composer-prod.icon",
     iosBundleIdentifier: "com.katacode.preview",
     androidPackage: "com.katacode.preview",
   },
   production: {
     appName: "Kata Code",
     scheme: "katacode",
-    iosIcon: "./assets/icon-composer-prod.icon",
     iosBundleIdentifier: "com.katacode.app",
     androidPackage: "com.katacode.app",
   },
@@ -55,6 +51,7 @@ function resolveAppVariant(value: string | undefined): AppVariant {
 
 const variant = VARIANT_CONFIG[APP_VARIANT];
 const easProjectId = repoEnv.KATACODE_EAS_PROJECT_ID?.trim() || undefined;
+const iosHomeScreenIcon = "./assets/icon-composer-prod.icon";
 
 const devClientPlugin: [string, Record<string, unknown>] = [
   "expo-dev-client",
@@ -89,7 +86,7 @@ const config: ExpoConfig = {
         enabled: false,
       },
   ios: {
-    icon: variant.iosIcon,
+    icon: iosHomeScreenIcon,
     supportsTablet: true,
     bundleIdentifier: variant.iosBundleIdentifier,
     infoPlist: {

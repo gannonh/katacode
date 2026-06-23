@@ -23,14 +23,20 @@ describe("development app variant assets", () => {
     expect(statSync(splashPath).size).toBe(brandBytes);
   });
 
-  it("keeps the iOS composer icon bundle aligned with Kata logo-mark artwork", () => {
-    const logoMarkLayerPath = resolve(
-      mobileRoot,
-      "assets/icon-composer-prod.icon/Assets/logo-mark-layer.svg",
+  it("uses the desktop Liquid Glass icon bundle for the iOS home screen", () => {
+    const appConfigSource = readFileSync(resolve(mobileRoot, "app.config.ts"), "utf8");
+    const kanjiPath = resolve(mobileRoot, "assets/icon-composer-prod.icon/Assets/kanji.png");
+    const desktopKanjiPath = resolve(
+      repoRoot,
+      "apps/desktop/resources/liquid-glass/AppIcon.icon/Assets/kanji.png",
     );
     const iconJsonPath = resolve(mobileRoot, "assets/icon-composer-prod.icon/icon.json");
 
-    expect(existsSync(logoMarkLayerPath)).toBe(true);
-    expect(readFileSync(iconJsonPath, "utf8")).toContain("logo-mark-layer.svg");
+    expect(appConfigSource).toContain("icon: iosHomeScreenIcon");
+    expect(appConfigSource).toContain('"./assets/icon-composer-prod.icon"');
+    expect(existsSync(kanjiPath)).toBe(true);
+    expect(statSync(kanjiPath).size).toBe(statSync(desktopKanjiPath).size);
+    expect(readFileSync(iconJsonPath, "utf8")).toContain('"image-name": "kanji.png"');
+    expect(readFileSync(iconJsonPath, "utf8")).toContain('"scale": 0.64');
   });
 });

@@ -78,7 +78,7 @@ First `ios:dev` runs `expo prebuild --clean --platform ios` and generates `ios/`
 **Development variant notes**
 
 - App name: **Kata Code Dev** (`com.katacode.dev`).
-- Icons and splash use Kata brand rasters synced from `apps/desktop/resources/source.png` (`pnpm run generate:brand-rasters`). iOS uses the `icon-composer-prod.icon` Liquid Glass bundle.
+- Icons and splash use Kata brand rasters synced from `apps/desktop/resources/source.png` (`pnpm run generate:brand-rasters`). Splash and dev menu use `assets/icon.png`; the iOS home screen uses `icon-composer-prod.icon` (desktop Liquid Glass `kanji.png`).
 - The Expo dev tools floating button is disabled (`toolsButton: false`) so it does not cover the app settings icon. Open the dev menu with **⌘D** in Simulator when needed.
 - If the build targets an outdated simulator runtime, pass an explicit device id:
 

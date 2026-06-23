@@ -9,7 +9,10 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const desktopResourcesDir = join(repoRoot, "apps/desktop/resources");
 const sourcePng = join(desktopResourcesDir, "source.png");
 const sourceSvg = join(desktopResourcesDir, "icon.svg");
-const iconComposerMarkLayerSvg = join(desktopResourcesDir, "logo-mark-layer.svg");
+const desktopLiquidGlassKanji = join(
+  desktopResourcesDir,
+  "liquid-glass/AppIcon.icon/Assets/kanji.png",
+);
 const prodDir = join(repoRoot, "assets/prod");
 const webPublicDir = join(repoRoot, "apps/web/public");
 const mobileAssetsDir = join(repoRoot, "apps/mobile/assets");
@@ -85,10 +88,7 @@ sips(
 );
 sips("-z", "180", "180", sourcePng, "--out", join(mobileAssetsDir, "favicon.png"));
 for (const iconBundle of ["icon-composer-prod.icon", "icon-composer-dev.icon"]) {
-  copyFileSync(
-    iconComposerMarkLayerSvg,
-    join(mobileAssetsDir, iconBundle, "Assets/logo-mark-layer.svg"),
-  );
+  copyFileSync(desktopLiquidGlassKanji, join(mobileAssetsDir, iconBundle, "Assets/kanji.png"));
 }
 
 execFileSync(join(desktopResourcesDir, "generate-icons.sh"), [sourcePng], {
