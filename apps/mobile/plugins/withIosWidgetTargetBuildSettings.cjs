@@ -11,6 +11,11 @@ module.exports = function withIosWidgetTargetBuildSettings(config) {
     const marketingVersion = nextConfig.version ?? "0.1.0";
     const deploymentTarget = nextConfig.ios?.deploymentTarget ?? "18.0";
     const mainBundleId = normalizeBuildSetting(nextConfig.ios?.bundleIdentifier);
+    if (mainBundleId.length === 0) {
+      console.warn(
+        "[withIosWidgetTargetBuildSettings] ios.bundleIdentifier is unset; skipping main-app MARKETING_VERSION sync (widget sync still applies).",
+      );
+    }
     const configurations = nextConfig.modResults.pbxXCBuildConfigurationSection();
 
     for (const configuration of Object.values(configurations)) {
