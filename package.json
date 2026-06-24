@@ -41,7 +41,8 @@
     "e2e:headed": "playwright test --config e2e/playwright.config.ts --project desktop-dev --headed",
     "e2e:ui": "playwright test --config e2e/playwright.config.ts --project desktop-dev --ui",
     "e2e:release": "playwright test --config e2e/playwright.config.ts --project desktop-release",
-    "check:okf": "node scripts/check-okf.mjs"
+    "check:okf": "node scripts/check-okf.mjs",
+    "worktree:setup": "bash scripts/worktree-setup.sh"
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx": "7.28.6",
