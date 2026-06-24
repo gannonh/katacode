@@ -4,14 +4,15 @@ title: "Mobile E2E testing foundation — iOS Simulator (Maestro)"
 description: "Design for a local-only Maestro + TS-orchestrator E2E foundation that automates the proven Kata Code mobile loop (launch, pair, sign-in, agent response) on the iOS Simulator."
 tags: [testing, e2e, mobile, ios, simulator, maestro]
 timestamp: 2026-06-24T00:00:00Z
-status: Draft
+status: Approved
+approved_at: 2026-06-24T00:00:00Z
 ---
 
 # Mobile E2E testing foundation — iOS Simulator (Maestro)
 
 ## Status
 
-Draft
+Approved
 
 ## Goal
 
