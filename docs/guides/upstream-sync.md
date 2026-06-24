@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: "Upstream sync"
-description: "Selective vendor-pull runbook for Kata Code: scan upstream, analyze commits for effort and risk, port individual changes as fork-original commits. Pairs with the upstream-sync skill and its helper scripts."
+description: "Selective vendor-pull runbook for Kata Code: scan upstream, analyze commits for effort and risk, port individual changes as fork-original commits. Mirrors the upstream-assess skill, which bundles the helper scripts."
 tags: [fork, git, upstream, guide, runbook]
 timestamp: 2026-06-21T00:00:00Z
 ---
@@ -10,7 +10,7 @@ timestamp: 2026-06-21T00:00:00Z
 
 Runbook for absorbing changes from [pingdotgg/t3code](https://github.com/pingdotgg/t3code) into [gannonh/kata-code](https://github.com/gannonh/kata-code).
 
-**Policy:** [ADR 0004 — Selective vendor-pull](/adrs/0004-selective-vendor-pull.md). **Fork mechanics & divergence log:** [FORK.md](../../FORK.md). **Agent-facing process:** [.agents/skills/upstream-sync/SKILL.md](../../.agents/skills/upstream-sync/SKILL.md).
+**Policy:** [ADR 0004 — Selective vendor-pull](/adrs/0004-selective-vendor-pull.md). **Fork mechanics & divergence log:** [FORK.md](../../FORK.md). **Agent-facing process (canonical):** [.agents/skills/upstream-assess/SKILL.md](../../.agents/skills/upstream-assess/SKILL.md). This guide mirrors that skill; the skill is the source of truth and bundles the helper scripts.
 
 Kata Code does **not** aim for parity with `upstream/main`. Absorb upstream changes when there is a concrete reason. Each change is ported as a fork-original commit with branding already in place.
 
@@ -28,7 +28,7 @@ See [the strategy analysis](/specs/2026-06-21-upstream-sync-strategy-analysis.md
 
 - `origin` → `gannonh/kata-code`, `upstream` → `https://github.com/pingdotgg/t3code.git` (read-only; never push)
 - Clean working tree on `main`
-- The **Last upstream scan** block in [FORK.md](../../FORK.md) records the baseline SHA. The classifier reads it from there.
+- The **Last upstream scan** block in [FORK.md](../../FORK.md) records the baseline SHA. The scanner reads it from there.
 
 ## Step 0 — Scan upstream
 
@@ -36,10 +36,10 @@ See what's new since the last scan.
 
 ```bash
 git fetch upstream --tags
-node .agents/skills/upstream-sync/scripts/classify-upstream.ts --since-scan --out sync-plan.md
+node .agents/skills/upstream-assess/scripts/scan-upstream.ts > /tmp/upstream-scan.md
 ```
 
-The script reads the last-scanned SHA from `FORK.md` (or `--base <sha>`, else `git merge-base main upstream/main`), lists every non-merge upstream commit since that SHA, applies the rules in [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts), and writes `sync-plan.md` grouped by area and verdict. `sync-plan.md` is a gitignored scratch artifact, regenerated on each run.
+`scan-upstream.ts` reads the last-scanned tip from `FORK.md` (or `--base <sha>`, else `git merge-base main upstream/main`), lists every non-merge upstream commit since that SHA, splits the `[codex]` Effect migration out as a Watch cluster, groups the rest by area, and writes a markdown triage report to stdout. Redirect to a scratch path (`/tmp/upstream-scan.md`); it is regenerated on each run.
 
 The baseline SHA represents the last-scanned upstream tip, not the last-merged commit. Advance it in Step 3 after every scan.
 
@@ -48,10 +48,11 @@ The baseline SHA represents the last-scanned upstream tip, not the last-merged c
 Group related commits into clusters. For each cluster, assess:
 
 - **What it does** — functional summary.
-- **Fork intersection** — which fork-modified files it touches. Run `conflict-zones.ts` for intersection analysis:
+- **Fork intersection** — which fork-modified files it touches. Run the intersection script for per-commit overlap:
 
 ```bash
-node .agents/skills/upstream-sync/scripts/conflict-zones.ts --commits <sha1>,<sha2> --out conflict-zones.md
+node .agents/skills/upstream-assess/scripts/intersection.ts <sha>
+node .agents/skills/upstream-assess/scripts/intersection.ts <base>..<tip>
 ```
 
 - **Effort** — Trivial (additive, non-divergent files) / Moderate (touches fork-modified files) / Significant (structural change across packages).
@@ -80,10 +81,9 @@ git diff <first-parent>..<last-commit>    # cluster
 
 Apply the change to the fork codebase with fork branding already in place. This is a re-implementation, not a merge.
 
-After applying:
+After applying, verify there is no `@t3tools/*`, `T3CODE_*`, `t3code://`, or `app.t3.codes` regression on product surfaces and run the gates:
 
 ```bash
-node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --check   # gate: exit 1 on regressions
 vp check
 vp run typecheck
 ```
@@ -166,5 +166,4 @@ Before a large fork-only feature, ask: _can this live in a new module upstream d
 - [Strategy analysis](/specs/2026-06-21-upstream-sync-strategy-analysis.md)
 - [Fork setup spec](/specs/fork-setup.md)
 - [FORK.md](../../FORK.md)
-- [upstream-sync skill](../../.agents/skills/upstream-sync/SKILL.md)
-- Classifier rules: [`scripts/rules.ts`](../../.agents/skills/upstream-sync/scripts/rules.ts)
+- [upstream-assess skill](../../.agents/skills/upstream-assess/SKILL.md) (canonical runbook + bundled scripts)

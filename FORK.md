@@ -286,7 +286,6 @@ git fetch upstream --tags
 git checkout -b port-upstream/<description>
 git show <upstream-sha>            # or: git diff <base>..<tip> for a cluster
 # apply the change with fork branding already in place
-node .agents/skills/upstream-sync/scripts/rebrand-fork.ts --check
 vp check && vp run typecheck
 ```
 
@@ -294,7 +293,7 @@ Reference upstream SHAs in the commit body. If a port bumps a dep, sync the vend
 
 ### High-divergence zones
 
-Where a ported upstream change is most likely to intersect fork-modified files (run `conflict-zones.ts` for per-commit intersection):
+Where a ported upstream change is most likely to intersect fork-modified files (run `node .agents/skills/upstream-assess/scripts/intersection.ts <sha>` for per-commit intersection):
 
 | Zone                         | Why                                           |
 | ---------------------------- | --------------------------------------------- |
@@ -350,7 +349,7 @@ Do not edit `.repos/` except via sync tooling (see `AGENTS.md`).
 
 ### Post-port checklist (per vendor-pull PR)
 
-- [ ] `rebrand-fork.ts --check` passes (no `@t3tools` / `T3CODE_` regression)
+- [ ] No `@t3tools` / `T3CODE_` / `t3code://` / `app.t3.codes` regression on product surfaces (verify on the ported diff)
 - [ ] `vp check` and `vp run typecheck` pass
 - [ ] Touched packages tested; `pnpm run dev` / `dev:desktop` smoke if session UX or providers changed
 - [ ] Upstream SHA(s) referenced in the commit body; port recorded in the Divergence log below
@@ -402,7 +401,7 @@ The packaged desktop app still registers an internal `t3://` scheme for bundled 
 
 Coordinated upstream refactors tracked for a single post-stabilization port. Do not port intermediate states.
 
-- **`[codex]` Effect service migration** — 205+ coupled upstream commits restructuring error handling. Stabilization trigger: upstream stops landing `[codex]`-tagged commits for a release cycle, then port the net API surface as one fork migration. Surfaced by `classify-upstream.ts`.
+- **`[codex]` Effect service migration** — 205+ coupled upstream commits restructuring error handling. Stabilization trigger: upstream stops landing `[codex]`-tagged commits for a release cycle, then port the net API surface as one fork migration. Surfaced by `node .agents/skills/upstream-assess/scripts/scan-upstream.ts`.
 
 ### Fork-only features
 
