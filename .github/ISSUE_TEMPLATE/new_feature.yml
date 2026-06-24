@@ -1,0 +1,46 @@
+name: New Feature
+description: Propose a new feature with goal, requirements, and acceptance criteria
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep entries succinct. Capture enough for someone to pick this up cold.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What user-facing outcome does this feature deliver, and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      description: Bullet the functional and non-functional requirements (constraints, i18n, permissions, performance).
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Checklist of verifiable conditions that mark this done.
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Out of Scope
+      description: What this feature explicitly does not cover.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and Links
+      description: Related specs, ADRs, designs, files, or prior issues.
