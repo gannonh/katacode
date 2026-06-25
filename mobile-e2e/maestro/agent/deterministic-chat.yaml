@@ -19,6 +19,6 @@ tags:
 # TODO(studio): tap the send control (confirm its accessibility id).
 # Assert the real provider returned exactly the expected token (whitespace/wrapper
 # normalization is owned by src/flows/agent.ts).
-- assertVisible:
-    text: ${KC_EXPECTED}
+- extendedWaitUntil:
+    visible: ${KC_EXPECTED}
     timeout: 120000
