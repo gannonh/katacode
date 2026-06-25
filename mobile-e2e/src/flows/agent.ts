@@ -1,35 +1,33 @@
+import { formatModelDisplayName } from "@kata-sh/code-shared/model";
+
 import { readAgentProviderConfig } from "../harness/env.ts";
 
 /**
- * Provider driver -> the label the mobile model picker shows for its submenu.
- * The picker groups models by provider using `providerDisplayLabel`
- * (apps/mobile/src/lib/modelOptions.ts): codex -> "Codex", claudeAgent ->
- * "Claude". The harness injects `KATACODE_E2E_AGENT_PROVIDER` as a driver key.
+ * Provider id -> the submenu label the mobile model picker shows. The picker
+ * groups models by provider using `providerDisplayLabel`
+ * (apps/mobile/src/lib/modelOptions.ts): a provider with `driver: "codex"`
+ * shows "Codex"; `driver: "claudeAgent"` shows "Claude". The harness injects
+ * `KATACODE_E2E_AGENT_PROVIDER` as a *provider id* (`openai` / `anthropic`,
+ * per the README env table), so only those keys are mapped here. An unknown
+ * provider id falls back to the raw value so a misconfiguration is visible in
+ * the flow (the tap targets nothing) rather than silently matching nothing.
  */
 const PROVIDER_LABELS: Record<string, string> = {
   openai: "Codex",
-  codex: "Codex",
   anthropic: "Claude",
-  claudeAgent: "Claude",
 };
 
-/**
- * Provider submenu label for the mobile model picker. Falls back to the raw
- * provider key so a misconfigured provider fails visibly in the flow rather than
- * silently matching nothing.
- */
 export function providerMenuLabel(provider: string): string {
   return PROVIDER_LABELS[provider] ?? provider;
 }
 
 /**
- * Mobile model-picker display label for a Codex/OpenAI model slug. Mirrors the
- * server's `toDisplayName` (apps/server/.../CodexProvider.ts): capitalize a
- * leading "gpt" to "GPT" and uppercase the first letter after each dash, e.g.
- * `gpt-5.4-mini` -> `GPT-5.4-Mini`. Keep in sync with that formatter.
+ * Mobile model-picker display label for a model slug. Delegates to the shared
+ * formatter `packages/shared/model.ts` so the label the flow taps always matches
+ * what the app renders (previously a fragile in-harness duplicate).
  */
 export function modelMenuLabel(slug: string): string {
-  return slug.replace(/^gpt/i, "GPT").replace(/-([a-z])/g, (_, c: string) => `-${c.toUpperCase()}`);
+  return formatModelDisplayName(slug);
 }
 
 /**

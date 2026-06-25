@@ -23,9 +23,9 @@ export interface MobileE2ERunContext {
   serverHost: string | null;
   /** The repo path registered via `project add` (seeded or user-supplied). */
   projectPath: string | null;
+  /** Cleanup callbacks registered during the run; run to completion in `cleanupRunState`. */
+  readonly cleanupCallbacks: Array<() => Promise<void> | void>;
 }
-
-const cleanupCallbacksByRunId = new Map<string, Array<() => Promise<void> | void>>();
 
 function createRunId(): string {
   return `mobile-e2e-${Date.now()}-${randomUUID().slice(0, 8)}`;
@@ -53,7 +53,6 @@ export async function createIsolatedRun(input: {
       await rm(katacodeHome, { recursive: true, force: true });
     },
   ];
-  cleanupCallbacksByRunId.set(runId, cleanupCallbacks);
 
   return {
     runId,
@@ -66,24 +65,22 @@ export async function createIsolatedRun(input: {
     simulatorUdid: null,
     serverHost: null,
     projectPath: null,
+    cleanupCallbacks,
   };
 }
 
+/** Register a cleanup callback to run (LIFO) when the run tears down. */
 export function registerCleanup(
   context: MobileE2ERunContext,
   callback: () => Promise<void> | void,
 ): void {
-  const callbacks = cleanupCallbacksByRunId.get(context.runId);
-  if (!callbacks) {
-    throw new Error(`Mobile E2E run ${context.runId} is not registered for cleanup.`);
-  }
-  callbacks.push(callback);
+  context.cleanupCallbacks.push(callback);
 }
 
+/** Run registered cleanup callbacks in reverse order. Safe to call unconditionally in `finally`. */
 export async function cleanupRunState(context: MobileE2ERunContext): Promise<void> {
-  const callbacks = cleanupCallbacksByRunId.get(context.runId) ?? [];
-  for (const callback of [...callbacks].toReversed()) {
+  for (const callback of [...context.cleanupCallbacks].toReversed()) {
     await callback();
   }
-  cleanupCallbacksByRunId.delete(context.runId);
+  context.cleanupCallbacks.length = 0;
 }

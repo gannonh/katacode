@@ -8,6 +8,52 @@ export interface CompletedCommand {
   readonly stderr: string;
 }
 
+/**
+ * Single-shot settle guard for child watches that can resolve via stdout scan, close,
+ * error, or timeout. Guarantees the first settle wins even under racing events.
+ */
+export class SettleGuard {
+  private settled = false;
+  private readonly timer: NodeJS.Timeout | undefined;
+
+  constructor(options: { readonly timeoutMs: number; readonly onTimeout: () => void }) {
+    this.timer = setTimeout(() => {
+      this.finish(options.onTimeout);
+    }, options.timeoutMs);
+    this.timer.unref();
+  }
+
+  finish(fn: () => void): void {
+    if (this.settled) {
+      return;
+    }
+    this.settled = true;
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
+    fn();
+  }
+
+  get isSettled(): boolean {
+    return this.settled;
+  }
+}
+
+/** Tee a chunk to a process log; surface write failures rather than swallow them. */
+export async function logProcessChunk(
+  artifactRoot: string,
+  label: string,
+  chunk: string,
+): Promise<void> {
+  try {
+    await appendProcessLog(artifactRoot, label, chunk);
+  } catch (error) {
+    process.stderr.write(
+      `[mobile-e2e] failed to append ${label}.log: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+  }
+}
+
 /** Run a command to completion, capturing output and teeing it to the run's artifact log. */
 export async function runCommandToCompletion(input: {
   readonly command: string;
@@ -18,20 +64,23 @@ export async function runCommandToCompletion(input: {
   readonly label: string;
   readonly artifactRoot: string;
 }): Promise<CompletedCommand> {
+  const { command, args, env, cwd, timeoutMs, label, artifactRoot } = input;
   return await new Promise<CompletedCommand>((resolve, reject) => {
-    const child = spawn(input.command, [...input.args], { cwd: input.cwd, env: input.env });
+    const child = spawn(command, [...args], { cwd, env });
     let stdout = "";
     let stderr = "";
 
-    const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      reject(
-        new Error(
-          `${input.label}: timed out after ${input.timeoutMs}ms running \`${input.command} ${input.args.join(" ")}\`.`,
-        ),
-      );
-    }, input.timeoutMs);
-    timer.unref();
+    const guard = new SettleGuard({
+      timeoutMs,
+      onTimeout: () => {
+        child.kill("SIGKILL");
+        reject(
+          new Error(
+            `${label}: timed out after ${timeoutMs}ms running \`${command} ${args.join(" ")}\`.`,
+          ),
+        );
+      },
+    });
 
     child.stdout?.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
@@ -39,23 +88,34 @@ export async function runCommandToCompletion(input: {
     child.stderr?.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    child.once("error", (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.once("close", (code) => {
-      clearTimeout(timer);
-      void appendProcessLog(
-        input.artifactRoot,
-        input.label,
-        `$ ${input.command} ${input.args.join(" ")}\n${stdout}${stderr}\n`,
-      );
-      resolve({ code, stdout, stderr });
-    });
+    child.once("error", (error) =>
+      guard.finish(() => reject(error instanceof Error ? error : new Error(String(error)))),
+    );
+    child.once("close", (code) =>
+      guard.finish(() => {
+        void logProcessChunk(
+          artifactRoot,
+          label,
+          `$ ${command} ${args.join(" ")}\n${stdout}${stderr}\n`,
+        );
+        resolve({ code, stdout, stderr });
+      }),
+    );
   });
 }
 
-export async function terminateChildProcess(child: ChildProcess): Promise<void> {
+/**
+ * Escalate a child from `primarySignal` to SIGKILL after a grace window, resolving
+ * once the child has exited. `primarySignal` differs by caller: `xcrun simctl io
+ * recordVideo` flushes its file only on SIGINT, so screen recording uses SIGINT;
+ * long-lived servers use SIGTERM. Resolves immediately if the child already exited.
+ */
+export async function gracefulKill(input: {
+  readonly child: ChildProcess;
+  readonly primarySignal: NodeJS.Signals;
+  readonly graceMs: number;
+}): Promise<void> {
+  const { child, primarySignal, graceMs } = input;
   if (child.exitCode !== null) {
     return;
   }
@@ -65,11 +125,16 @@ export async function terminateChildProcess(child: ChildProcess): Promise<void> 
       resolve();
       return;
     }
-    child.kill("SIGTERM");
+    child.kill(primarySignal);
     setTimeout(() => {
-      if (child.exitCode === null && !child.killed) {
+      if (child.exitCode === null) {
         child.kill("SIGKILL");
       }
-    }, 5_000).unref();
+    }, graceMs).unref();
   });
+}
+
+/** Back-compat alias for SIGTERM-first shutdown of an owned long-lived child. */
+export async function terminateChildProcess(child: ChildProcess): Promise<void> {
+  await gracefulKill({ child, primarySignal: "SIGTERM", graceMs: 5_000 });
 }

@@ -31,4 +31,14 @@ describe("parseServeOutput", () => {
     const parsed = parseServeOutput("Connection string: http://localhost:50321\nToken: t-9\n");
     expect(parsed?.host).toBe("localhost:50321");
   });
+
+  it("resolves across chunk boundaries: connection string then token on separate chunks", () => {
+    // waitForServePairing accumulates stdout across many `data` events before the
+    // token line arrives. The scanner must keep parsing the running buffer, not
+    // only the latest chunk, so a split write still resolves.
+    const first = "Connection string: http://127.0.0.1:3773\n";
+    const second = "Token: ABC123XYZ\n";
+    expect(parseServeOutput(first)).toBeUndefined();
+    expect(parseServeOutput(first + second)).toBeDefined();
+  });
 });

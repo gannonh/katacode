@@ -1,57 +1,55 @@
-import { MOBILE_E2E_TAGS } from "../config/tags.ts";
+import { type CredentialGroup, selectedDescriptors } from "../config/tags.ts";
 import {
   assertMacOsHost,
   formatMissingPrerequisiteError,
   readAgentProviderPrerequisites,
   readClerkPrerequisites,
+  readGoogleTestUserEmail,
   readGoogleTestUserPrerequisites,
+  type PrerequisiteResult,
 } from "./env.ts";
 import { assertMaestroInstalled } from "./maestroRunner.ts";
 import { resolveServerBinPath } from "./serverStack.ts";
 
-export type CredentialGroup = "clerk" | "google" | "agent";
+export type { CredentialGroup } from "../config/tags.ts";
+
+export interface ResolvedCredentials {
+  readonly googleEmail: string | null;
+}
+
+const CREDENTIAL_READERS: Record<CredentialGroup, () => PrerequisiteResult> = {
+  clerk: readClerkPrerequisites,
+  google: readGoogleTestUserPrerequisites,
+  agent: readAgentProviderPrerequisites,
+};
 
 /**
- * Map the selected tags to the credential groups their flows require. An empty
- * tag list means "run everything", so all groups are required. Pure so the
- * gating rules are unit-tested.
+ * Whether the selected flows pair to a loopback `katacode serve` stack. Looks
+ * up `needsServer` per descriptor so a native-modal flow like `@auth` is not
+ * mis-wired into the server-start path. Pure so the rule is unit-tested.
  */
-export function requiredCredentialGroupsForTags(tags: readonly string[]): CredentialGroup[] {
-  const groups = new Set<CredentialGroup>();
-  const runsAll = tags.length === 0;
-
-  const wants = (tag: string): boolean => runsAll || tags.includes(tag);
-
-  if (wants(MOBILE_E2E_TAGS.auth)) {
-    groups.add("clerk");
-    groups.add("google");
-  }
-  if (wants(MOBILE_E2E_TAGS.agent)) {
-    groups.add("agent");
-  }
-  return [...groups];
+export function runNeedsServer(selection: readonly string[]): boolean {
+  return selectedDescriptors(selection).some((descriptor) => descriptor.needsServer);
 }
 
 /**
- * Whether a run needs the loopback server + project. Only @smoke (app launch)
- * runs without one; any other tag, or an unfiltered run, pairs to a server.
+ * Credential groups the selected flows require. An empty selection resolves to
+ * every flow, so all groups are required. Pure so the rule is unit-tested.
  */
-export function runNeedsServer(tags: readonly string[]): boolean {
-  if (tags.length === 0) {
-    return true;
+export function requiredCredentialGroupsForTags(selection: readonly string[]): CredentialGroup[] {
+  const groups = new Set<CredentialGroup>();
+  for (const descriptor of selectedDescriptors(selection)) {
+    for (const group of descriptor.credentials) {
+      groups.add(group);
+    }
   }
-  return tags.some((tag) => tag !== MOBILE_E2E_TAGS.smoke);
+  return [...groups];
 }
 
 function collectMissingCredentials(groups: readonly CredentialGroup[]): string[] {
   const missing: string[] = [];
   for (const group of groups) {
-    const result =
-      group === "clerk"
-        ? readClerkPrerequisites()
-        : group === "google"
-          ? readGoogleTestUserPrerequisites()
-          : readAgentProviderPrerequisites();
+    const result = CREDENTIAL_READERS[group]();
     if (!result.ok) {
       missing.push(...result.missing);
     }
@@ -59,26 +57,32 @@ function collectMissingCredentials(groups: readonly CredentialGroup[]): string[]
   return missing;
 }
 
+function resolveCredentials(selection: readonly string[]): ResolvedCredentials {
+  const groups = new Set(requiredCredentialGroupsForTags(selection));
+  return {
+    googleEmail: groups.has("google") ? readGoogleTestUserEmail() : null,
+  };
+}
+
 /**
  * Fail loud before a run if any static prerequisite is missing: macOS host,
- * Maestro CLI, built server, and the credentials the selected tags need.
- * Simulator and installed-dev-client checks run later, once a sim is booted.
+ * Maestro CLI, built server, and the credentials the selected tags need. Returns
+ * the resolved credentials so flow env builders consume the validated values
+ * rather than re-reading process.env.
  */
 export function requirePrereqs(input: {
   readonly repoRoot: string;
   readonly tags: readonly string[];
-}): void {
+}): ResolvedCredentials {
   assertMacOsHost();
   assertMaestroInstalled();
   resolveServerBinPath(input.repoRoot);
 
   const missing = collectMissingCredentials(requiredCredentialGroupsForTags(input.tags));
-  if (missing.length > 0) {
-    throw new Error(
-      formatMissingPrerequisiteError(
-        `mobile E2E (${input.tags.join(", ") || "all tags"})`,
-        missing,
-      ),
-    );
+  if (missing.length === 0) {
+    return resolveCredentials(input.tags);
   }
+  throw new Error(
+    formatMissingPrerequisiteError(`mobile E2E (${input.tags.join(", ") || "all tags"})`, missing),
+  );
 }

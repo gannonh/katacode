@@ -3,6 +3,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { toMaestroTag } from "../config/tags.ts";
 import { formatMissingPrerequisiteError } from "./env.ts";
 import { logHarnessPhase } from "./log.ts";
+import { gracefulKill } from "./processSpawn.ts";
 
 export interface MaestroRunOptions {
   /** Maestro flow file paths to run (Maestro does not recurse subdirectories). */
@@ -15,6 +16,8 @@ export interface MaestroRunOptions {
   readonly outputPath?: string;
   /** Directory for Maestro screenshots / view hierarchy on failure. */
   readonly debugOutputPath?: string;
+  /** Bound on the whole `maestro test` invocation; kills the run on expiry. */
+  readonly timeoutMs?: number;
 }
 
 /** Build the argv for `maestro <args>`. Pure so the mapping is unit-tested. */
@@ -65,5 +68,18 @@ export async function runMaestro(
     const child = spawn("maestro", args, { stdio: "inherit", env: spawnEnv });
     child.once("error", reject);
     child.once("close", (code) => resolve({ code }));
+
+    if (options.timeoutMs) {
+      const timer = setTimeout(() => {
+        logHarnessPhase(`maestro timed out after ${options.timeoutMs}ms; killing run`);
+        void gracefulKill({ child, primarySignal: "SIGTERM", graceMs: 5_000 })
+          .catch(() => {
+            /* settled via close below */
+          })
+          .finally(() => resolve({ code: 124 }));
+      }, options.timeoutMs);
+      timer.unref();
+      child.once("close", () => clearTimeout(timer));
+    }
   });
 }

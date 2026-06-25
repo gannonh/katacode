@@ -15,5 +15,3 @@ export const MOBILE_E2E_TIMEOUTS = {
   /** Agent flow run, which waits on a real provider round-trip. */
   agentFlowMs: 300_000,
 } as const;
-
-export type MobileE2ETimeouts = typeof MOBILE_E2E_TIMEOUTS;

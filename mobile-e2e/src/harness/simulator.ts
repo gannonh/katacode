@@ -3,7 +3,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { formatMissingPrerequisiteError, readConfiguredSimulator } from "./env.ts";
 import { type MobileE2ERunContext } from "./isolatedRun.ts";
 import { logHarnessPhase } from "./log.ts";
-import { runCommandToCompletion } from "./processSpawn.ts";
+import { gracefulKill, runCommandToCompletion } from "./processSpawn.ts";
 import { MOBILE_E2E_TIMEOUTS } from "../config/timeouts.ts";
 
 /** Bundle id of the dev variant the suite drives (see app.config.ts). */
@@ -66,23 +66,44 @@ async function listSimulators(context: MobileE2ERunContext): Promise<string> {
   return result.stdout;
 }
 
+/**
+ * Decide what to do with a resolved simulator device: boot it or leave it alone.
+ * Pure so the boot/skip decision is unit-tested without spawning `simctl`.
+ */
+export function resolveSimulatorAction(
+  device: SimulatorDevice | undefined,
+  preferred: string | undefined,
+):
+  | { readonly boot: true; readonly udid: string }
+  | {
+      readonly boot: false;
+      readonly udid: string;
+    }
+  | { readonly error: string } {
+  if (!device) {
+    return {
+      error: preferred
+        ? `No available simulator matched KATACODE_E2E_SIMULATOR=${preferred}. List with: xcrun simctl list devices available`
+        : "No available iOS simulator found. Install a runtime with: xcodebuild -downloadPlatform iOS",
+    };
+  }
+  return { boot: device.state !== "Booted", udid: device.udid };
+}
+
 /** Resolve a target simulator, booting it if needed, and record its udid on the run. */
 export async function ensureSimulator(context: MobileE2ERunContext): Promise<string> {
   const preferred = readConfiguredSimulator();
   const device = selectSimulator(await listSimulators(context), preferred);
-  if (!device) {
-    throw new Error(
-      preferred
-        ? `No available simulator matched KATACODE_E2E_SIMULATOR=${preferred}. List with: xcrun simctl list devices available`
-        : "No available iOS simulator found. Install a runtime with: xcodebuild -downloadPlatform iOS",
-    );
+  const action = resolveSimulatorAction(device, preferred);
+  if ("error" in action) {
+    throw new Error(action.error);
   }
 
-  if (device.state !== "Booted") {
-    logHarnessPhase(`booting simulator ${device.name} (${device.udid})`);
+  if (action.boot) {
+    logHarnessPhase(`booting simulator ${device!.name} (${action.udid})`);
     await runCommandToCompletion({
       command: "xcrun",
-      args: ["simctl", "bootstatus", device.udid, "-b"],
+      args: ["simctl", "bootstatus", action.udid, "-b"],
       env: context.baseEnv,
       cwd: context.repoRoot,
       timeoutMs: MOBILE_E2E_TIMEOUTS.simulatorBootMs,
@@ -91,8 +112,8 @@ export async function ensureSimulator(context: MobileE2ERunContext): Promise<str
     });
   }
 
-  context.simulatorUdid = device.udid;
-  return device.udid;
+  context.simulatorUdid = action.udid;
+  return action.udid;
 }
 
 /** Fail loud unless the dev client is already installed on the simulator. */
@@ -133,20 +154,13 @@ export function startScreenRecording(udid: string, outputPath: string): ScreenRe
   return { process: child, outputPath };
 }
 
-/** Stop a screen recording, flushing the file via SIGINT (recordVideo writes on interrupt). */
+/**
+ * Stop a screen recording. `xcrun simctl io recordVideo` only flushes the file on
+ * SIGINT (not SIGTERM), so escalate SIGINT -> SIGKILL after a grace window so the
+ * mp4 is finalized rather than truncated.
+ */
 export async function stopScreenRecording(recording: ScreenRecording): Promise<void> {
-  if (recording.process.exitCode !== null) {
-    return;
-  }
-  await new Promise<void>((resolve) => {
-    recording.process.once("exit", () => resolve());
-    recording.process.kill("SIGINT");
-    setTimeout(() => {
-      if (recording.process.exitCode === null) {
-        recording.process.kill("SIGKILL");
-      }
-    }, 5_000).unref();
-  });
+  await gracefulKill({ child: recording.process, primarySignal: "SIGINT", graceMs: 5_000 });
 }
 
 /** Launch Maestro Studio against the booted simulator for interactive authoring. */

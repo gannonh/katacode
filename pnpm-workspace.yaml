@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - infra/*
+  - mobile-e2e
   - oxlint-plugin-kata-code
   - packages/*
   - scripts

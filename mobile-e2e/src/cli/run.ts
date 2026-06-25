@@ -1,8 +1,8 @@
-import "../config/loadEnv.ts";
+import { loadEnv } from "../config/loadEnv.ts";
 
 import { join } from "node:path";
 
-import { MOBILE_E2E_TAGS } from "../config/tags.ts";
+import { type PairEnvKind, selectedDescriptors, tagMatches } from "../config/tags.ts";
 import { buildAgentMaestroEnv } from "../flows/agent.ts";
 import { buildAuthMaestroEnv } from "../flows/auth.ts";
 import { buildPairingMaestroEnv } from "../flows/pairing.ts";
@@ -21,7 +21,7 @@ import {
 } from "../harness/isolatedRun.ts";
 import { logHarnessPhase } from "../harness/log.ts";
 import { assertMaestroInstalled, runMaestro } from "../harness/maestroRunner.ts";
-import { requirePrereqs, runNeedsServer } from "../harness/prereqs.ts";
+import { type ResolvedCredentials, requirePrereqs, runNeedsServer } from "../harness/prereqs.ts";
 import { type ServePairingInfo, startServerStack } from "../harness/serverStack.ts";
 import {
   DEV_CLIENT_BUNDLE_ID,
@@ -39,12 +39,11 @@ function maestroFlowDir(): string {
   return join(resolveMobileE2eRoot(), "maestro");
 }
 
-/** Resolve absolute paths for flows matching the selected tags (or all if no tags). */
-function resolveFlowPaths(tags: readonly string[]): string[] {
+/** Resolve absolute paths for flows whose tags intersect the selection (all if no tags). */
+export function resolveFlowPaths(selection: readonly string[]): string[] {
   const dir = maestroFlowDir();
   const flows = discoverFlows();
-  const matching =
-    tags.length === 0 ? flows : flows.filter((flow) => tags.some((tag) => flow.tags.includes(tag)));
+  const matching = flows.filter((flow) => flow.tags.some((tag) => tagMatches(selection, tag)));
   return matching.map((flow) => join(dir, flow.relativePath));
 }
 
@@ -63,17 +62,37 @@ function buildManifest(context: MobileE2ERunContext): RunManifest {
   };
 }
 
-function buildMaestroEnv(
-  context: MobileE2ERunContext,
-  pairing: ServePairingInfo | null,
-): Record<string, string> {
-  const wants = (tag: string): boolean => context.tags.length === 0 || context.tags.includes(tag);
-  const env: Record<string, string> = pairing ? buildPairingMaestroEnv(pairing) : {};
-  if (wants(MOBILE_E2E_TAGS.auth)) {
-    Object.assign(env, buildAuthMaestroEnv());
-  }
-  if (wants(MOBILE_E2E_TAGS.agent)) {
-    Object.assign(env, buildAgentMaestroEnv(context.runId));
+/**
+ * Build the runner timeout from the selected flows: the slowest descriptor wins,
+ * so an `--include-tags @agent` run gets the agent round-trip budget even when
+ * composed with a faster flow.
+ */
+export function resolveRunTimeoutMs(selection: readonly string[]): number {
+  const descriptors = selectedDescriptors(selection);
+  return Math.max(...descriptors.map((descriptor) => descriptor.timeoutMs));
+}
+
+/**
+ * Maestro variables for the selected flows, derived from the descriptor table:
+ * pairing env (when a server is running), the `@auth` Google email, and the
+ * `@agent` deterministic-prompt token + model-picker labels. Pure given the
+ * resolved credentials and pairing info.
+ */
+export function buildMaestroEnv(input: {
+  readonly selection: readonly string[];
+  readonly runId: string;
+  readonly credentials: ResolvedCredentials;
+  readonly pairing: ServePairingInfo | null;
+}): Record<string, string> {
+  const builders: Record<PairEnvKind, () => Record<string, string>> = {
+    none: () => ({}),
+    pairing: () => (input.pairing ? buildPairingMaestroEnv(input.pairing) : {}),
+    auth: () => buildAuthMaestroEnv(input.credentials),
+    agent: () => buildAgentMaestroEnv(input.runId),
+  };
+  const env: Record<string, string> = {};
+  for (const descriptor of selectedDescriptors(input.selection)) {
+    Object.assign(env, builders[descriptor.pairEnv]());
   }
   return env;
 }
@@ -119,7 +138,7 @@ async function runStudio(): Promise<number> {
 }
 
 async function runFlows(options: CliOptions): Promise<number> {
-  requirePrereqs({ repoRoot: resolveRepoRoot(), tags: options.tags });
+  const credentials = requirePrereqs({ repoRoot: resolveRepoRoot(), tags: options.tags });
 
   const context = await createIsolatedRun({ tags: options.tags });
   let recording: ScreenRecording | null = null;
@@ -144,10 +163,16 @@ async function runFlows(options: CliOptions): Promise<number> {
       {
         flowPaths: resolveFlowPaths(options.tags),
         includeTags: options.tags,
-        env: buildMaestroEnv(context, pairing),
+        env: buildMaestroEnv({
+          selection: options.tags,
+          runId: context.runId,
+          credentials,
+          pairing,
+        }),
         format: "junit",
         outputPath: join(context.artifactRoot, "report.xml"),
         debugOutputPath: join(resolveMaestroOutputRoot(), context.runId),
+        timeoutMs: resolveRunTimeoutMs(options.tags),
       },
       context.baseEnv,
     );
@@ -164,6 +189,7 @@ async function runFlows(options: CliOptions): Promise<number> {
 }
 
 async function main(): Promise<number> {
+  loadEnv();
   const options = parseCliArgs(process.argv.slice(2));
   switch (options.mode) {
     case "help":

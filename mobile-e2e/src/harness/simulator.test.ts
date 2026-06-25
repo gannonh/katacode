@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { selectSimulator } from "./simulator.ts";
+import { resolveSimulatorAction, selectSimulator, type SimulatorDevice } from "./simulator.ts";
 
 const sample = JSON.stringify({
   devices: {
@@ -42,5 +42,33 @@ describe("selectSimulator", () => {
 
   it("never selects an unavailable device", () => {
     expect(selectSimulator(sample, "Broken")).toBeUndefined();
+  });
+});
+
+describe("resolveSimulatorAction", () => {
+  // The decision ensureSimulator makes after list+select: boot, skip, or fail.
+  // Extracted so the boot/skip/throw branches are unit-tested without simctl.
+
+  it("boots a shutdown device", () => {
+    const device: SimulatorDevice = { udid: "AAA", name: "iPhone 16", state: "Shutdown" };
+    expect(resolveSimulatorAction(device, undefined)).toEqual({ boot: true, udid: "AAA" });
+  });
+
+  it("skips booting an already-booted device", () => {
+    const device: SimulatorDevice = { udid: "BBB", name: "iPhone 16 Pro", state: "Booted" };
+    expect(resolveSimulatorAction(device, undefined)).toEqual({ boot: false, udid: "BBB" });
+  });
+
+  it("fails with a configured-preference hint when no device matched", () => {
+    // The error message drives the operator to fix KATACODE_E2E_SIMULATOR.
+    const action = resolveSimulatorAction(undefined, "iPhone-99");
+    expect("error" in action).toBe(true);
+    expect((action as { error: string }).error).toContain("iPhone-99");
+  });
+
+  it("fails with the install-runtime hint when no device exists and nothing is configured", () => {
+    const action = resolveSimulatorAction(undefined, undefined);
+    expect("error" in action).toBe(true);
+    expect((action as { error: string }).error).toContain("xcodebuild -downloadPlatform iOS");
   });
 });

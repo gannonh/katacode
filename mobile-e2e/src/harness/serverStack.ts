@@ -2,11 +2,15 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { appendProcessLog } from "./artifacts.ts";
 import { formatMissingPrerequisiteError, readConfiguredProjectPath } from "./env.ts";
 import { type MobileE2ERunContext, registerCleanup } from "./isolatedRun.ts";
 import { logHarnessPhase } from "./log.ts";
-import { runCommandToCompletion, terminateChildProcess } from "./processSpawn.ts";
+import {
+  logProcessChunk,
+  runCommandToCompletion,
+  SettleGuard,
+  terminateChildProcess,
+} from "./processSpawn.ts";
 import { seedWorkspace } from "./seededWorkspace.ts";
 import { MOBILE_E2E_TIMEOUTS } from "../config/timeouts.ts";
 
@@ -79,46 +83,36 @@ async function waitForServePairing(
 ): Promise<ServePairingInfo> {
   return await new Promise<ServePairingInfo>((resolve, reject) => {
     let buffer = "";
-    let settled = false;
-
-    const finish = (fn: () => void): void => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      fn();
-    };
-
-    const timer = setTimeout(() => {
-      finish(() =>
+    const guard = new SettleGuard({
+      timeoutMs: MOBILE_E2E_TIMEOUTS.serverStartMs,
+      onTimeout: () =>
         reject(
           new Error(
             `katacode serve: timed out after ${MOBILE_E2E_TIMEOUTS.serverStartMs}ms waiting for pairing output. See ${context.artifactRoot}/serve-stdout.log.`,
           ),
         ),
-      );
-    }, MOBILE_E2E_TIMEOUTS.serverStartMs);
-    timer.unref();
+    });
 
     child.stdout?.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       buffer += text;
-      void appendProcessLog(context.artifactRoot, "serve-stdout", text);
+      void logProcessChunk(context.artifactRoot, "serve-stdout", text);
       const parsed = parseServeOutput(buffer);
       if (parsed) {
-        finish(() => resolve(parsed));
+        guard.finish(() => resolve(parsed));
       }
     });
     child.stderr?.on("data", (chunk: Buffer) => {
-      void appendProcessLog(context.artifactRoot, "serve-stderr", chunk.toString());
+      void logProcessChunk(context.artifactRoot, "serve-stderr", chunk.toString());
     });
-    child.once("error", (error) => finish(() => reject(error)));
-    child.once("exit", (code) => {
-      finish(() =>
+    child.once("error", (error) =>
+      guard.finish(() => reject(error instanceof Error ? error : new Error(String(error)))),
+    );
+    child.once("exit", (code) =>
+      guard.finish(() =>
         reject(new Error(`katacode serve exited (code ${code}) before printing pairing output.`)),
-      );
-    });
+      ),
+    );
   });
 }
 

@@ -1,36 +1,20 @@
-import {
-  formatMissingPrerequisiteError,
-  readClerkPrerequisites,
-  readGoogleTestUserEmail,
-  readGoogleTestUserPrerequisites,
-} from "../harness/env.ts";
+import type { ResolvedCredentials } from "../harness/prereqs.ts";
 
 /**
- * Fail-loud gate for the Clerk Connect sign-in flow. Aggregates the missing
- * Clerk + Google test-user prerequisites so the @auth run names every gap at once.
+ * Maestro variables for `maestro/auth/clerk-connect.yaml`. Consumes the email
+ * the prereq gate already validated, rather than re-reading process.env.
+ *
+ * Mobile sign-in is a native auth modal (`NativeClerk.presentAuth`); whether
+ * Maestro can drive it is a Studio discovery item, so this flow's green runtime
+ * pass is deferred to a maintainer.
  */
-export function assertClerkConnectPrereqs(): { readonly email: string } {
-  const missing: string[] = [];
-  const clerk = readClerkPrerequisites();
-  if (!clerk.ok) {
-    missing.push(...clerk.missing);
+export function buildAuthMaestroEnv(credentials: ResolvedCredentials): Record<string, string> {
+  if (!credentials.googleEmail) {
+    // The prereq gate guarantees this when @auth is selected; reaching here is
+    // a wiring bug, so fail loud rather than silently emitting empty vars.
+    throw new Error(
+      "buildAuthMaestroEnv called without a resolved Google test-user email; @auth requires the clerk + google credential groups.",
+    );
   }
-  const google = readGoogleTestUserPrerequisites();
-  if (!google.ok) {
-    missing.push(...google.missing);
-  }
-  if (missing.length > 0) {
-    throw new Error(formatMissingPrerequisiteError("Clerk Connect sign-in", missing));
-  }
-  return { email: readGoogleTestUserEmail() };
-}
-
-/**
- * Maestro variables for `maestro/auth/clerk-connect.yaml`. Mobile sign-in is a
- * native auth modal (`NativeClerk.presentAuth`); whether Maestro can drive it is a
- * Studio discovery item, so this flow's green runtime pass is deferred to a maintainer.
- */
-export function buildAuthMaestroEnv(): Record<string, string> {
-  const { email } = assertClerkConnectPrereqs();
-  return { KC_GOOGLE_EMAIL: email };
+  return { KC_GOOGLE_EMAIL: credentials.googleEmail };
 }
