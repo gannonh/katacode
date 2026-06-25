@@ -225,10 +225,7 @@ it.layer(NodeServices.layer)("release-asset-names / prepareReleaseAssets", (it) 
         yield* fileSystem.writeFileString(path.join(distDir, arm64Zip), "zip");
         yield* fileSystem.writeFileString(path.join(distDir, x64AppImage), "appimage");
         yield* fileSystem.writeFileString(path.join(distDir, x64Exe), "exe");
-        yield* fileSystem.writeFileString(
-          path.join(distDir, macManifest),
-          writeManifest(macManifest),
-        );
+        yield* fileSystem.writeFileString(path.join(distDir, macManifest), writeManifest());
         yield* fileSystem.writeFileString(path.join(distDir, "builder-debug.yml"), "debug: true\n");
         yield* fileSystem.writeFileString(
           path.join(distDir, "builder-effective-config.yaml"),
