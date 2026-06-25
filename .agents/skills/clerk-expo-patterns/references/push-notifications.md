@@ -5,34 +5,34 @@ Store the Expo push token against the Clerk user using `publicMetadata` or your 
 ## Register Push Token After Sign-In
 
 ```tsx
-import { useUser } from "@clerk/expo";
-import * as Notifications from "expo-notifications";
-import { useEffect } from "react";
+import { useUser } from '@clerk/expo'
+import * as Notifications from 'expo-notifications'
+import { useEffect } from 'react'
 
 export function PushTokenRegistrar() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useUser()
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (!isLoaded || !user) return
 
     async function register() {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== "granted") return;
+      const { status } = await Notifications.requestPermissionsAsync()
+      if (status !== 'granted') return
 
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      const token = (await Notifications.getExpoPushTokenAsync()).data
 
       await user.update({
         unsafeMetadata: {
           ...user.unsafeMetadata,
           expoPushToken: token,
         },
-      });
+      })
     }
 
-    register();
-  }, [isLoaded, user]);
+    register()
+  }, [isLoaded, user])
 
-  return null;
+  return null
 }
 ```
 
@@ -41,20 +41,20 @@ export function PushTokenRegistrar() {
 ## Send Notification to User (Server)
 
 ```tsx
-import { clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from '@clerk/nextjs/server'
 
 async function sendNotification(userId: string, title: string, body: string) {
-  const client = await clerkClient();
-  const user = await client.users.getUser(userId);
-  const token = user.unsafeMetadata?.expoPushToken as string | undefined;
+  const client = await clerkClient()
+  const user = await client.users.getUser(userId)
+  const token = user.unsafeMetadata?.expoPushToken as string | undefined
 
-  if (!token) return;
+  if (!token) return
 
-  await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  await fetch('https://exp.host/--/api/v2/push/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ to: token, title, body }),
-  });
+  })
 }
 ```
 

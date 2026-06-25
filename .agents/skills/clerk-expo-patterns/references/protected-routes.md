@@ -5,17 +5,17 @@
 Protect an entire group in `app/(auth)/_layout.tsx`:
 
 ```tsx
-import { useAuth } from "@clerk/expo";
-import { Redirect, Stack } from "expo-router";
+import { useAuth } from '@clerk/expo'
+import { Redirect, Stack } from 'expo-router'
 
 export default function AuthLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth()
 
-  if (!isLoaded) return null;
+  if (!isLoaded) return null
 
-  if (!isSignedIn) return <Redirect href="/sign-in" />;
+  if (!isSignedIn) return <Redirect href="/sign-in" />
 
-  return <Stack />;
+  return <Stack />
 }
 ```
 
@@ -24,21 +24,21 @@ export default function AuthLayout() {
 For a single screen:
 
 ```tsx
-import { useAuth } from "@clerk/expo";
-import { Redirect } from "expo-router";
-import { View, Text } from "react-native";
+import { useAuth } from '@clerk/expo'
+import { Redirect } from 'expo-router'
+import { View, Text } from 'react-native'
 
 export default function ProfileScreen() {
-  const { isSignedIn, isLoaded, userId } = useAuth();
+  const { isSignedIn, isLoaded, userId } = useAuth()
 
-  if (!isLoaded) return null;
-  if (!isSignedIn) return <Redirect href="/sign-in" />;
+  if (!isLoaded) return null
+  if (!isSignedIn) return <Redirect href="/sign-in" />
 
   return (
     <View>
       <Text>User: {userId}</Text>
     </View>
-  );
+  )
 }
 ```
 

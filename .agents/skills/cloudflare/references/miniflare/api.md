@@ -5,16 +5,16 @@
 ```typescript
 class Miniflare {
   constructor(options: MiniflareOptions);
-
+  
   // Lifecycle
   ready: Promise<URL>; // Resolves when server ready, returns URL
   dispose(): Promise<void>; // Cleanup resources
   setOptions(options: MiniflareOptions): Promise<void>; // Reload config
-
+  
   // Event dispatching
   dispatchFetch(url: string | URL | Request, init?: RequestInit): Promise<Response>;
   getWorker(name?: string): Promise<Worker>;
-
+  
   // Bindings access
   getBindings<Bindings = Record<string, unknown>>(name?: string): Promise<Bindings>;
   getCf(name?: string): Promise<IncomingRequestCfProperties | undefined>;
@@ -25,7 +25,7 @@ class Miniflare {
   getD1Database(name: string): Promise<D1Database>;
   getCaches(): Promise<CacheStorage>;
   getQueueProducer(name: string): Promise<QueueProducer>;
-
+  
   // Debugging
   getInspectorURL(): Promise<URL>; // Chrome DevTools inspector URL
 }
@@ -34,25 +34,22 @@ class Miniflare {
 ## Event Dispatching
 
 **Fetch (no HTTP server):**
-
 ```js
 const res = await mf.dispatchFetch("http://localhost:8787/path", {
   method: "POST",
-  headers: { Authorization: "Bearer token" },
+  headers: { "Authorization": "Bearer token" },
   body: JSON.stringify({ data: "value" }),
 });
 ```
 
 **Custom Host routing:**
-
 ```js
 const res = await mf.dispatchFetch("http://localhost:8787/", {
-  headers: { Host: "api.example.com" },
+  headers: { "Host": "api.example.com" },
 });
 ```
 
 **Scheduled:**
-
 ```js
 const worker = await mf.getWorker();
 const result = await worker.scheduled({ cron: "30 * * * *" });
@@ -60,7 +57,6 @@ const result = await worker.scheduled({ cron: "30 * * * *" });
 ```
 
 **Queue:**
-
 ```js
 const worker = await mf.getWorker();
 const result = await worker.queue("queue-name", [
@@ -72,7 +68,6 @@ const result = await worker.queue("queue-name", [
 ## Bindings Access
 
 **Environment variables:**
-
 ```js
 // Basic usage
 const bindings = await mf.getBindings();
@@ -90,7 +85,6 @@ env.KV.get("key"); // KVNamespace methods available
 ```
 
 **Request.cf object:**
-
 ```js
 const cf = await mf.getCf();
 console.log(cf?.colo); // "DFW"
@@ -98,7 +92,6 @@ console.log(cf?.country); // "US"
 ```
 
 **KV:**
-
 ```js
 const ns = await mf.getKVNamespace("TEST_NAMESPACE");
 await ns.put("key", "value");
@@ -106,7 +99,6 @@ const value = await ns.get("key");
 ```
 
 **R2:**
-
 ```js
 const bucket = await mf.getR2Bucket("BUCKET");
 await bucket.put("file.txt", "content");
@@ -114,7 +106,6 @@ const object = await bucket.get("file.txt");
 ```
 
 **Durable Objects:**
-
 ```js
 const ns = await mf.getDurableObjectNamespace("COUNTER");
 const id = ns.idFromName("test");
@@ -127,7 +118,6 @@ await storage.put("key", "value");
 ```
 
 **D1:**
-
 ```js
 const db = await mf.getD1Database("DB");
 await db.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)`);
@@ -135,7 +125,6 @@ await db.prepare("INSERT INTO users (name) VALUES (?)").bind("Alice").run();
 ```
 
 **Cache:**
-
 ```js
 const caches = await mf.getCaches();
 const defaultCache = caches.default;
@@ -143,7 +132,6 @@ await defaultCache.put("http://example.com", new Response("cached"));
 ```
 
 **Queue producer:**
-
 ```js
 const producer = await mf.getQueueProducer("QUEUE");
 await producer.send({ body: "message data" });
@@ -152,7 +140,6 @@ await producer.send({ body: "message data" });
 ## Lifecycle
 
 **Reload:**
-
 ```js
 await mf.setOptions({
   scriptPath: "worker.js",
@@ -161,7 +148,6 @@ await mf.setOptions({
 ```
 
 **Watch (manual):**
-
 ```js
 import { watch } from "fs";
 
@@ -175,7 +161,6 @@ watch("worker.js", async () => {
 ```
 
 **Cleanup:**
-
 ```js
 await mf.dispose();
 ```
@@ -183,7 +168,6 @@ await mf.dispose();
 ## Debugging
 
 **Inspector URL for DevTools:**
-
 ```js
 const url = await mf.getInspectorURL();
 console.log(`DevTools: ${url}`);
@@ -191,7 +175,6 @@ console.log(`DevTools: ${url}`);
 ```
 
 **Wait for server ready:**
-
 ```js
 const mf = new Miniflare({ scriptPath: "worker.js" });
 const url = await mf.ready; // Promise<URL>

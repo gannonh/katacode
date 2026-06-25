@@ -1,9 +1,9 @@
 ---
 name: clerk-react-patterns
-description: "React SPA auth patterns with @clerk/react for Vite/CRA - ClerkProvider
+description: 'React SPA auth patterns with @clerk/react for Vite/CRA - ClerkProvider
   setup, useAuth/useUser/useClerk hooks, React Router protected routes, custom sign-in
   flows. Triggers on: Vite Clerk setup, React Router auth, useAuth hook, protected
-  route, custom sign-in form React."
+  route, custom sign-in form React.'
 license: MIT
 allowed-tools: WebFetch
 metadata:
@@ -17,21 +17,21 @@ metadata:
 
 ## What Do You Need?
 
-| Task                               | Reference                        |
-| ---------------------------------- | -------------------------------- |
-| useAuth / useUser / useClerk hooks | references/hooks.md              |
-| Protected routes with React Router | references/protected-routes.md   |
-| Custom sign-in / sign-up forms     | references/custom-flows.md       |
-| React Router v6/v7 integration     | references/router-integration.md |
+| Task | Reference |
+|------|-----------|
+| useAuth / useUser / useClerk hooks | references/hooks.md |
+| Protected routes with React Router | references/protected-routes.md |
+| Custom sign-in / sign-up forms | references/custom-flows.md |
+| React Router v6/v7 integration | references/router-integration.md |
 
 ## References
 
-| Reference                          | Description                |
-| ---------------------------------- | -------------------------- |
-| `references/hooks.md`              | useAuth, isLoaded guard    |
-| `references/protected-routes.md`   | ProtectedRoute pattern     |
-| `references/custom-flows.md`       | useSignIn, useSignUp flows |
-| `references/router-integration.md` | React Router v6/v7 setup   |
+| Reference | Description |
+|-----------|-------------|
+| `references/hooks.md` | useAuth, isLoaded guard |
+| `references/protected-routes.md` | ProtectedRoute pattern |
+| `references/custom-flows.md` | useSignIn, useSignUp flows |
+| `references/router-integration.md` | React Router v6/v7 setup |
 
 ## Setup
 
@@ -40,28 +40,26 @@ npm install @clerk/react
 ```
 
 `.env`:
-
 ```
 VITE_CLERK_PUBLISHABLE_KEY=pk_...
 ```
 
 `src/main.tsx`:
-
 ```tsx
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { ClerkProvider } from "@clerk/react";
-import App from "./App.tsx";
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { ClerkProvider } from '@clerk/react'
+import App from './App.tsx'
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <App />
     </ClerkProvider>
   </StrictMode>,
-);
+)
 ```
 
 ## Mental Model
@@ -75,31 +73,31 @@ createRoot(document.getElementById("root")!).render(
 ## Minimal Pattern
 
 ```tsx
-import { useAuth } from "@clerk/react";
+import { useAuth } from '@clerk/react'
 
 export function Dashboard() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth()
 
-  if (!isLoaded) return <div>Loading...</div>;
-  if (!isSignedIn) return <div>Please sign in</div>;
+  if (!isLoaded) return <div>Loading...</div>
+  if (!isSignedIn) return <div>Please sign in</div>
 
-  return <div>Hello {userId}</div>;
+  return <div>Hello {userId}</div>
 }
 ```
 
 ## Protected Route (React Router v6/v7)
 
 ```tsx
-import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "@clerk/react";
+import { Navigate, Outlet } from 'react-router-dom'
+import { useAuth } from '@clerk/react'
 
 export function ProtectedRoute() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth()
 
-  if (!isLoaded) return <div>Loading...</div>;
-  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  if (!isLoaded) return <div>Loading...</div>
+  if (!isSignedIn) return <Navigate to="/sign-in" replace />
 
-  return <Outlet />;
+  return <Outlet />
 }
 ```
 
@@ -116,34 +114,34 @@ export function ProtectedRoute() {
 ## Token for API Calls
 
 ```tsx
-import { useAuth } from "@clerk/react";
+import { useAuth } from '@clerk/react'
 
 export function DataFetcher() {
-  const { getToken } = useAuth();
+  const { getToken } = useAuth()
 
   async function fetchData() {
-    const token = await getToken();
-    if (!token) return;
+    const token = await getToken()
+    if (!token) return
 
-    const res = await fetch("/api/data", {
+    const res = await fetch('/api/data', {
       headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.json();
+    })
+    return res.json()
   }
 
-  return <button onClick={fetchData}>Load</button>;
+  return <button onClick={fetchData}>Load</button>
 }
 ```
 
 ## Common Pitfalls
 
-| Symptom                       | Cause                           | Fix                                                            |
-| ----------------------------- | ------------------------------- | -------------------------------------------------------------- |
-| `isSignedIn` is `undefined`   | `isLoaded` is still `false`     | Always check `isLoaded` first                                  |
-| `ClerkProvider` missing       | Provider not at root            | Wrap `<App>` in `main.tsx`                                     |
-| Env var undefined             | Wrong Vite prefix               | Use `VITE_CLERK_PUBLISHABLE_KEY`, access via `import.meta.env` |
-| Token is `null`               | User not signed in              | Null-check `getToken()` result                                 |
-| Sign-in component shows blank | No `publishableKey` on provider | Pass `publishableKey` explicitly                               |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `isSignedIn` is `undefined` | `isLoaded` is still `false` | Always check `isLoaded` first |
+| `ClerkProvider` missing | Provider not at root | Wrap `<App>` in `main.tsx` |
+| Env var undefined | Wrong Vite prefix | Use `VITE_CLERK_PUBLISHABLE_KEY`, access via `import.meta.env` |
+| Token is `null` | User not signed in | Null-check `getToken()` result |
+| Sign-in component shows blank | No `publishableKey` on provider | Pass `publishableKey` explicitly |
 
 ## See Also
 

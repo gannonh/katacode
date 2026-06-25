@@ -31,24 +31,24 @@ export const Route = createFileRoute('/dashboard')({
 
 ```typescript
 const getOrgContext = createServerFn().handler(async () => {
-  const { isAuthenticated, userId, orgId } = await auth();
-  if (!isAuthenticated) throw redirect({ to: "/sign-in" });
-  return { userId, orgId };
-});
+  const { isAuthenticated, userId, orgId } = await auth()
+  if (!isAuthenticated) throw redirect({ to: '/sign-in' })
+  return { userId, orgId }
+})
 
-export const Route = createFileRoute("/app/projects")({
+export const Route = createFileRoute('/app/projects')({
   beforeLoad: async () => await getOrgContext(),
   loader: async ({ context }) => {
     if (!context.orgId) {
-      return { projects: [], requiresOrg: true };
+      return { projects: [], requiresOrg: true }
     }
 
     const projects = await db.projects.findMany({
       where: { orgId: context.orgId },
-    });
-    return { projects, requiresOrg: false };
+    })
+    return { projects, requiresOrg: false }
   },
-});
+})
 ```
 
 ## useLoaderData

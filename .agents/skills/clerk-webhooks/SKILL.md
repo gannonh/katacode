@@ -24,7 +24,7 @@ Webhooks are **asynchronous and eventually consistent**. Delivery is fast but no
 - Notifications (welcome emails, Slack pings, internal alerts)
 - Integrations triggered by lifecycle events
 
-Do NOT rely on webhook delivery as part of a synchronous flow such as onboarding ("user signs up, then we read X from our DB"). For data the user just created, read it from the [Clerk session token](https://clerk.com/docs/guides/sessions/session-tokens) or call the Backend API directly. Webhooks fill the gap when you need data about _other_ users or events the session token doesn't carry.
+Do NOT rely on webhook delivery as part of a synchronous flow such as onboarding ("user signs up, then we read X from our DB"). For data the user just created, read it from the [Clerk session token](https://clerk.com/docs/guides/sessions/session-tokens) or call the Backend API directly. Webhooks fill the gap when you need data about *other* users or events the session token doesn't carry.
 
 ## Verify Every Webhook
 
@@ -36,66 +36,66 @@ Webhook routes must be excluded from Clerk middleware protection. Without this, 
 
 ```typescript
 // proxy.ts (Next.js <=15: middleware.ts)
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-const isPublicRoute = createRouteMatcher(["/api/webhooks(.*)"]);
+const isPublicRoute = createRouteMatcher(['/api/webhooks(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) await auth.protect();
-});
+  if (!isPublicRoute(req)) await auth.protect()
+})
 ```
 
 ## Complete Webhook Handler (Next.js App Router)
 
 ```typescript
 // app/api/webhooks/route.ts
-import { verifyWebhook } from "@clerk/nextjs/webhooks";
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
+import { verifyWebhook } from '@clerk/nextjs/webhooks'
+import { NextRequest } from 'next/server'
+import { db } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   // ALWAYS verify - never skip, even for notification-only handlers
-  let evt;
+  let evt
   try {
-    evt = await verifyWebhook(req); // uses CLERK_WEBHOOK_SIGNING_SECRET automatically
+    evt = await verifyWebhook(req) // uses CLERK_WEBHOOK_SIGNING_SECRET automatically
   } catch (err) {
-    console.error("Webhook verification failed:", err);
-    return new Response("Verification failed", { status: 400 });
+    console.error('Webhook verification failed:', err)
+    return new Response('Verification failed', { status: 400 })
   }
 
-  if (evt.type === "user.created") {
-    const { id, email_addresses, first_name, last_name } = evt.data;
-    const email = email_addresses[0]?.email_address;
-    const name = `${first_name ?? ""} ${last_name ?? ""}`.trim();
-    await db.users.create({ data: { clerkId: id, email, name } });
+  if (evt.type === 'user.created') {
+    const { id, email_addresses, first_name, last_name } = evt.data
+    const email = email_addresses[0]?.email_address
+    const name = `${first_name ?? ''} ${last_name ?? ''}`.trim()
+    await db.users.create({ data: { clerkId: id, email, name } })
   }
 
-  if (evt.type === "user.updated") {
-    const { id, email_addresses, first_name, last_name } = evt.data;
-    const email = email_addresses[0]?.email_address;
-    await db.users.update({ where: { clerkId: id }, data: { email, first_name, last_name } });
+  if (evt.type === 'user.updated') {
+    const { id, email_addresses, first_name, last_name } = evt.data
+    const email = email_addresses[0]?.email_address
+    await db.users.update({ where: { clerkId: id }, data: { email, first_name, last_name } })
   }
 
-  if (evt.type === "user.deleted") {
-    const { id } = evt.data;
-    await db.users.delete({ where: { clerkId: id } });
+  if (evt.type === 'user.deleted') {
+    const { id } = evt.data
+    await db.users.delete({ where: { clerkId: id } })
   }
 
-  if (evt.type === "organizationMembership.created") {
-    const { organization, public_user_data, role } = evt.data;
-    const orgId = organization.id;
-    const userId = public_user_data.user_id;
-    await db.teamMembers.create({ data: { orgId, userId, role } });
+  if (evt.type === 'organizationMembership.created') {
+    const { organization, public_user_data, role } = evt.data
+    const orgId = organization.id
+    const userId = public_user_data.user_id
+    await db.teamMembers.create({ data: { orgId, userId, role } })
   }
 
-  if (evt.type === "organizationMembership.deleted") {
-    const { organization, public_user_data } = evt.data;
-    const orgId = organization.id;
-    const userId = public_user_data.user_id;
-    await db.teamMembers.delete({ where: { orgId_userId: { orgId, userId } } });
+  if (evt.type === 'organizationMembership.deleted') {
+    const { organization, public_user_data } = evt.data
+    const orgId = organization.id
+    const userId = public_user_data.user_id
+    await db.teamMembers.delete({ where: { orgId_userId: { orgId, userId } } })
   }
 
-  return new Response("OK", { status: 200 });
+  return new Response('OK', { status: 200 })
 }
 ```
 
@@ -105,124 +105,123 @@ Notification-only handlers still verify the signature. Same pattern as the datab
 
 ```typescript
 // app/api/webhooks/route.ts
-import { verifyWebhook } from "@clerk/nextjs/webhooks";
-import { NextRequest } from "next/server";
-import { Resend } from "resend";
+import { verifyWebhook } from '@clerk/nextjs/webhooks'
+import { NextRequest } from 'next/server'
+import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: NextRequest) {
   // Step 1: ALWAYS verify the webhook signature - NEVER skip this
-  let evt;
+  let evt
   try {
-    evt = await verifyWebhook(req); // uses CLERK_WEBHOOK_SIGNING_SECRET env var
+    evt = await verifyWebhook(req) // uses CLERK_WEBHOOK_SIGNING_SECRET env var
   } catch (err) {
-    console.error("Webhook verification failed:", err);
-    return new Response("Verification failed", { status: 400 });
+    console.error('Webhook verification failed:', err)
+    return new Response('Verification failed', { status: 400 })
   }
 
   // Step 2: Listen for user.created event
-  if (evt.type === "user.created") {
+  if (evt.type === 'user.created') {
     // Step 3: Extract user email and name from webhook payload
-    const { id, email_addresses, first_name, last_name } = evt.data;
-    const email = email_addresses[0]?.email_address;
-    const name = `${first_name ?? ""} ${last_name ?? ""}`.trim();
+    const { id, email_addresses, first_name, last_name } = evt.data
+    const email = email_addresses[0]?.email_address
+    const name = `${first_name ?? ''} ${last_name ?? ''}`.trim()
 
     // Step 4: Call Resend API to send welcome email
     await resend.emails.send({
-      from: "noreply@yourdomain.com",
+      from: 'noreply@yourdomain.com',
       to: email,
-      subject: "Welcome!",
+      subject: 'Welcome!',
       html: `<p>Hi ${name}, welcome to our app!</p>`,
-    });
+    })
 
     // Step 5: Post notification to Slack channel
     await fetch(process.env.SLACK_WEBHOOK_URL!, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: `New user signed up: ${name} (${email})`,
       }),
-    });
+    })
   }
 
   // Always return 200 to acknowledge receipt
-  return new Response("OK", { status: 200 });
+  return new Response('OK', { status: 200 })
 }
 ```
 
 **Also include proxy.ts (Next.js <=15: middleware.ts) to make the route public:**
-
 ```typescript
 // proxy.ts (Next.js <=15: middleware.ts)
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-const isPublicRoute = createRouteMatcher(["/api/webhooks(.*)"]);
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+const isPublicRoute = createRouteMatcher(['/api/webhooks(.*)'])
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) await auth.protect();
-});
+  if (!isPublicRoute(req)) await auth.protect()
+})
 ```
 
 ## Full Example: Organization Membership Sync to Database
 
 ```typescript
 // app/api/webhooks/route.ts
-import { verifyWebhook } from "@clerk/nextjs/webhooks";
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db"; // your database client
+import { verifyWebhook } from '@clerk/nextjs/webhooks'
+import { NextRequest } from 'next/server'
+import { db } from '@/lib/db' // your database client
 
 export async function POST(req: NextRequest) {
   // ALWAYS verify signature - never skip, even for simple handlers
-  let evt;
+  let evt
   try {
-    evt = await verifyWebhook(req); // uses CLERK_WEBHOOK_SIGNING_SECRET env var
+    evt = await verifyWebhook(req) // uses CLERK_WEBHOOK_SIGNING_SECRET env var
   } catch (err) {
-    console.error("Webhook verification failed:", err);
-    return new Response("Verification failed", { status: 400 });
+    console.error('Webhook verification failed:', err)
+    return new Response('Verification failed', { status: 400 })
   }
 
-  if (evt.type === "organization.created") {
-    const { id, name } = evt.data;
+  if (evt.type === 'organization.created') {
+    const { id, name } = evt.data
     await db.workspaces.create({
       data: { orgId: id, name, createdAt: new Date() },
-    });
+    })
   }
 
-  if (evt.type === "organizationMembership.created") {
+  if (evt.type === 'organizationMembership.created') {
     // Extract organization ID, user ID, and role from payload
-    const { organization, public_user_data, role } = evt.data;
-    const orgId = organization.id;
-    const userId = public_user_data.user_id;
+    const { organization, public_user_data, role } = evt.data
+    const orgId = organization.id
+    const userId = public_user_data.user_id
 
     // Add to team_members table
     await db.team_members.create({
       data: { orgId, userId, role },
-    });
+    })
 
     // Create workspace record for new member
     await db.workspaces.create({
       data: { orgId, userId, createdAt: new Date() },
-    });
+    })
   }
 
-  if (evt.type === "organizationMembership.deleted") {
+  if (evt.type === 'organizationMembership.deleted') {
     // Extract organization ID and user ID from payload
-    const { organization, public_user_data } = evt.data;
-    const orgId = organization.id;
-    const userId = public_user_data.user_id;
+    const { organization, public_user_data } = evt.data
+    const orgId = organization.id
+    const userId = public_user_data.user_id
 
     // Remove from team_members table
     await db.team_members.delete({
       where: { orgId, userId },
-    });
+    })
 
     // Remove workspace record
     await db.workspaces.deleteMany({
       where: { orgId, userId },
-    });
+    })
   }
 
   // Return 200 status on success
-  return new Response("OK", { status: 200 });
+  return new Response('OK', { status: 200 })
 }
 ```
 
@@ -237,11 +236,11 @@ See `references/frameworks.md` for full handler examples per framework.
 `verifyWebhook` returns `WebhookEvent`, a discriminated union of all event types. Narrow with `evt.type` to get type-safe access to `evt.data`:
 
 ```typescript
-const evt = await verifyWebhook(req);
+const evt = await verifyWebhook(req)
 
-if (evt.type === "user.created") {
+if (evt.type === 'user.created') {
   // evt.data is now UserJSON, autocompletes id, email_addresses, etc.
-  console.log(evt.data.id);
+  console.log(evt.data.id)
 }
 ```
 
@@ -250,36 +249,33 @@ For manual typing of nested payloads, import the JSON types from your framework'
 ## Payload Field Reference
 
 ### User events (`user.created`, `user.updated`, `user.deleted`)
-
 ```typescript
 const {
-  id, // Clerk user ID
-  email_addresses, // array; [0].email_address is primary email
+  id,                  // Clerk user ID
+  email_addresses,     // array; [0].email_address is primary email
   first_name,
   last_name,
   image_url,
   public_metadata,
-} = evt.data;
+} = evt.data
 ```
 
 ### Organization events (`organization.created`, `organization.updated`, `organization.deleted`)
-
 ```typescript
 const {
-  id, // org ID
-  name, // org name
+  id,    // org ID
+  name,  // org name
   slug,
-} = evt.data;
+} = evt.data
 ```
 
 ### Organization Membership events (`organizationMembership.created`, `organizationMembership.updated`, `organizationMembership.deleted`)
-
 ```typescript
 const {
-  organization, // { id, name, ... }
-  public_user_data, // { user_id, first_name, last_name, ... }
-  role, // e.g. 'org:admin', 'org:member'
-} = evt.data;
+  organization,        // { id, name, ... }
+  public_user_data,    // { user_id, first_name, last_name, ... }
+  role,                // e.g. 'org:admin', 'org:member'
+} = evt.data
 // Access: organization.id, public_user_data.user_id, role
 ```
 
@@ -319,15 +315,15 @@ const {
 
 ## Common Pitfalls
 
-| Symptom                      | Cause                            | Fix                                                               |
-| ---------------------------- | -------------------------------- | ----------------------------------------------------------------- |
-| Verification fails (Next.js) | Wrong import or usage            | Use `@clerk/nextjs/webhooks`, pass `req` directly                 |
-| Verification fails (Express) | Using `express.json()`           | Use `express.raw({ type: 'application/json' })` for webhook route |
-| Route not found (404)        | Wrong path                       | Use `/api/webhooks` or preserve existing path                     |
-| Not authorized (401)         | Route is protected by middleware | Make route public in `clerkMiddleware()`                          |
-| No data in DB                | Async job pending                | Wait/check logs                                                   |
-| Duplicate entries            | Only handling `user.created`     | Also handle `user.updated`                                        |
-| Timeouts                     | Handler too slow                 | Queue async work, return 200 first                                |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Verification fails (Next.js) | Wrong import or usage | Use `@clerk/nextjs/webhooks`, pass `req` directly |
+| Verification fails (Express) | Using `express.json()` | Use `express.raw({ type: 'application/json' })` for webhook route |
+| Route not found (404) | Wrong path | Use `/api/webhooks` or preserve existing path |
+| Not authorized (401) | Route is protected by middleware | Make route public in `clerkMiddleware()` |
+| No data in DB | Async job pending | Wait/check logs |
+| Duplicate entries | Only handling `user.created` | Also handle `user.updated` |
+| Timeouts | Handler too slow | Queue async work, return 200 first |
 
 ## Testing & Deployment
 
@@ -337,8 +333,8 @@ const {
 
 ## References
 
-| Reference                  | Description                                                                              |
-| -------------------------- | ---------------------------------------------------------------------------------------- |
+| Reference | Description |
+|-----------|-------------|
 | `references/frameworks.md` | Webhook handler examples for Express, Astro, Fastify, Nuxt, React Router, TanStack Start |
 
 ## See Also

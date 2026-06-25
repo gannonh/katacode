@@ -5,28 +5,28 @@
 `createServerFn` runs on the server. Use `auth()` from `@clerk/tanstack-react-start/server` inside handlers:
 
 ```typescript
-import { createServerFn } from "@tanstack/react-start";
-import { auth } from "@clerk/tanstack-react-start/server";
+import { createServerFn } from '@tanstack/react-start'
+import { auth } from '@clerk/tanstack-react-start/server'
 
 export const getAuthenticatedUser = createServerFn().handler(async () => {
-  const { isAuthenticated, userId } = await auth();
+  const { isAuthenticated, userId } = await auth()
 
   if (!isAuthenticated) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized')
   }
 
-  return { userId };
-});
+  return { userId }
+})
 ```
 
 ## Import Path
 
 ```typescript
 // Server-side auth: always import from /server subpath
-import { auth } from "@clerk/tanstack-react-start/server";
+import { auth } from '@clerk/tanstack-react-start/server'
 
 // Client-side hooks: import from package root
-import { useAuth, useUser } from "@clerk/tanstack-react-start";
+import { useAuth, useUser } from '@clerk/tanstack-react-start'
 ```
 
 Mixing these causes runtime errors.
@@ -34,19 +34,19 @@ Mixing these causes runtime errors.
 ## Redirect Pattern
 
 ```typescript
-import { createServerFn } from "@tanstack/react-start";
-import { redirect } from "@tanstack/react-router";
-import { auth } from "@clerk/tanstack-react-start/server";
+import { createServerFn } from '@tanstack/react-start'
+import { redirect } from '@tanstack/react-router'
+import { auth } from '@clerk/tanstack-react-start/server'
 
 export const requireAuth = createServerFn().handler(async () => {
-  const { isAuthenticated, userId } = await auth();
+  const { isAuthenticated, userId } = await auth()
 
   if (!isAuthenticated) {
-    throw redirect({ to: "/sign-in" });
+    throw redirect({ to: '/sign-in' })
   }
 
-  return { userId };
-});
+  return { userId }
+})
 ```
 
 `redirect` must be `throw`n, not returned.
@@ -55,19 +55,19 @@ export const requireAuth = createServerFn().handler(async () => {
 
 ```typescript
 export const getOrgData = createServerFn().handler(async () => {
-  const { isAuthenticated, userId, orgId } = await auth();
+  const { isAuthenticated, userId, orgId } = await auth()
 
   if (!isAuthenticated) {
-    throw redirect({ to: "/sign-in" });
+    throw redirect({ to: '/sign-in' })
   }
 
   if (!orgId) {
-    throw redirect({ to: "/select-org" });
+    throw redirect({ to: '/select-org' })
   }
 
-  const data = await db.items.findMany({ where: { orgId } });
-  return { data, orgId };
-});
+  const data = await db.items.findMany({ where: { orgId } })
+  return { data, orgId }
+})
 ```
 
 ## Calling from Components

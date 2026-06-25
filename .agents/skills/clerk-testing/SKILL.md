@@ -14,16 +14,15 @@ compatibility: Requires CLERK_TESTING_TOKEN from Clerk dashboard
 
 ## Decision Tree
 
-| Framework  | Documentation                                                         |
-| ---------- | --------------------------------------------------------------------- |
-| Overview   | https://clerk.com/docs/guides/development/testing/overview            |
+| Framework | Documentation |
+|-----------|---------------|
+| Overview | https://clerk.com/docs/guides/development/testing/overview |
 | Playwright | https://clerk.com/docs/guides/development/testing/playwright/overview |
-| Cypress    | https://clerk.com/docs/guides/development/testing/cypress/overview    |
+| Cypress | https://clerk.com/docs/guides/development/testing/cypress/overview |
 
 ## Mental Model
 
 Test auth = isolated session state. Each test needs fresh auth context.
-
 - `clerkSetup()` initializes test environment
 - `setupClerkTestingToken()` bypasses bot detection
 - `storageState` persists auth between tests for speed
@@ -44,11 +43,11 @@ Test auth = isolated session state. Each test needs fresh auth context.
 
 ## Anti-Patterns
 
-| Pattern                       | Problem       | Fix                    |
-| ----------------------------- | ------------- | ---------------------- |
-| Production keys in tests      | Security risk | Use `pk_test_*` keys   |
-| No `setupClerkTestingToken()` | Auth fails    | Call before navigation |
-| UI-based sign-in every test   | Slow tests    | Use `storageState`     |
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| Production keys in tests | Security risk | Use `pk_test_*` keys |
+| No `setupClerkTestingToken()` | Auth fails | Call before navigation |
+| UI-based sign-in every test | Slow tests | Use `storageState` |
 
 ## Framework-Specific
 

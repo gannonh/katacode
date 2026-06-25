@@ -1,9 +1,9 @@
 ---
 name: clerk-expo-patterns
-description: "Expo / React Native patterns with Clerk — SecureStore token cache, OAuth
+description: 'Expo / React Native patterns with Clerk — SecureStore token cache, OAuth
   deep linking, useAuth in native, Expo Router protected routes, push notifications
   with user context. Triggers on: expo clerk, clerk react native, SecureStore token
-  cache, expo router auth, OAuth deep link clerk, mobile auth clerk."
+  cache, expo router auth, OAuth deep link clerk, mobile auth clerk.'
 license: MIT
 allowed-tools: WebFetch
 metadata:
@@ -18,12 +18,12 @@ SDK: `@clerk/expo` v3+. Requires Expo 53+, React Native 0.73+.
 
 ## What Do You Need?
 
-| Task                               | Reference                        |
-| ---------------------------------- | -------------------------------- |
-| Persist tokens with SecureStore    | references/token-storage.md      |
-| OAuth (Google, Apple, GitHub)      | references/oauth-deep-linking.md |
-| Protected screens with Expo Router | references/protected-routes.md   |
-| Push notifications with user data  | references/push-notifications.md |
+| Task | Reference |
+|------|-----------|
+| Persist tokens with SecureStore | references/token-storage.md |
+| OAuth (Google, Apple, GitHub) | references/oauth-deep-linking.md |
+| Protected screens with Expo Router | references/protected-routes.md |
+| Push notifications with user data | references/push-notifications.md |
 
 ## Mental Model
 
@@ -36,21 +36,21 @@ Clerk stores the session token in memory by default. In native apps:
 
 ## Minimal Setup
 
-### app/\_layout.tsx
+### app/_layout.tsx
 
 ```tsx
-import { ClerkProvider } from "@clerk/expo";
-import { tokenCache } from "@clerk/expo/token-cache";
-import { Stack } from "expo-router";
+import { ClerkProvider } from '@clerk/expo'
+import { tokenCache } from '@clerk/expo/token-cache'
+import { Stack } from 'expo-router'
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!
 
 export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <Stack />
     </ClerkProvider>
-  );
+  )
 }
 ```
 
@@ -59,7 +59,7 @@ export default function RootLayout() {
 ## Built-in Token Cache
 
 ```tsx
-import { tokenCache } from "@clerk/expo/token-cache";
+import { tokenCache } from '@clerk/expo/token-cache'
 ```
 
 This uses `expo-secure-store` with `keychainAccessible: AFTER_FIRST_UNLOCK`. Install the peer dep:
@@ -71,62 +71,62 @@ npx expo install expo-secure-store
 ## Auth Hooks
 
 ```tsx
-import { useAuth, useUser, useSignIn, useSignUp, useClerk } from "@clerk/expo";
+import { useAuth, useUser, useSignIn, useSignUp, useClerk } from '@clerk/expo'
 
 export function ProfileScreen() {
-  const { isSignedIn, userId, signOut } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn, userId, signOut } = useAuth()
+  const { user } = useUser()
 
-  if (!isSignedIn) return <Redirect href="/sign-in" />;
+  if (!isSignedIn) return <Redirect href="/sign-in" />
   return (
     <View>
       <Text>{user?.fullName}</Text>
       <Button title="Sign Out" onPress={() => signOut()} />
     </View>
-  );
+  )
 }
 ```
 
 ## OAuth Flow (Google)
 
 ```tsx
-import { useSSO } from "@clerk/expo";
-import * as WebBrowser from "expo-web-browser";
+import { useSSO } from '@clerk/expo'
+import * as WebBrowser from 'expo-web-browser'
 
-WebBrowser.maybeCompleteAuthSession();
+WebBrowser.maybeCompleteAuthSession()
 
 export function GoogleSignIn() {
-  const { startSSOFlow } = useSSO();
+  const { startSSOFlow } = useSSO()
 
   const handlePress = async () => {
     try {
       const { createdSessionId, setActive } = await startSSOFlow({
-        strategy: "oauth_google",
-        redirectUrl: "myapp://oauth-callback",
-      });
-      if (createdSessionId) await setActive!({ session: createdSessionId });
+        strategy: 'oauth_google',
+        redirectUrl: 'myapp://oauth-callback',
+      })
+      if (createdSessionId) await setActive!({ session: createdSessionId })
     } catch (err) {
-      console.error(err);
+      console.error(err)
     }
-  };
+  }
 
-  return <Button title="Continue with Google" onPress={handlePress} />;
+  return <Button title="Continue with Google" onPress={handlePress} />
 }
 ```
 
 ## Org Switching
 
 ```tsx
-import { useOrganization, useOrganizationList } from "@clerk/expo";
+import { useOrganization, useOrganizationList } from '@clerk/expo'
 
 export function OrgSwitcher() {
-  const { organization } = useOrganization();
-  const { setActive, userMemberships } = useOrganizationList();
+  const { organization } = useOrganization()
+  const { setActive, userMemberships } = useOrganizationList()
 
   return (
     <View>
-      <Text>Current: {organization?.name ?? "Personal"}</Text>
-      {userMemberships.data?.map((mem) => (
+      <Text>Current: {organization?.name ?? 'Personal'}</Text>
+      {userMemberships.data?.map(mem => (
         <Button
           key={mem.organization.id}
           title={mem.organization.name}
@@ -134,29 +134,29 @@ export function OrgSwitcher() {
         />
       ))}
     </View>
-  );
+  )
 }
 ```
 
 ## Common Pitfalls
 
-| Symptom                               | Cause                                | Fix                                                   |
-| ------------------------------------- | ------------------------------------ | ----------------------------------------------------- |
-| `publishableKey` undefined in prod    | Using env var without `EXPO_PUBLIC_` | Rename to `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`         |
-| Token lost on app restart             | No `tokenCache`                      | Pass `tokenCache` from `@clerk/expo/token-cache`      |
-| OAuth redirect not working            | Missing scheme in `app.json`         | Add `"scheme": "myapp"` to `app.json`                 |
-| `WebBrowser.maybeCompleteAuthSession` | Not called                           | Call it at the top level of the OAuth callback screen |
-| `useSSO` not found                    | Old `@clerk/expo` version            | `useSSO` replaced `useOAuth` in v3+                   |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `publishableKey` undefined in prod | Using env var without `EXPO_PUBLIC_` | Rename to `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` |
+| Token lost on app restart | No `tokenCache` | Pass `tokenCache` from `@clerk/expo/token-cache` |
+| OAuth redirect not working | Missing scheme in `app.json` | Add `"scheme": "myapp"` to `app.json` |
+| `WebBrowser.maybeCompleteAuthSession` | Not called | Call it at the top level of the OAuth callback screen |
+| `useSSO` not found | Old `@clerk/expo` version | `useSSO` replaced `useOAuth` in v3+ |
 
 ## Import Map
 
-| What                                     | Import From               |
-| ---------------------------------------- | ------------------------- |
-| `ClerkProvider`                          | `@clerk/expo`             |
-| `tokenCache`                             | `@clerk/expo/token-cache` |
-| `useAuth`, `useUser`, `useSignIn`        | `@clerk/expo`             |
-| `useSSO`                                 | `@clerk/expo`             |
-| `useOrganization`, `useOrganizationList` | `@clerk/expo`             |
+| What | Import From |
+|------|-------------|
+| `ClerkProvider` | `@clerk/expo` |
+| `tokenCache` | `@clerk/expo/token-cache` |
+| `useAuth`, `useUser`, `useSignIn` | `@clerk/expo` |
+| `useSSO` | `@clerk/expo` |
+| `useOrganization`, `useOrganizationList` | `@clerk/expo` |
 
 ## See Also
 
