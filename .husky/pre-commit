@@ -3,7 +3,8 @@ set -e
 
 # Auto-format staged files (including markdown) so commits pass `vp check` in CI.
 formatted=$(git diff --cached --name-only --diff-filter=ACM |
-  grep -E '\.(md|markdown|ts|tsx|js|jsx|mjs|cjs|json|html|css|yaml|yml)$' || true)
+  grep -E '\.(md|markdown|ts|tsx|js|jsx|mjs|cjs|json|html|css|yaml|yml)$' |
+  grep -v '^\.agents/skills/' || true)
 
 if [ -n "$formatted" ]; then
   # shellcheck disable=SC2086
