@@ -20,20 +20,23 @@ provider, real Clerk infra with test keys) and never mocks them.
 
 ## Prerequisites
 
-1. **macOS + Xcode + an iOS Simulator runtime.** See the runbook for `xcodebuild -downloadPlatform iOS`.
-2. **Maestro CLI** (pinned). Install:
+1. **Node.js 24+.** The CLI runs `mobile-e2e/src/cli/run.ts` (and the harness modules it imports) directly via `node`, relying on Node 24's native TypeScript type-stripping. The repo pins `node ^24.13.1` in the root `package.json`; an older Node fails on the first `import "./args.ts"` with no version hint.
+2. **macOS + Xcode + an iOS Simulator runtime.** See the runbook for `xcodebuild -downloadPlatform iOS`.
+3. **Maestro CLI** (pinned). Install:
    ```bash
    curl -fsSL "https://get.maestro.mobile.dev" | bash
    # or, if added to the mobile Brewfile:
    brew bundle --file apps/mobile/Brewfile
    ```
-3. **Built server CLI** (`apps/server/dist/bin.mjs`) — produced by the standard repo build.
-4. **An installed dev client.** Build it once; the suite does not rebuild per run:
+4. **Built server CLI** (`apps/server/dist/bin.mjs`) — produced by the standard repo build.
+5. **An installed dev client.** Build it once; the suite does not rebuild per run:
    ```bash
    vp run e2e:mobile:build            # = vp run --filter @kata-sh/code-mobile ios:dev
    ```
-5. **At least one configured agent provider** on the host (same setup as desktop/web dev).
-6. For `@auth` / `@agent`: the documented credentials below.
+6. **At least one configured agent provider** on the host (same setup as desktop/web dev).
+7. For `@auth` / `@agent`: the documented credentials below.
+
+Run the suite's own unit tests with `vp run e2e:mobile:test` (elastic `mobile-e2e` workspace) and typecheck with `vp run --filter @kata-sh/code-mobile-e2e typecheck`.
 
 ## Commands
 
@@ -72,6 +75,23 @@ Secrets stay in local-only files (`.env.local`, `.auth/`) and are never committe
 
 No mocked server, provider, or Clerk; no HAR/route stubs; no fake agent responses. Native simulator
 control (`xcrun simctl`) is allowed only for determinism and is documented at the call site.
+
+## Diagnosing failures
+
+Each run is isolated under `test-results/<runId>/`, so a failed run leaves a full trail:
+
+| Artifact                                                     | What it captures                                                                             |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `test-results/<runId>/manifest.json`                         | Run id, tags, `KATACODE_HOME`, server port/host, simulator UDID, project path, artifact root |
+| `test-results/<runId>/serve-stdout.log` / `serve-stderr.log` | `katacode serve` startup output; a serve timeout points here                                 |
+| `test-results/<runId>/project-add.log`                       | `katacode project add` output                                                                |
+| `test-results/<runId>/recording.mp4`                         | Simulator screen recording (`KATACODE_E2E_VIDEO=1`)                                          |
+| `test-results/<runId>/report.xml`                            | Maestro JUnit report                                                                         |
+| `artifacts/<runId>/`                                         | Maestro debug output: screenshots, view hierarchy on failure                                 |
+
+Errors name the artifact path inline: a `katacode serve: timed out` message ends with the serve
+stdout log, a `project add failed` message ends with the project-add log. Start from the manifest,
+then the log named in the error.
 
 ## `@auth` / `@agent` status
 
