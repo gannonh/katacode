@@ -5,8 +5,8 @@ import { formatMissingPrerequisiteError } from "./env.ts";
 import { logHarnessPhase } from "./log.ts";
 
 export interface MaestroRunOptions {
-  /** A Maestro flow file or a directory of flows. */
-  readonly flowPath: string;
+  /** Maestro flow file paths to run (Maestro does not recurse subdirectories). */
+  readonly flowPaths: readonly string[];
   /** Tags to filter on; `@`-prefixed or bare both accepted. */
   readonly includeTags?: readonly string[];
   /** Variables injected into flows via `-e KEY=VALUE` (`${KEY}` interpolation). */
@@ -37,7 +37,7 @@ export function buildMaestroArgs(options: MaestroRunOptions): string[] {
     args.push("-e", `${key}=${value}`);
   }
 
-  args.push(options.flowPath);
+  args.push(...options.flowPaths);
   return args;
 }
 

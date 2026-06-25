@@ -83,7 +83,7 @@ References:
 
 ## Acceptance criteria
 
-1. **Local-only, no CI:** `vp run e2e:mobile -- --include-tags @smoke` runs Maestro flows from a root `mobile-e2e/` suite, and `.github/workflows/ci.yml` invokes no mobile-e2e script or Maestro command.
+1. **Local-only, no CI:** `vp run e2e:mobile --include-tags @smoke` runs Maestro flows from a root `mobile-e2e/` suite, and `.github/workflows/ci.yml` invokes no mobile-e2e script or Maestro command.
 2. **Fail-loud prereq gates:** With a required item absent (Maestro CLI, booted simulator, installed `com.katacode.dev` dev client, loopback server, provider creds, or Clerk creds for the selected tag set), the command exits non-zero with a message naming the exact missing item. No mock or skip fallback is used in place of a real prerequisite.
 3. **Installed-build target:** The harness drives an already-installed `com.katacode.dev` dev client on a booted simulator; when the app is not installed it fails with instructions to build it. The build is a mobile-package script (`vp run --filter @kata-sh/code-mobile ios:dev`, or from `apps/mobile`); the new root `e2e:mobile:build` convenience script chains it. The suite does not rebuild the app as part of a normal run.
 4. **Run isolation + manifest:** Each run writes a manifest under `mobile-e2e/test-results/` recording run id, `KATACODE_HOME`, server port, simulator UDID, app bundle id, artifact root, and seeded/registered project path. Two sequential runs use different app homes and server ports.
@@ -92,7 +92,7 @@ References:
 7. **Bearer pairing (@pairing):** With a loopback server running (`katacode serve --port 3773 --host 127.0.0.1` + `katacode project add <path>`) and ≥1 provider configured, the flow injects the server-printed host and one-time token into Add Environment and the saved environment reaches "ready" (green `ConnectionStatusDot`). The connection uses `authenticationMethod: "bearer"` (not `relayManaged`/`dpop`). Evidence: Maestro screenshot of the connected environment.
 8. **Clerk Connect sign-in (@auth):** With documented Clerk + Google test-user environment variables present, the mobile Kata Code Connect sign-in flow reaches a signed-in session; auth state and secrets stay under ignored paths (`mobile-e2e/.auth/` or the Maestro/output dirs). If the Simulator OAuth/consent/ticket flow is blocked, the command fails at the consent/prereq gate naming the exact missing item — it never passes via mock or skipped assertion. Green runtime pass is a maintainer responsibility (deferred), but the flow and gate must exist and fail loudly without credentials.
 9. **Deterministic agent (@agent):** With provider credentials present, the flow opens a seeded/registered thread, selects the configured model in the composer, sends `Reply to this message with exactly: E2E_AGENT_OK_<run-id>`, and asserts the settled assistant text matches the expected value after documented whitespace normalization. Failure output includes provider, model, expected text, and captured response. Green runtime pass is deferred to a maintainer; the flow and provider-prereq gate must exist and fail loudly without credentials.
-10. **Tag filtering:** `vp run e2e:mobile -- --include-tags @smoke` and `vp run e2e:mobile -- --include-tags @pairing` each run only the matching flows.
+10. **Tag filtering:** `vp run e2e:mobile --include-tags @smoke` and `vp run e2e:mobile --include-tags @pairing` each run only the matching flows.
 11. **Reporting artifacts:** A failing flow produces terminal output plus artifacts under ignored paths: the Maestro output directory, at least one screenshot, a JUnit/JSON report, and the run manifest. Video is produced when `KATACODE_E2E_VIDEO=1`.
 12. **Reusable boundary:** Code review can identify generic harness utilities under `mobile-e2e/src/harness/` (simulator control, server stack, isolated run, Maestro runner, artifacts, prereq gates), Kata-specific TS under `mobile-e2e/src/flows/`, and on-device YAML under `mobile-e2e/maestro/`. Starter flows compose shared launch/pair/auth/navigation building blocks rather than duplicating them.
 13. **Starter coverage:** V1 includes 4 starter flows (one per required tag; a flow may carry more than one tag) across at least two distinct surfaces, with required tags `@smoke`, `@pairing`, `@auth`, and `@agent`; the `@auth` and `@agent` flows have explicit prerequisite checks.
@@ -102,10 +102,10 @@ References:
 
 | Area                | Primary evidence                                              | Pass condition                                             | Allowed blocked state                                                                 |
 | ------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Smoke launch        | `vp run e2e:mobile -- --include-tags @smoke`                  | exit 0, home-screen screenshot, no redbox                  | Missing installed dev client fails with build instructions                            |
-| Bearer pairing      | `vp run e2e:mobile -- --include-tags @pairing`                | environment reaches "ready" (green dot), bearer auth       | Missing server/provider fails at prereq gate with a clear message                     |
-| Clerk Connect       | `vp run e2e:mobile -- --include-tags @auth`                   | signed-in Connect session (maintainer-run)                 | Missing Clerk/Google env, or blocked Simulator OAuth/consent, fails at the named gate |
-| Deterministic agent | `vp run e2e:mobile -- --include-tags @agent`                  | real provider returns exact expected text (maintainer-run) | Missing provider env fails at the named gate                                          |
+| Smoke launch        | `vp run e2e:mobile --include-tags @smoke`                     | exit 0, home-screen screenshot, no redbox                  | Missing installed dev client fails with build instructions                            |
+| Bearer pairing      | `vp run e2e:mobile --include-tags @pairing`                   | environment reaches "ready" (green dot), bearer auth       | Missing server/provider fails at prereq gate with a clear message                     |
+| Clerk Connect       | `vp run e2e:mobile --include-tags @auth`                      | signed-in Connect session (maintainer-run)                 | Missing Clerk/Google env, or blocked Simulator OAuth/consent, fails at the named gate |
+| Deterministic agent | `vp run e2e:mobile --include-tags @agent`                     | real provider returns exact expected text (maintainer-run) | Missing provider env fails at the named gate                                          |
 | Tooling/isolation   | source review + run manifest                                  | harness/flows/maestro boundary present; manifest per run   | none                                                                                  |
 | Static quality      | `vp run --filter @kata-sh/code-mobile typecheck` + `... test` | both pass or pre-existing failures recorded                | none                                                                                  |
 
@@ -258,15 +258,15 @@ vp test run mobile-e2e/src/harness   # harness unit tests
 For runtime acceptance, Build runs the smallest safe local checks available:
 
 ```bash
-vp run e2e:mobile -- --include-tags @smoke      # exit 0 with home screenshot, or fail-loud on missing install
-vp run e2e:mobile -- --include-tags @pairing    # ready environment, or fail-loud on missing server/provider
+vp run e2e:mobile --include-tags @smoke      # exit 0 with home screenshot, or fail-loud on missing install
+vp run e2e:mobile --include-tags @pairing    # ready environment, or fail-loud on missing server/provider
 ```
 
 `@auth` and `@agent` runtime green is a maintainer responsibility; Build verifies they exist and fail loudly at the prereq gate when credentials are absent:
 
 ```bash
-vp run e2e:mobile -- --include-tags @agent      # fails naming the missing provider env when unset
-vp run e2e:mobile -- --include-tags @auth       # fails naming the missing Clerk/Google env when unset
+vp run e2e:mobile --include-tags @agent      # fails naming the missing provider env when unset
+vp run e2e:mobile --include-tags @auth       # fails naming the missing Clerk/Google env when unset
 ```
 
 A maintainer with credentials and a built dev client runs the full tag set locally before relying on the suite for signoff.
@@ -334,8 +334,8 @@ New: `mobile-e2e/**` (tsconfig, README, `src/config/*`, `src/harness/*`, `src/fl
 | `vp test run mobile-e2e/src`                                | **35 passed** (8 files) — pure logic: serve-output parse, Maestro args, simulator select, tag→credential gating, server-need, CLI args, flow-tag parse, agent text/normalization |
 | `vp check mobile-e2e`                                       | format + lint **clean** (28 files)                                                                                                                                               |
 | `mobile-e2e` typecheck (`apps/mobile` tsc, production code) | **clean** (test files only show a `vitest` module-resolution artifact under ad-hoc tsc, resolved at vitest runtime)                                                              |
-| `vp run e2e:mobile -- --list`                               | lists all 4 flows by tag                                                                                                                                                         |
-| `vp run e2e:mobile -- --help`                               | exit 0                                                                                                                                                                           |
+| `vp run e2e:mobile --list`                                  | lists all 4 flows by tag                                                                                                                                                         |
+| `vp run e2e:mobile --help`                                  | exit 0                                                                                                                                                                           |
 | `node mobile-e2e/src/cli/run.ts --include-tags @agent`      | **exit 1**, fail-loud naming the missing prerequisite (AC 2)                                                                                                                     |
 | `vp run --filter @kata-sh/code-mobile typecheck`            | **exit 0** (AC 14)                                                                                                                                                               |
 | `vp run --filter @kata-sh/code-mobile test`                 | **154 passed** (AC 14)                                                                                                                                                           |
@@ -353,3 +353,11 @@ New: `mobile-e2e/**` (tsconfig, README, `src/config/*`, `src/harness/*`, `src/fl
 - On-device locators in the Maestro flows are best-effort anchors from source; the ready-state assertion (`@pairing`), settings/sign-in entry and native-modal drivability (`@auth`), and the composer model-picker + send control (`@agent`) need `maestro studio` confirmation, and may require deliberate `accessibilityLabel` test contracts in product code.
 - `@auth` may prove non-automatable if Maestro cannot drive the native `presentAuth` modal; bearer pairing remains the proven path.
 - The harness is not covered by the recursive `vp run typecheck` (it is not a workspace package — same as `e2e/`); it is typechecked directly and linted via `vp check`.
+
+## Related docs
+
+- [Mobile local dev (iOS Simulator)](/guides/mobile-local-dev-ios-simulator.md) — the manual loop this suite automates; includes a mapping table from manual steps to harness behavior.
+- [Mobile E2E operator reference](../../mobile-e2e/README.md) — commands, env vars, tags, prerequisites, Studio.
+- [mobile-e2e-test-author skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md) — authoring new flows from `src/harness/`, `src/flows/`, and `maestro/`.
+- [Electron E2E testing foundation](/specs/2026-06-21-e2e-testing-foundation-design.md) — the parallel Playwright/Electron foundation this suite mirrors.
+- [Mobile local dev slice design](/specs/2026-06-22-mobile-local-dev-slice-design.md) — the preceding slice that proved the loopback bearer path.

@@ -3,9 +3,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const mobileE2eRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const repoRoot = join(mobileE2eRoot, "..");
 
 export function resolveMobileE2eRoot(): string {
   return mobileE2eRoot;
+}
+
+export function resolveRepoRoot(): string {
+  return repoRoot;
 }
 
 /** Run manifests and machine-readable reports (gitignored). */

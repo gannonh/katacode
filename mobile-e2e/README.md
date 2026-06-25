@@ -38,11 +38,11 @@ provider, real Clerk infra with test keys) and never mocks them.
 ## Commands
 
 ```bash
-vp run e2e:mobile -- --include-tags @smoke      # launch smoke
-vp run e2e:mobile -- --include-tags @pairing    # bearer loopback pairing
-vp run e2e:mobile -- --include-tags @auth       # Clerk Connect sign-in (maintainer, creds required)
-vp run e2e:mobile -- --include-tags @agent      # deterministic agent reply (maintainer, provider required)
-vp run e2e:mobile -- --list                     # list flows without running
+vp run e2e:mobile --include-tags @smoke      # launch smoke
+vp run e2e:mobile --include-tags @pairing    # bearer loopback pairing
+vp run e2e:mobile --include-tags @auth       # Clerk Connect sign-in (maintainer, creds required)
+vp run e2e:mobile --include-tags @agent      # deterministic agent reply (maintainer, provider required)
+vp run e2e:mobile --list                     # list flows without running
 vp run e2e:mobile:studio                         # boot sim + ensure app, then launch `maestro studio`
 ```
 

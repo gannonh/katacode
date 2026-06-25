@@ -1,5 +1,13 @@
 # Guides log
 
+## 2026-06-24 (mobile local dev guide — automated E2E cross-links + command fixes)
+
+- Added "Automated E2E" section to [Mobile local dev (iOS Simulator)](/guides/mobile-local-dev-ios-simulator.md) mapping the three manual dev terminals to what the mobile E2E harness automates vs checks, with commands and cross-links to the [design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md), [operator reference](../../mobile-e2e/README.md), and [authoring skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md).
+- Fixed `katacode serve` prose to use the actual command (`node apps/server/dist/bin.mjs`).
+- Fixed `-- --` arg-passing syntax in all e2e:mobile commands (vp run doesn't use `--` for args).
+- Added note that e2e commands run from the repo root, not `apps/mobile`.
+- Expanded "Related docs" with the design spec and operator reference links.
+
 ## 2026-06-23 (mobile local dev guide — cache clearing and env scoping)
 
 - Updated [Mobile local dev (iOS Simulator)](/guides/mobile-local-dev-ios-simulator.md) to document the cache-clearing script (`clear-expo-image-cache.mjs`) and correct `APP_VARIANT`/`EXPO_NO_GIT_STATUS` env var scoping in the `ios:dev` command (PR #9 review fix).

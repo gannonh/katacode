@@ -1,5 +1,10 @@
 # Specs log
 
+## 2026-06-24 (mobile E2E design spec — reciprocal cross-links)
+
+- Added "Related docs" section to [Mobile E2E testing foundation design](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md) with reciprocal links to the [mobile local dev guide](/guides/mobile-local-dev-ios-simulator.md), [operator reference](../../mobile-e2e/README.md), [authoring skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md), [Electron E2E foundation](/specs/2026-06-21-e2e-testing-foundation-design.md), and [mobile local dev slice design](/specs/2026-06-22-mobile-local-dev-slice-design.md).
+- Updated [mobile local dev guide](/guides/mobile-local-dev-ios-simulator.md) with an "Automated E2E" section that maps the manual dev loop to the harness behavior.
+
 ## 2026-06-24 (upstream sync strategy reconciliation)
 
 - Retired the ADR 0003 bulk-merge plan: marked [closure spec](/specs/2026-06-20-upstream-sync-closure.md) and [resume handoff](/specs/2026-06-20-upstream-sync-handoff.md) **Superseded**; promoted [strategy analysis](/specs/2026-06-21-upstream-sync-strategy-analysis.md) (Option D) to **Accepted** with outcome [ADR 0004](/adrs/0004-selective-vendor-pull.md).

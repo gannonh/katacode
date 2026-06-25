@@ -67,9 +67,9 @@ flows declarative.
 ## Verification commands
 
 ```bash
-vp run e2e:mobile -- --list                        # list flows + tags
-vp run e2e:mobile -- --include-tags @smoke         # smoke launch
-vp run e2e:mobile -- --include-tags @pairing       # bearer pairing
+vp run e2e:mobile --list                        # list flows + tags
+vp run e2e:mobile --include-tags @smoke         # smoke launch
+vp run e2e:mobile --include-tags @pairing       # bearer pairing
 vp run e2e:mobile:studio                            # explore / author locators
 vp test run mobile-e2e/src                          # harness + flow unit tests
 vp check mobile-e2e                                 # format + lint

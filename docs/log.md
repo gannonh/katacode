@@ -1,5 +1,25 @@
 # OKF bundle log
 
+## 2026-06-24 (mobile E2E — harness fixes, guide corrections, smoke test passing)
+
+Fixed three harness bugs and corrected all guide/spec command syntax after live UAT revealed the suite couldn't run as documented.
+
+- **Server bin path bug:** `resolveMobileE2eRoot()` returned `mobile-e2e/` but was passed as `repoRoot` to `requirePrereqs`, so the server bin check looked for `mobile-e2e/apps/server/dist/bin.mjs` (wrong). Added `resolveRepoRoot()` in `artifacts.ts` and used it in `run.ts`.
+- **Maestro flow discovery:** `maestro test` with a directory doesn't recurse subdirectories. Changed `MaestroRunOptions.flowPath` to `flowPaths: readonly string[]` and added `resolveFlowPaths()` in `run.ts` to pass individual flow file paths filtered by tag.
+- **Smoke flow locator:** `clearState: true` launched the Expo Dev Launcher (server picker) instead of the app. Changed to `clearState: false` and asserted on "Kata Code" (app header, always visible). Added `extendedWaitUntil` with 90s timeout for Metro bundle loading.
+- **Command syntax:** Removed `-- --` arg-passing from all `vp run e2e:mobile` commands in guides, specs, README, and skill (vp run passes args directly).
+- **Guide fixes:** `katacode serve` prose replaced with `node apps/server/dist/bin.mjs`; e2e commands annotated as repo-root; mapping table uses `--filter` form for mobile package scripts.
+- Smoke test verified: 1/1 Flow Passed in 4s on iPhone 17 Pro, JUnit report 0 failures.
+- Updated [guides log](/guides/log.md) and [specs log](/specs/log.md).
+
+## 2026-06-24 (mobile E2E — dev guide cross-links + spec reciprocal links)
+
+Connected the [mobile local dev guide](/guides/mobile-local-dev-ios-simulator.md) to the [mobile E2E testing foundation](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md) with bidirectional OKF cross-links so the relationship between the manual dev loop and the automated suite is traversable.
+
+- [Mobile local dev guide](/guides/mobile-local-dev-ios-simulator.md): added "Automated E2E" section mapping the three manual terminals (server, Metro, build) to what the harness automates vs checks; expanded "Related docs" with the design spec and operator reference.
+- [Mobile E2E design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md): added "Related docs" section with reciprocal links to the dev guide, operator reference, authoring skill, Electron E2E foundation, and mobile local dev slice design.
+- Updated [guides log](/guides/log.md) and [specs log](/specs/log.md).
+
 ## 2026-06-24 (upstream sync docs reconciliation — ADR 0004)
 
 Reconciled the OKF bundle and [FORK.md](../../FORK.md) to the accepted [ADR 0004 — Selective vendor-pull](/adrs/0004-selective-vendor-pull.md), after the first episodic bulk-merge attempt ([ADR 0003](/adrs/0003-episodic-upstream-sync.md), branch `upstream-sync-2026-06-20`) stalled without landing.

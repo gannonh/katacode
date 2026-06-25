@@ -10,6 +10,7 @@ import {
   type RunManifest,
   resolveMaestroOutputRoot,
   resolveMobileE2eRoot,
+  resolveRepoRoot,
   writeRunManifest,
 } from "../harness/artifacts.ts";
 import { assertMacOsHost, isVideoEnabled } from "../harness/env.ts";
@@ -36,6 +37,15 @@ import { discoverFlows } from "./flows.ts";
 
 function maestroFlowDir(): string {
   return join(resolveMobileE2eRoot(), "maestro");
+}
+
+/** Resolve absolute paths for flows matching the selected tags (or all if no tags). */
+function resolveFlowPaths(tags: readonly string[]): string[] {
+  const dir = maestroFlowDir();
+  const flows = discoverFlows();
+  const matching =
+    tags.length === 0 ? flows : flows.filter((flow) => tags.some((tag) => flow.tags.includes(tag)));
+  return matching.map((flow) => join(dir, flow.relativePath));
 }
 
 function buildManifest(context: MobileE2ERunContext): RunManifest {
@@ -109,7 +119,7 @@ async function runStudio(): Promise<number> {
 }
 
 async function runFlows(options: CliOptions): Promise<number> {
-  requirePrereqs({ repoRoot: resolveMobileE2eRoot(), tags: options.tags });
+  requirePrereqs({ repoRoot: resolveRepoRoot(), tags: options.tags });
 
   const context = await createIsolatedRun({ tags: options.tags });
   let recording: ScreenRecording | null = null;
@@ -132,7 +142,7 @@ async function runFlows(options: CliOptions): Promise<number> {
 
     const result = await runMaestro(
       {
-        flowPath: maestroFlowDir(),
+        flowPaths: resolveFlowPaths(options.tags),
         includeTags: options.tags,
         env: buildMaestroEnv(context, pairing),
         format: "junit",
