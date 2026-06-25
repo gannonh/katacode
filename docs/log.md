@@ -1,5 +1,9 @@
 # OKF bundle log
 
+## 2026-06-25 (mobile E2E — Verify outcome: pairing + agent green)
+
+Recorded the on-device Verify outcome for the mobile E2E suite (iPhone 17 Pro). `@smoke`, `@pairing`, and `@agent` now pass on the Simulator via Maestro Studio; `@auth` (native `NativeClerk.presentAuth` modal) and the AC-4 distinct-ports clause remain open. Captured durable learnings: the `connection-status` accessibility-id test contract on `ConnectionStatusDot`, the `shared/` subflow pattern (excluded from discovery), and model-picker label derivation in `flows/agent.ts` (provider→`Codex`/`Claude`, slug→display label). Added a [Verify outcome](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md#verify-outcome-2026-06-25) section to the design spec, updated the [specs roadmap](/specs/index.md), refreshed the [mobile-e2e-test-author skill](../.agents/skills/mobile-e2e-test-author/SKILL.md), and logged in [specs log](/specs/log.md).
+
 ## 2026-06-25 (mobile E2E Maestro Studio authoring guide)
 
 Added [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md) as the canonical OKF guide for Maestro Studio workflow, locator conventions, and flow authoring. Cross-linked from guides index, E2E test catalog, mobile local dev guide, mobile E2E design spec, `mobile-e2e/README.md`, and the mobile-e2e-test-author skill. Updated [guides log](/guides/log.md).

@@ -346,13 +346,25 @@ New: `mobile-e2e/**` (tsconfig, README, `src/config/*`, `src/harness/*`, `src/fl
 ### Acceptance criteria status
 
 - **Verified now (1-5, 10-14):** local-only/no-CI, fail-loud gates, installed-build gate, run isolation + manifest, real-service boundary, tag filtering, reporting/artifact wiring under ignored paths, harness/flows/maestro boundary, 4 tagged starter flows, authoring skill + runbook + static quality.
-- **Deferred to maintainer runtime (6-9):** `@smoke`, `@pairing`, `@auth`, `@agent` flows and gates exist and are wired; their **green on-device pass requires a booted Simulator with an installed dev client** (and creds for `@auth`/`@agent`). Per the approved decision, the green runtime pass is a maintainer responsibility, performed during Verify with `maestro studio` for locator confirmation.
+- **Deferred to maintainer runtime (6-9):** `@smoke`, `@pairing`, `@auth`, `@agent` flows and gates exist and are wired; their **green on-device pass requires a booted Simulator with an installed dev client** (and creds for `@auth`/`@agent`). Per the approved decision, the green runtime pass is a maintainer responsibility, performed during Verify with `maestro studio` for locator confirmation. **Outcome below:** see [Verify outcome (2026-06-25)](#verify-outcome-2026-06-25) — `@smoke`/`@pairing`/`@agent` are green; `@auth` and the AC-4 distinct-ports clause remain open.
 
 ### Known follow-ups
 
 - On-device locators in the Maestro flows are best-effort anchors from source; the ready-state assertion (`@pairing`), settings/sign-in entry and native-modal drivability (`@auth`), and the composer model-picker + send control (`@agent`) need `maestro studio` confirmation, and may require deliberate `accessibilityLabel` test contracts in product code.
 - `@auth` may prove non-automatable if Maestro cannot drive the native `presentAuth` modal; bearer pairing remains the proven path.
 - The harness is not covered by the recursive `vp run typecheck` (it is not a workspace package — same as `e2e/`); it is typechecked directly and linted via `vp check`.
+
+## Verify outcome (2026-06-25)
+
+On-device verification on the iOS Simulator (iPhone 17 Pro), driving the real dev client with `maestro studio` to confirm locators. Recorded as evidence; a formal merge sign-off is still pending while the open items below stand.
+
+- **`@smoke` — green.** App launches past the Expo Dev Launcher (`clearState: false` preserves the saved Metro URL) and the "Kata Code" header renders; `extendedWaitUntil` covers Metro bundling (`466bc77f5`, `ff47aeff6`).
+- **`@pairing` — green.** Bearer loopback pairing reaches a ready environment. Required a deliberate test contract: the `connection-status` accessibility id on `ConnectionStatusDot` (`ac8b8d371`), asserted as `connection-status-ready`. Navigation to Add Environment was factored into a reusable `maestro/shared/open-add-environment.yaml` subflow; `shared/` is excluded from flow discovery (`SUBFLOW_DIRS` in `cli/flows.ts`) (`609790fe2`, `760a60ef8`).
+- **`@agent` — green.** Real-provider deterministic reply passes. The flow composes `@pairing` via `runFlow`, opens the native composer, selects the model through the native pull-down picker, and asserts the run-id token. Model-picker rows show display labels, not raw slugs, so `flows/agent.ts` derives them (`providerMenuLabel`: `openai`→`Codex`, `anthropic`→`Claude`; `modelMenuLabel`: `gpt-5.4-mini`→`GPT-5.4-Mini`) mirroring the server's `toDisplayName` (`609790fe2`, `760a60ef8`).
+- **`@auth` — open.** Mobile Connect sign-in is the native `NativeClerk.presentAuth` modal; driving it through Maestro remains unproven. The flow + fail-loud gate exist; bearer pairing stays the proven path.
+- **AC 4 distinct ports — open.** `createIsolatedRun` still allocates the server port via `findAvailablePortOffset` from a fixed offset, so two _sequential_ runs reuse the freed port (distinct `KATACODE_HOME` holds; distinct ports does not). No collision in practice; the literal AC-4 port clause is unmet. Suggested fix: jitter the per-run start offset. Same pattern exists in the Electron `e2e/` harness.
+
+Canonical authoring workflow and the full verified locator set live in [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md); every flow is indexed in the [E2E test catalog](/guides/e2e-test-catalog.md).
 
 ## Related docs
 

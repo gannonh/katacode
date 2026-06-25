@@ -1,5 +1,10 @@
 # Specs log
 
+## 2026-06-25 (mobile E2E — Verify outcome recorded)
+
+- Added a [Verify outcome (2026-06-25)](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md#verify-outcome-2026-06-25) section to the [mobile E2E design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md): `@smoke`/`@pairing`/`@agent` green on-device (iPhone 17 Pro) via Maestro Studio; `@auth` (native `presentAuth` modal) and the AC-4 distinct-ports clause recorded as open. Annotated the now-superseded "deferred to maintainer runtime" line in the Build report with a forward pointer.
+- Updated the [specs roadmap](/specs/index.md) status cell to reflect the green flows and the two open items, with links to the Verify outcome, [Maestro Studio authoring guide](/guides/e2e-mobile-authoring-maestro-studio.md), and [E2E test catalog](/guides/e2e-test-catalog.md).
+
 ## 2026-06-24 (mobile E2E design spec — reciprocal cross-links)
 
 - Added "Related docs" section to [Mobile E2E testing foundation design](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md) with reciprocal links to the [mobile local dev guide](/guides/mobile-local-dev-ios-simulator.md), [operator reference](../../mobile-e2e/README.md), [authoring skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md), [Electron E2E foundation](/specs/2026-06-21-e2e-testing-foundation-design.md), and [mobile local dev slice design](/specs/2026-06-22-mobile-local-dev-slice-design.md).

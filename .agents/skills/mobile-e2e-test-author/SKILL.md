@@ -9,6 +9,29 @@ Local-only Maestro suite for the Kata Code mobile app on the iOS Simulator. The 
 orchestrator owns server lifecycle, isolation, prereq gates, and artifacts; Maestro
 YAML owns on-device interaction. Real services only — no mocks.
 
+## Current status (2026-06-25)
+
+Verified green on-device (iPhone 17 Pro): `@smoke`, `@pairing`, `@agent`. Open:
+`@auth` (the native `NativeClerk.presentAuth` modal is not yet driven by Maestro).
+Full verified locators and the run inventory live in the
+[Maestro Studio authoring guide](../../../docs/guides/e2e-mobile-authoring-maestro-studio.md)
+and the [E2E test catalog](../../../docs/guides/e2e-test-catalog.md).
+
+Durable learnings to reuse, not relearn:
+
+- **`clearState: false`** on `launchApp` keeps the saved Metro URL so the dev client
+  loads past the Expo Dev Launcher; pair `extendedWaitUntil` for Metro bundling and
+  real provider round-trips.
+- **Accessibility-id test contracts** beat fragile text where the UI has no durable
+  label — e.g. `connection-status` on `ConnectionStatusDot`, asserted as
+  `connection-status-ready` for the pairing ready-state.
+- **Subflows** live in `maestro/shared/` (e.g. `open-add-environment.yaml`), composed
+  via `runFlow`. `shared/` is excluded from flow discovery (`SUBFLOW_DIRS` in
+  `cli/flows.ts`) so subflows are never run standalone.
+- **Model-picker labels are display labels, not raw slugs.** `flows/agent.ts` derives
+  them (`providerMenuLabel`: `openai`→`Codex`, `anthropic`→`Claude`; `modelMenuLabel`:
+  `gpt-5.4-mini`→`GPT-5.4-Mini`) mirroring the server's `toDisplayName`. Keep in sync.
+
 ## Before writing a flow
 
 1. Read [mobile-e2e/README.md](../../../mobile-e2e/README.md) and the design spec
