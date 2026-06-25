@@ -83,12 +83,12 @@ maestro studio                                  # interactive builder
 
 Choose your selector approach based on project context. Both are valid — the right choice depends on whether your app is localized and your team's testing philosophy.
 
-| Context                    | Recommended Selector       | Rationale                                        |
-| -------------------------- | -------------------------- | ------------------------------------------------ |
-| **Multi-language / i18n**  | `id:` (testID)             | Stable across translations                       |
-| **Single language**        | Text labels                | Human-readable, self-documenting tests           |
+| Context | Recommended Selector | Rationale |
+|---------|---------------------|-----------|
+| **Multi-language / i18n** | `id:` (testID) | Stable across translations |
+| **Single language** | Text labels | Human-readable, self-documenting tests |
 | **Agent-maintained tests** | Either — ask the developer | Readability matters less for AI-maintained flows |
-| **System dialogs**         | Text (always)              | No testID possible on native alerts              |
+| **System dialogs** | Text (always) | No testID possible on native alerts |
 
 ```yaml
 # testID selector — stable across translations
@@ -100,13 +100,11 @@ Choose your selector approach based on project context. Both are valid — the r
 ```
 
 **When to prefer testIDs:**
-
 - App supports multiple languages or will be translated
 - UI text is dynamic or frequently changes
 - Multiple elements share the same visible text
 
 **When to prefer text selectors:**
-
 - Single-language app with stable copy
 - Readability and self-documentation are a priority
 - Testing user-visible behavior exactly as it appears
@@ -115,7 +113,7 @@ In React Native, add `testID` props when using ID-based selectors:
 
 ```tsx
 <TouchableOpacity testID="submit-button" onPress={handleSubmit}>
-  <Text>{t("submit")}</Text>
+  <Text>{t('submit')}</Text>
 </TouchableOpacity>
 ```
 
@@ -140,9 +138,7 @@ Prevent race conditions where Maestro interacts with the UI before auth state re
 
 ```tsx
 // In your tab bar or root layout
-{
-  !isLoading && <View testID="auth-loaded" style={{ width: 0, height: 0 }} />;
-}
+{!isLoading && <View testID="auth-loaded" style={{ width: 0, height: 0 }} />}
 ```
 
 Then in every test:
@@ -207,11 +203,11 @@ Use short timeouts to verify UI changes happen before server response:
     timeout: 5000
 ```
 
-| Action           | Expected Change         | Timeout |
-| ---------------- | ----------------------- | ------- |
-| Mutation trigger | Button state flips      | < 3s    |
-| List update      | Item appears/disappears | < 5s    |
-| Re-do action     | Proves persistence      | < 3s    |
+| Action | Expected Change | Timeout |
+|--------|----------------|---------|
+| Mutation trigger | Button state flips | < 3s |
+| List update | Item appears/disappears | < 5s |
+| Re-do action | Proves persistence | < 3s |
 
 ### 5. Dismissing Native Alerts
 
@@ -320,12 +316,12 @@ Use `enabled`, `selected`, `checked`, and `focused` to target elements by their 
     timeout: 3000
 ```
 
-| Property   | Values           | Use Case                                                      |
-| ---------- | ---------------- | ------------------------------------------------------------- |
-| `enabled`  | `true` / `false` | Buttons that disable during submission or until form is valid |
-| `checked`  | `true` / `false` | Checkboxes, toggle switches                                   |
-| `selected` | `true` / `false` | Tab items, segmented controls                                 |
-| `focused`  | `true` / `false` | Input fields with auto-focus                                  |
+| Property | Values | Use Case |
+|----------|--------|----------|
+| `enabled` | `true` / `false` | Buttons that disable during submission or until form is valid |
+| `checked` | `true` / `false` | Checkboxes, toggle switches |
+| `selected` | `true` / `false` | Tab items, segmented controls |
+| `focused` | `true` / `false` | Input fields with auto-focus |
 
 ### 11. Relative Position Selectors
 
@@ -375,15 +371,15 @@ Available relative selectors:
     rightOf: "Username"
 ```
 
-| Selector               | Meaning                                                |
-| ---------------------- | ------------------------------------------------------ |
-| `below:`               | Element is positioned below the referenced element     |
-| `above:`               | Element is positioned above the referenced element     |
-| `leftOf:`              | Element is to the left of the referenced element       |
-| `rightOf:`             | Element is to the right of the referenced element      |
-| `childOf:`             | Element is a direct child of the referenced parent     |
-| `containsChild:`       | Element contains a direct child matching the reference |
-| `containsDescendants:` | Element contains all specified descendant elements     |
+| Selector | Meaning |
+|----------|---------|
+| `below:` | Element is positioned below the referenced element |
+| `above:` | Element is positioned above the referenced element |
+| `leftOf:` | Element is to the left of the referenced element |
+| `rightOf:` | Element is to the right of the referenced element |
+| `childOf:` | Element is a direct child of the referenced parent |
+| `containsChild:` | Element contains a direct child matching the reference |
+| `containsDescendants:` | Element contains all specified descendant elements |
 
 ---
 
@@ -416,8 +412,8 @@ Fetch OTP codes from your email capture service using Maestro's GraalJS runtime:
 ```javascript
 // CRITICAL: Maestro uses GraalJS — NO async/await, NO fetch()
 var email = typeof EMAIL !== "undefined" ? EMAIL : "test@example.com";
-var emailServiceUrl =
-  typeof EMAIL_SERVICE_URL !== "undefined" ? EMAIL_SERVICE_URL : "http://localhost:8025";
+var emailServiceUrl = typeof EMAIL_SERVICE_URL !== "undefined"
+  ? EMAIL_SERVICE_URL : "http://localhost:8025";
 
 var response = http.get(emailServiceUrl + "/api/v1/messages");
 if (!response.ok) {
@@ -461,14 +457,14 @@ OTP components with auto-focus need individual digit entry. Tap each input befor
 
 Maestro uses the GraalJS runtime. These constraints are non-negotiable:
 
-| Feature                     | Status                                             |
-| --------------------------- | -------------------------------------------------- |
-| `async/await`               | **NOT supported**                                  |
-| `fetch()`                   | **NOT supported**                                  |
-| `http.get()`, `http.post()` | Use these instead                                  |
-| `json()`                    | Use to parse response bodies                       |
-| `output.VAR`                | Set variables for use in YAML flow                 |
-| `var` declarations          | Required (use `var`, not `const`/`let` for safety) |
+| Feature | Status |
+|---------|--------|
+| `async/await` | **NOT supported** |
+| `fetch()` | **NOT supported** |
+| `http.get()`, `http.post()` | Use these instead |
+| `json()` | Use to parse response bodies |
+| `output.VAR` | Set variables for use in YAML flow |
+| `var` declarations | Required (use `var`, not `const`/`let` for safety) |
 
 ```javascript
 // Script template
@@ -492,7 +488,7 @@ output.RESULT = data.value;
 # WRONG — user may still be authenticated
 - launchApp:
     clearState: true
-- assertVisible: "Welcome" # Fails if Keychain has tokens
+- assertVisible: "Welcome"  # Fails if Keychain has tokens
 
 # CORRECT — wait for auth resolution, then adapt
 - launchApp
@@ -503,7 +499,6 @@ output.RESULT = data.value;
 ```
 
 **Rules:**
-
 - Never rely on `clearState` to produce guest state on iOS
 - For auth tests: skip `clearState`, use `auth-loaded` pre-flight
 - For guest tests: use adaptive flows that handle both states
@@ -544,10 +539,10 @@ Create a lightweight mock that returns canned JSON for each endpoint your app ca
 
 Tab bars that show different tabs for guest vs authenticated users will cause selector failures:
 
-| State | Typical Tabs                          |
-| ----- | ------------------------------------- |
-| Guest | home, search, cart, profile           |
-| Auth  | home, feed, create, messages, profile |
+| State | Typical Tabs |
+|-------|-------------|
+| Guest | home, search, cart, profile |
+| Auth | home, feed, create, messages, profile |
 
 Only assert tabs that exist in both states, or use adaptive `when:` conditions.
 
@@ -631,11 +626,11 @@ scripts/
 
 ### Naming Conventions
 
-| Type      | Pattern                   | Example                             |
-| --------- | ------------------------- | ----------------------------------- |
-| Main test | `{feature}-{action}.yaml` | `checkout-purchase.yaml`            |
-| Sub-flow  | `{action}-{context}.yaml` | `auth-and-return-to-dashboard.yaml` |
-| Script    | `{verb}-{noun}.js`        | `fetch-otp.js`                      |
+| Type | Pattern | Example |
+|------|---------|---------|
+| Main test | `{feature}-{action}.yaml` | `checkout-purchase.yaml` |
+| Sub-flow | `{action}-{context}.yaml` | `auth-and-return-to-dashboard.yaml` |
+| Script | `{verb}-{noun}.js` | `fetch-otp.js` |
 
 ---
 
@@ -653,7 +648,6 @@ npx tsx scripts/mock-api-server.ts &
 ### Orchestration Script
 
 Automate the full E2E setup with a shell script that:
-
 1. Starts backend services (database, auth)
 2. Seeds test data
 3. Starts mock API server
@@ -690,13 +684,13 @@ emulator -avd maestro_test
 
 ### iOS vs Android Differences
 
-| Aspect             | iOS                               | Android                            |
-| ------------------ | --------------------------------- | ---------------------------------- |
-| Device type        | Simulator only (no physical)      | Emulator + physical via ADB        |
-| `clearState`       | Does NOT clear Keychain           | Fully resets app data              |
-| Cold boot crash    | XCTest kAXError (add swipe delay) | No equivalent issue                |
-| Performance        | Runs natively (fast)              | ARM emulation (slower on x86)      |
-| Permission dialogs | System alerts                     | System dialogs with different text |
+| Aspect | iOS | Android |
+|--------|-----|---------|
+| Device type | Simulator only (no physical) | Emulator + physical via ADB |
+| `clearState` | Does NOT clear Keychain | Fully resets app data |
+| Cold boot crash | XCTest kAXError (add swipe delay) | No equivalent issue |
+| Performance | Runs natively (fast) | ARM emulation (slower on x86) |
+| Permission dialogs | System alerts | System dialogs with different text |
 
 ### ADB Debugging
 
@@ -746,8 +740,8 @@ jobs:
       # Build Android APK
       - uses: actions/setup-java@v4
         with:
-          java-version: "17"
-          distribution: "temurin"
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Build Android APK
         run: |
@@ -851,11 +845,11 @@ The [Maestro MCP server](https://docs.maestro.dev/getting-started/maestro-mcp) e
 
 ### How It Complements This Skill
 
-|            | **This Skill**              | **Maestro MCP**                          |
-| ---------- | --------------------------- | ---------------------------------------- |
-| **Role**   | Teaches correct patterns    | Provides runtime execution               |
-| **Layer**  | Authoring (write good YAML) | Execution (run, tap, assert, screenshot) |
-| **Output** | Better test files           | Live device interaction                  |
+| | **This Skill** | **Maestro MCP** |
+|---|---|---|
+| **Role** | Teaches correct patterns | Provides runtime execution |
+| **Layer** | Authoring (write good YAML) | Execution (run, tap, assert, screenshot) |
+| **Output** | Better test files | Live device interaction |
 
 Use both together: this skill ensures the AI writes correct tests; the MCP lets it run them immediately, see failures, and iterate.
 
@@ -900,16 +894,16 @@ Also supported on Cursor, Windsurf, VS Code, and JetBrains IDEs. See the [Maestr
 
 The MCP server exposes 47 tools organized by category:
 
-| Category       | Tools                               | Examples                                |
-| -------------- | ----------------------------------- | --------------------------------------- |
-| UI Interaction | tap, swipe, scroll, long press      | `tapOn`, `scrollUntilVisible`           |
-| Text Input     | type, erase, paste, copy            | `inputText`, `eraseText`                |
-| Assertions     | visibility, AI-powered              | `assertVisible`, `assertWithAI`         |
-| App Lifecycle  | launch, stop, clear state           | `launchApp`, `clearState`               |
-| Device Control | location, orientation, airplane     | `setLocation`, `hideKeyboard`           |
-| Flow Control   | run flows, repeat, eval scripts     | `runFlow`, `evalScript`                 |
-| Media          | screenshots, recording              | `takeScreenshot`, `startRecording`      |
-| AI-Powered     | visual assertions, defect detection | `assertWithAI`, `assertNoDefectsWithAI` |
+| Category | Tools | Examples |
+|----------|-------|---------|
+| UI Interaction | tap, swipe, scroll, long press | `tapOn`, `scrollUntilVisible` |
+| Text Input | type, erase, paste, copy | `inputText`, `eraseText` |
+| Assertions | visibility, AI-powered | `assertVisible`, `assertWithAI` |
+| App Lifecycle | launch, stop, clear state | `launchApp`, `clearState` |
+| Device Control | location, orientation, airplane | `setLocation`, `hideKeyboard` |
+| Flow Control | run flows, repeat, eval scripts | `runFlow`, `evalScript` |
+| Media | screenshots, recording | `takeScreenshot`, `startRecording` |
+| AI-Powered | visual assertions, defect detection | `assertWithAI`, `assertNoDefectsWithAI` |
 
 ### Write-Run-Fix Loop
 
@@ -959,18 +953,18 @@ Screenshots saved to `~/.maestro/tests/{timestamp}/`.
 
 ## Common Errors
 
-| Error                                    | Cause                       | Fix                                                 |
-| ---------------------------------------- | --------------------------- | --------------------------------------------------- |
-| "Unable to locate Java Runtime"          | Java not in PATH            | `export JAVA_HOME=/opt/homebrew/opt/openjdk@17/...` |
-| "Element not found" after tap            | Native alert blocking       | Add `tapOn: text: "OK" optional: true`              |
-| OTP digits not entering                  | Auto-focus interference     | Use individual `otp-input-N` testIDs                |
-| Test passes but nothing happened         | `optional: true` misused    | Only use optional for truly optional actions        |
-| "Assertion is false" on visibility       | Element not rendered yet    | Increase timeout or verify testID exists            |
-| Script output empty                      | Wrong JS API                | Use `http.get()` not `fetch()`                      |
-| Auth state inconsistent after clearState | iOS Keychain not cleared    | Don't use `clearState`, use adaptive flows          |
-| kAXErrorInvalidUIElement crash           | Cold boot race (iOS)        | Add post-launch swipe delay                         |
-| Loading spinners / empty screens         | No API server running       | Start mock API server before tests                  |
-| Permission dialog blocking (Android)     | System dialog not dismissed | Add `tapOn: text: "Allow" optional: true`           |
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "Unable to locate Java Runtime" | Java not in PATH | `export JAVA_HOME=/opt/homebrew/opt/openjdk@17/...` |
+| "Element not found" after tap | Native alert blocking | Add `tapOn: text: "OK" optional: true` |
+| OTP digits not entering | Auto-focus interference | Use individual `otp-input-N` testIDs |
+| Test passes but nothing happened | `optional: true` misused | Only use optional for truly optional actions |
+| "Assertion is false" on visibility | Element not rendered yet | Increase timeout or verify testID exists |
+| Script output empty | Wrong JS API | Use `http.get()` not `fetch()` |
+| Auth state inconsistent after clearState | iOS Keychain not cleared | Don't use `clearState`, use adaptive flows |
+| kAXErrorInvalidUIElement crash | Cold boot race (iOS) | Add post-launch swipe delay |
+| Loading spinners / empty screens | No API server running | Start mock API server before tests |
+| Permission dialog blocking (Android) | System dialog not dismissed | Add `tapOn: text: "Allow" optional: true` |
 
 ---
 

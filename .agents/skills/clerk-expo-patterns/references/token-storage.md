@@ -19,26 +19,26 @@ Install peer dep: `npx expo install expo-secure-store`
 Implement the `TokenCache` interface:
 
 ```tsx
-import * as SecureStore from "expo-secure-store";
-import type { TokenCache } from "@clerk/expo/token-cache";
+import * as SecureStore from 'expo-secure-store'
+import type { TokenCache } from '@clerk/expo/token-cache'
 
 const tokenCache: TokenCache = {
   async getToken(key: string) {
     try {
       return await SecureStore.getItemAsync(key, {
         keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-      });
+      })
     } catch {
-      await SecureStore.deleteItemAsync(key);
-      return null;
+      await SecureStore.deleteItemAsync(key)
+      return null
     }
   },
   saveToken(key: string, token: string) {
     return SecureStore.setItemAsync(key, token, {
       keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-    });
+    })
   },
-};
+}
 ```
 
 ## Expo Web

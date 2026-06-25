@@ -1,8 +1,6 @@
 {
   "name": "clerk-expo",
-  "scripts": {
-    "start": "expo start"
-  },
+  "scripts": { "start": "expo start" },
   "dependencies": {
     "@clerk/expo": "latest",
     "expo": "latest",

@@ -73,8 +73,8 @@ If that prints `latest` or any version you trust, use bare `clerk` for the rest 
 
 Otherwise fall back to a package runner, in this order (matches the CLI's own `preferredRunner` logic, which prefers the runner that matches the project's lockfile):
 
-| Project package manager   | Invocation              |
-| ------------------------- | ----------------------- |
+| Project package manager   | Invocation                       |
+| ------------------------- | -------------------------------- |
 | bun (`bun.lock*`)         | `bunx clerk@latest`     |
 | npm (`package-lock.json`) | `npx -y clerk@latest`   |
 | pnpm (`pnpm-lock.yaml`)   | `pnpm dlx clerk@latest` |
