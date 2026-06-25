@@ -46,9 +46,7 @@ vp run e2e:mobile --list                     # list flows without running
 vp run e2e:mobile:studio                         # boot sim + ensure app, then launch `maestro studio`
 ```
 
-`maestro studio` is the recommended way to discover stable accessibility ids and draft flows against
-the live app. When authoring new flows, follow the
-[mobile-e2e-test-author skill](../.agents/skills/mobile-e2e-test-author/SKILL.md).
+For locator discovery, editing flows, and creating new tests, see [Mobile E2E authoring (Maestro Studio)](../docs/guides/e2e-mobile-authoring-maestro-studio.md) in the OKF bundle. When authoring new flows, follow the [mobile-e2e-test-author skill](../.agents/skills/mobile-e2e-test-author/SKILL.md).
 
 ## Tags
 

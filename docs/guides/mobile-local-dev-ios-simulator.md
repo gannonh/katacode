@@ -153,10 +153,11 @@ vp run e2e:mobile --list                    # list flows without running
 vp run e2e:mobile:studio                        # maestro studio for locator discovery
 ```
 
-See the [design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md) for acceptance criteria, architecture, and the harness/flows/maestro boundary. See the [mobile-e2e-test-author skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md) for authoring new flows.
+See the [design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md) for acceptance criteria and architecture. For Maestro Studio authoring (locators, new flows, editing existing YAML), see [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md).
 
 ## Related docs
 
+- [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md)
 - [Mobile E2E testing foundation design](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md)
 - [Mobile E2E operator reference](../../mobile-e2e/README.md)
 - [Mobile app README](../../apps/mobile/README.md)

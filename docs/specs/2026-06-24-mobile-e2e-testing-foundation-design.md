@@ -191,7 +191,7 @@ Failure output surfaces provider, model, expected text, timeout, and captured re
 
 ## Maestro Studio (authoring affordance)
 
-`vp run e2e:mobile:studio` boots/selects the simulator and verifies the dev client is installed (reusing `simulator` + `prereqs`, no server orchestration), then launches `maestro studio`. Studio is the recommended way to discover stable accessibility ids and draft flows. It is documented in `README.md` and the authoring skill, and directly mitigates the locator-stability and model-picker-path risks.
+`vp run e2e:mobile:studio` boots/selects the simulator and verifies the dev client is installed (reusing `simulator` + `prereqs`, no server orchestration), then launches `maestro studio`. Studio is the recommended way to discover stable accessibility ids and draft flows. Canonical authoring guidance lives in [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md); the operator reference and authoring skill link there. Studio directly mitigates the locator-stability and model-picker-path risks.
 
 ## Reusable building blocks
 
@@ -356,8 +356,9 @@ New: `mobile-e2e/**` (tsconfig, README, `src/config/*`, `src/harness/*`, `src/fl
 
 ## Related docs
 
+- [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md) — canonical guide for locator discovery, editing flows, and creating new Maestro tests.
 - [Mobile local dev (iOS Simulator)](/guides/mobile-local-dev-ios-simulator.md) — the manual loop this suite automates; includes a mapping table from manual steps to harness behavior.
-- [Mobile E2E operator reference](../../mobile-e2e/README.md) — commands, env vars, tags, prerequisites, Studio.
-- [mobile-e2e-test-author skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md) — authoring new flows from `src/harness/`, `src/flows/`, and `maestro/`.
+- [Mobile E2E operator reference](../../mobile-e2e/README.md) — commands, env vars, tags, prerequisites.
+- [mobile-e2e-test-author skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md) — agent authoring checklist (Studio detail in the guide above).
 - [Electron E2E testing foundation](/specs/2026-06-21-e2e-testing-foundation-design.md) — the parallel Playwright/Electron foundation this suite mirrors.
 - [Mobile local dev slice design](/specs/2026-06-22-mobile-local-dev-slice-design.md) — the preceding slice that proved the loopback bearer path.

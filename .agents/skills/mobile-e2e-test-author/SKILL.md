@@ -13,10 +13,12 @@ YAML owns on-device interaction. Real services only — no mocks.
 
 1. Read [mobile-e2e/README.md](../../../mobile-e2e/README.md) and the design spec
    (`docs/specs/2026-06-24-mobile-e2e-testing-foundation-design.md`).
-2. Inspect existing flows under `mobile-e2e/maestro/` and the TS building blocks in
+2. Read [Mobile E2E authoring (Maestro Studio)](../../../docs/guides/e2e-mobile-authoring-maestro-studio.md) for the canonical Studio workflow.
+3. Inspect existing flows under `mobile-e2e/maestro/` and the TS building blocks in
    `mobile-e2e/src/harness/` and `mobile-e2e/src/flows/`.
-3. **Explore the live app with `maestro studio` first**, then codify locators — do
-   not guess selectors from product code alone:
+4. **Explore the live app with Maestro Studio first**, then codify locators — do
+   not guess selectors from product code alone. Full workflow:
+   [Mobile E2E authoring (Maestro Studio)](../../../docs/guides/e2e-mobile-authoring-maestro-studio.md).
 
    ```bash
    vp run e2e:mobile:studio    # boots the sim, verifies the dev client, opens Studio

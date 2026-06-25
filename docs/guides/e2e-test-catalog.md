@@ -71,6 +71,7 @@ Run from the repo root.
 
 ```bash
 vp run e2e:mobile --list                        # list flows
+vp run e2e:mobile                               # Run all flows
 vp run e2e:mobile --include-tags @smoke         # launch smoke
 vp run e2e:mobile --include-tags @pairing       # bearer loopback pairing
 vp run e2e:mobile --include-tags @auth          # Clerk Connect (creds required, maintainer)
@@ -78,12 +79,13 @@ vp run e2e:mobile --include-tags @agent         # deterministic agent reply (pro
 vp run e2e:mobile:studio                        # boot sim + launch maestro studio
 ```
 
-`maestro studio` is the recommended way to discover stable accessibility ids and draft flows.
+For locator discovery, editing flows, and authoring new tests, see [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md).
 
 ## Related docs
 
+- [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md) — canonical Studio authoring guide
 - [e2e/README](../../e2e/README.md) — desktop operator reference (env vars, artifact paths)
-- [mobile-e2e/README](../../mobile-e2e/README.md) — mobile operator reference (env vars, tags, Studio)
+- [mobile-e2e/README](../../mobile-e2e/README.md) — mobile operator reference (env vars, tags)
 - [E2E foundation design](/specs/2026-06-21-e2e-testing-foundation-design.md)
 - [Mobile E2E foundation design](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md)
 - [E2E foundation adoption](/guides/e2e-foundation-adoption.md)

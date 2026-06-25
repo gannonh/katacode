@@ -1,5 +1,9 @@
 # OKF bundle log
 
+## 2026-06-25 (mobile E2E Maestro Studio authoring guide)
+
+Added [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md) as the canonical OKF guide for Maestro Studio workflow, locator conventions, and flow authoring. Cross-linked from guides index, E2E test catalog, mobile local dev guide, mobile E2E design spec, `mobile-e2e/README.md`, and the mobile-e2e-test-author skill. Updated [guides log](/guides/log.md).
+
 ## 2026-06-24 (mobile E2E — harness fixes, guide corrections, smoke test passing)
 
 Fixed three harness bugs and corrected all guide/spec command syntax after live UAT revealed the suite couldn't run as documented.
