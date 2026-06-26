@@ -365,11 +365,19 @@ Verified commands during this slice:
 - `npx playwright test --config e2e/playwright.config.ts --project desktop-dev --grep "Pi provider"` - passed, 3 tests.
 - `npx playwright test --config e2e/playwright.config.ts --project desktop-dev --grep @pi` - passed with 1 skipped gated Pi test and 2 setup tests.
 
+2026-06-26 post-slice fixes and UI polish:
+
+- Provider icon now uses the first-party pi.dev logo mark (`apps/web/src/components/Icons.tsx`).
+- Pi is listed first in provider settings, Add Provider dialog, and the model picker rail; Cursor/Grok lost their early-access badges and Grok moved last (`apps/web/src/components/settings/providerDriverMeta.ts`).
+- Model-switch on an existing Pi thread restarts the SDK session instead of failing with a duplicate-session error (`apps/server/src/provider/Layers/PiAdapter.ts`); covered by a new restart unit test.
+- The thread error banner no longer clips or collapses long provider errors; it renders full-width with an expandable details disclosure (`apps/web/src/components/chat/ThreadErrorBanner.tsx`).
+- Credentialed `@pi` smoke now passes end to end against a real Pi model after fixing model-picker provider scoping and slug tokenization (`e2e/src/flows/agentChat.ts`, `e2e/src/flows/piProvider.ts`).
+
 Remaining acceptance work:
 
 - Full tool lifecycle, image attachments, resume cursor, rollback, compaction, extension UI bridge, runtime mode mapping, project trust controls, and Pi text-generation parity.
-- Credentialed execution of the `@pi` smoke E2E with `KATACODE_E2E_ENABLE_PI=1`, `KATACODE_E2E_PI_AGENT_DIR`, and `KATACODE_E2E_PI_MODEL`.
 - Manual Pi-authenticated validation for real model selection, streaming prompt output, interrupt, and stop.
+- CI parity run of `vp run test` and `vp run release:smoke` before push, with exact output recorded per acceptance criterion 17.
 
 ## Implementation phases
 

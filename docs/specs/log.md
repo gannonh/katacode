@@ -1,5 +1,12 @@
 # Specs log
 
+## 2026-06-26 (Pi provider — vertical slice + branch doc sweep)
+
+- Recorded the [Pi provider build progress](/specs/2026-06-25-pi-coding-agent-support-design.md#build-progress): vertical slice landed (snapshot discovery, session start/send/stream/interrupt/stop, driver registration, gated `@pi` e2e green), plus post-slice fixes (pi.dev logo, provider ordering, Early Access badge, model-switch session restart, error banner layout).
+- Flipped the [specs roadmap](/specs/index.md) Pi status from Draft to In progress.
+- Added a [Pi provider full adapter parity](/specs/deferred-work.md) deferred-work entry covering acceptance criteria 5,6,8,9,10,11.
+- Added the `pi` driver row to [provider architecture](/architecture/providers.md) and a [providers index](/providers/index.md) Pi entry.
+
 ## 2026-06-25 (mobile E2E — Verify outcome recorded)
 
 - Added a [Verify outcome (2026-06-25)](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md#verify-outcome-2026-06-25) section to the [mobile E2E design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md): `@smoke`/`@pairing`/`@agent` green on-device (iPhone 17 Pro) via Maestro Studio; `@auth` (native `presentAuth` modal) and the AC-4 distinct-ports clause recorded as open. Annotated the now-superseded "deferred to maintainer runtime" line in the Build report with a forward pointer.

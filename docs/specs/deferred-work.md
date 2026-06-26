@@ -30,6 +30,15 @@ Each entry should include:
 
 ## Deferred / review queue
 
+### Pi provider full adapter parity
+
+- **Status:** deferred
+- **Area:** providers, pi, agent-runtime
+- **Source:** [Pi coding agent provider support](/specs/2026-06-25-pi-coding-agent-support-design.md)
+- **Rationale:** The approved build shipped a verified vertical slice (snapshot discovery, session start/send/stream/interrupt/stop, driver registration, gated `@pi` e2e). Full parity was sequenced after the slice to keep each capability independently verifiable.
+- **Revisit trigger:** Before marking the Pi spec complete or before Pi is promoted out of early-access status.
+- **Notes:** Remaining work maps to acceptance criteria 5,6,8,9,10,11: tool lifecycle events, image attachments, resume cursor, rollback, compaction contract (`compactThread`), extension UI bridge (`select`/`confirm`/`input`/`notify`/status/progress), runtime mode mapping, project trust controls, and real `PiTextGeneration` parity (currently a fail-loud placeholder).
+
 ### Production Relay Deploy
 
 - **Status:** closed
