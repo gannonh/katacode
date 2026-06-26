@@ -265,13 +265,9 @@ const probePiVersion = (
  * commands. Returns the mapped `PiDiscoveryResult`. Tests inject a fake
  * `discover` into `checkPiProviderStatus` instead.
  */
-export const discoverPiProvider = Effect.fn("discoverPiProvider")(function* (input: {
-  readonly agentDir: string;
-  readonly binaryPath: string;
-  readonly customModels: ReadonlyArray<string>;
-  readonly cwd: string;
-  readonly environment?: NodeJS.ProcessEnv;
-}): Effect.fn.Return<PiDiscoveryResult, never, ChildProcessSpawner.ChildProcessSpawner> {
+export const discoverPiProvider = Effect.fn("discoverPiProvider")(function* (
+  input: PiDiscoveryInput,
+): Effect.fn.Return<PiDiscoveryResult, never, ChildProcessSpawner.ChildProcessSpawner> {
   const environment = input.environment ?? process.env;
   const version = yield* probePiVersion(input.binaryPath, environment);
 
@@ -351,13 +347,9 @@ export const makePendingPiProvider = (piSettings: PiSettings): Effect.Effect<Ser
  */
 export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function* (
   piSettings: PiSettings,
-  discover: (input: {
-    readonly agentDir: string;
-    readonly binaryPath: string;
-    readonly customModels: ReadonlyArray<string>;
-    readonly cwd: string;
-    readonly environment?: NodeJS.ProcessEnv;
-  }) => Effect.Effect<
+  discover: (
+    input: PiDiscoveryInput,
+  ) => Effect.Effect<
     PiDiscoveryResult,
     PiProviderDiscoveryError,
     ChildProcessSpawner.ChildProcessSpawner
