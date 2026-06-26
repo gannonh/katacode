@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Kill stale Kata Code dev server processes on web and server port ranges.
+# Kill stale Kata Code dev server processes and clear cached Electron dev app.
 #
 # Default ports: web 5733, server 13773.
-# The dev-runner uses offsets up to 10, so we check 5733–5743 and 13773–13783.
+# The dev-runner can use wider offsets, so we check 5733–5760 and 13773–13800.
+# Also removes the cached Electron dev app (.electron-runtime) which can keep
+# a stale VITE_DEV_SERVER_URL pointing at a killed port.
 set -euo pipefail
 
-WEB_PORTS=$(seq 5733 5743)
-SERVER_PORTS=$(seq 13773 13783)
+WEB_PORTS=$(seq 5733 5760)
+SERVER_PORTS=$(seq 13773 13800)
 killed=0
 
 for port in $WEB_PORTS $SERVER_PORTS; do
@@ -25,4 +27,12 @@ if [[ "$killed" -eq 0 ]]; then
   echo "no dev server processes found"
 else
   echo "killed $killed process(es)"
+fi
+
+# Clear cached Electron dev app so the next dev:desktop rebuilds with the
+# correct VITE_DEV_SERVER_URL instead of a stale port.
+electron_cache="apps/desktop/.electron-runtime"
+if [[ -d "$electron_cache" ]]; then
+  rm -rf "$electron_cache"
+  echo "cleared Electron dev runtime cache"
 fi
