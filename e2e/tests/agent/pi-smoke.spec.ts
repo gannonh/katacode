@@ -4,7 +4,7 @@ import { E2E_TIMEOUTS } from "../../src/config/timeouts.ts";
 import {
   buildDeterministicAgentTurn,
   expectAssistantReply,
-  selectComposerModel,
+  selectComposerModelForProvider,
   sendAgentInstruction,
 } from "../../src/flows/agentChat.ts";
 import {
@@ -33,7 +33,7 @@ test.describe(`Pi provider smoke ${E2E_TAGS.pi}`, () => {
     const seededPath = await createSeededWorkspace(runContext, "pi-agent-smoke");
     await writeRunManifest(runContext);
     await createOrOpenProject(authenticatedAppWindow, seededPath);
-    await selectComposerModel(authenticatedAppWindow, turn.model);
+    await selectComposerModelForProvider(authenticatedAppWindow, "Pi", turn.model);
     await sendAgentInstruction(authenticatedAppWindow, turn.prompt);
     await expectAssistantReply(authenticatedAppWindow, turn.expected, turn);
   });

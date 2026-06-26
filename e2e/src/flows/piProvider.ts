@@ -1,4 +1,8 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+
+import { E2E_TIMEOUTS } from "../config/timeouts.ts";
+import { dismissBlockingToasts } from "./navigation.ts";
+import { openProviderSettings } from "./settings.ts";
 
 export interface PiSmokeConfig {
   readonly agentDir: string;
@@ -35,23 +39,34 @@ export function formatPiSmokeSkipReason(missing: ReadonlyArray<string>): string 
 }
 
 export async function configureDefaultPiProvider(page: Page, config: PiSmokeConfig): Promise<void> {
-  await page.evaluate(async (input) => {
-    const nativeApi = window.nativeApi;
-    if (!nativeApi) {
-      throw new Error("Native API is unavailable; cannot configure Pi provider for E2E.");
-    }
+  await openProviderSettings(page);
 
-    const settings = await nativeApi.server.getSettings();
-    await nativeApi.server.updateSettings({
-      providers: {
-        ...settings.providers,
-        pi: {
-          ...settings.providers.pi,
-          enabled: true,
-          agentDir: input.agentDir,
-          customModels: [input.model],
-        },
-      },
-    });
-  }, config);
+  const toggleDetails = page.getByLabel("Toggle Pi details");
+  await toggleDetails.click();
+
+  const agentDir = page.getByLabel("Agent directory");
+  await agentDir.fill(config.agentDir);
+  await agentDir.press("Enter");
+
+  const customModelInput = page.locator("#provider-instance-pi-custom-model");
+  if (
+    !(await page
+      .getByText(config.model, { exact: true })
+      .isVisible()
+      .catch(() => false))
+  ) {
+    await customModelInput.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+    await customModelInput.fill(config.model);
+    await customModelInput.press("Enter");
+  }
+
+  await dismissBlockingToasts(page);
+  const refreshButton = page.getByLabel("Refresh provider status");
+  await refreshButton.click();
+  await expect(refreshButton).toBeEnabled({ timeout: E2E_TIMEOUTS.authMs });
+
+  await page.getByRole("button", { name: "Back" }).click();
+  await page
+    .getByTestId("command-palette-trigger")
+    .waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
 }
