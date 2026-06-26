@@ -4,6 +4,7 @@ export const E2E_TAGS = {
   auth: "@auth",
   settings: "@settings",
   agent: "@agent",
+  pi: "@pi",
 } as const;
 
 export type E2ETag = (typeof E2E_TAGS)[keyof typeof E2E_TAGS];
