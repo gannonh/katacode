@@ -1,4 +1,4 @@
-import { PiSettings, ProviderDriverKind, type ServerProvider } from "@kata-sh/code-contracts";
+import { PiSettings, ProviderDriverKind } from "@kata-sh/code-contracts";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -23,7 +23,7 @@ import {
   makeStaticProviderMaintenanceResolver,
   resolveProviderMaintenanceCapabilitiesEffect,
 } from "../providerMaintenance.ts";
-import type { ServerProviderDraft } from "../providerSnapshot.ts";
+import { stampProviderInstanceIdentity } from "../providerSnapshot.ts";
 
 const decodePiSettings = Schema.decodeSync(PiSettings);
 
@@ -41,21 +41,7 @@ export type PiDriverEnv =
   | FileSystem.FileSystem
   | Path.Path;
 
-const withInstanceIdentity =
-  (input: {
-    readonly instanceId: ProviderInstance["instanceId"];
-    readonly displayName: string | undefined;
-    readonly accentColor: string | undefined;
-    readonly continuationGroupKey: string;
-  }) =>
-  (snapshot: ServerProviderDraft): ServerProvider => ({
-    ...snapshot,
-    instanceId: input.instanceId,
-    driver: DRIVER_KIND,
-    ...(input.displayName ? { displayName: input.displayName } : {}),
-    ...(input.accentColor ? { accentColor: input.accentColor } : {}),
-    continuation: { groupKey: input.continuationGroupKey },
-  });
+const withInstanceIdentity = stampProviderInstanceIdentity(DRIVER_KIND);
 
 export const PiDriver: ProviderDriver<PiSettings, PiDriverEnv> = {
   driverKind: DRIVER_KIND,
