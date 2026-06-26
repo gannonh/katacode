@@ -10,6 +10,7 @@ const e2eRoot = resolveE2eRoot();
 
 export default defineConfig({
   testDir: "./tests",
+  testIgnore: /web\/.*\.spec\.ts/,
   outputDir: `${e2eRoot}/test-results/playwright`,
   fullyParallel: false,
   workers: readWorkerCount(),

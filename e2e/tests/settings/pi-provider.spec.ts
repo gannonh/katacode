@@ -13,7 +13,7 @@ test.describe(`Settings Pi provider ${E2E_TAGS.settings}`, () => {
     const dialog = page.getByRole("dialog", { name: "Add provider instance" });
     await expect(dialog).toBeVisible();
 
-    const piDriver = dialog.getByRole("radio", { name: "Pi", exact: true });
+    const piDriver = dialog.getByRole("radio", { name: "Pi Early Access" });
     await expect(piDriver).toBeEnabled();
     await piDriver.click();
 
