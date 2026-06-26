@@ -34,13 +34,6 @@ export default defineConfig({
     video: isVideoEnabled() ? "retain-on-failure" : "off",
     ...devices["Desktop Chrome"],
   },
-  webServer: {
-    command: "pnpm run dev",
-    url: webUrl,
-    reuseExistingServer: true,
-    timeout: 60_000,
-    cwd: "..",
-  },
   projects: [
     {
       name: "setup",
@@ -67,7 +60,7 @@ export default defineConfig({
       },
     },
     {
-      name: "web",
+      name: "web-dev",
       testMatch: WEB_TEST_MATCH,
       use: {
         baseURL: webUrl,

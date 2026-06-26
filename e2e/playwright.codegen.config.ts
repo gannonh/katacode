@@ -5,7 +5,7 @@
  *   1. Start the full dev stack:  pnpm run dev
  *      (or let Playwright start it via the webServer config below)
  *   2. Record a new test:         npx playwright codegen --config e2e/playwright.codegen.config.ts
- *   3. Run recorded tests:        npx playwright test --config e2e/playwright.config.ts --project web
+ *   5. Run:                       npx playwright test --config e2e/playwright.config.ts --project web-dev
  *
  * This config targets http://localhost:5733 (the default web dev port).
  * Override with KATACODE_WEB_URL env var if your port differs.
