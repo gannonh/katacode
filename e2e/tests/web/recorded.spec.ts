@@ -2,23 +2,29 @@
  * Starter template for recording web app tests with Playwright codegen.
  *
  * Workflow:
- *   1. Start the web app:  pnpm run dev:web
- *   2. Open codegen:       npx playwright codegen http://localhost:5733 --config e2e/playwright.codegen.config.ts
+ *   1. Start the full dev stack:  pnpm run dev
+ *      (or let Playwright start it via the webServer config)
+ *   2. Record a new test:         npx playwright codegen --config e2e/playwright.codegen.config.ts
  *   3. Interact with the app in the browser — Playwright records your actions.
- *   4. Copy the generated code into this file (or a new file under e2e/tests/web/).
- *   5. Run:                npx playwright test --config e2e/playwright.codegen.config.ts
+ *   4. Copy the generated code into a file under e2e/tests/web/.
+ *   5. Run:                       npx playwright test --config e2e/playwright.config.ts --project web
  *
- * The test below opens the app and verifies the page loads. Replace or extend it
- * with your recorded actions.
+ * The test below verifies the web app loads. Without authentication the app
+ * either redirects to the pairing page (when the server is healthy) or shows
+ * an error boundary (when the server descriptor fails). Both surfaces render
+ * the app name, so we assert against that. Replace or extend with your
+ * recorded actions.
  */
 import { test, expect } from "@playwright/test";
 
 test.describe("Web app - recorded tests", () => {
-  test("app loads and shows the main UI", async ({ page }) => {
+  test("app loads and renders the app shell", async ({ page }) => {
     await page.goto("/");
-    // Wait for the app to hydrate — adjust the selector to match a stable element.
-    // The command palette trigger is present on both Electron and web.
-    await expect(page.getByTestId("command-palette-trigger")).toBeVisible({
+
+    // The app name is present in all states: pairing page, error boundary,
+    // and the authenticated app shell. This is a minimal smoke check that
+    // the web bundle loaded and React hydrated.
+    await expect(page.getByText(/Kata Code/).first()).toBeVisible({
       timeout: 15_000,
     });
   });

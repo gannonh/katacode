@@ -2,9 +2,10 @@
  * Lightweight Playwright config for codegen / recording against the running web app.
  *
  * Usage:
- *   1. Start the web dev server:  pnpm run dev:web
+ *   1. Start the full dev stack:  pnpm run dev
+ *      (or let Playwright start it via the webServer config below)
  *   2. Record a new test:         npx playwright codegen --config e2e/playwright.codegen.config.ts
- *   3. Run recorded tests:        npx playwright test --config e2e/playwright.codegen.config.ts
+ *   3. Run recorded tests:        npx playwright test --config e2e/playwright.config.ts --project web
  *
  * This config targets http://localhost:5733 (the default web dev port).
  * Override with KATACODE_WEB_URL env var if your port differs.
@@ -37,10 +38,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm run dev:web",
+    command: "pnpm run dev",
     url: webUrl,
     reuseExistingServer: true,
-    timeout: 30_000,
+    timeout: 60_000,
     cwd: "..",
   },
 });
