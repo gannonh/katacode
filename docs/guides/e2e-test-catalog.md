@@ -81,30 +81,44 @@ vp run e2e:mobile:studio                        # boot sim + launch maestro stud
 
 For locator discovery, editing flows, and authoring new tests, see [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md).
 
-## Web codegen — Playwright (browser)
+## Web E2E — Playwright (browser)
 
-Lightweight Playwright config for recording tests against the running web app at `http://localhost:5733`. Uses standard `@playwright/test` with no Electron harness.
+Web tests run in a Chromium browser against the full dev stack (`pnpm run dev`). The [`webSetup.ts`](../../e2e/src/harness/webSetup.ts) fixture starts the dev server as a child process, captures the `pairingUrl` from server stdout, and authenticates by navigating to the pairing URL. Tests receive an authenticated `webPage` with the app shell ready.
 
-Specs under [`e2e/tests/web/`](../../e2e/tests/web/). Starter template: [`recorded.spec.ts`](../../e2e/tests/web/recorded.spec.ts).
+Specs under [`e2e/tests/web/`](../../e2e/tests/web/). Template: [`recorded.spec.ts`](../../e2e/tests/web/recorded.spec.ts). Config: [`e2e/playwright.config.ts`](../../e2e/playwright.config.ts) (project `web-dev`), [`e2e/playwright.codegen.config.ts`](../../e2e/playwright.codegen.config.ts) (codegen).
 
-| Test                                                           | Covers                     |
-| -------------------------------------------------------------- | -------------------------- |
-| [`web/recorded.spec.ts`](../../e2e/tests/web/recorded.spec.ts) | App loads, main UI visible |
+| Test                                                           | Covers                                         |
+| -------------------------------------------------------------- | ---------------------------------------------- |
+| [`web/recorded.spec.ts`](../../e2e/tests/web/recorded.spec.ts) | Pairing auth flow, app shell (command palette) |
 
 ### Commands
 
 ```bash
-# Start the web app (if not already running)
-pnpm run dev:web
+# Run web tests (fixture starts the dev server automatically)
+npx playwright test --config e2e/playwright.config.ts --project web-dev
 
 # Open codegen — records interactions in the browser
-pnpm run e2e:codegen
+pnpm run dev   # start the full dev stack
+npx playwright codegen --config e2e/playwright.codegen.config.ts
 
-# Run recorded tests
-pnpm run e2e:web
+# Run web tests with the codegen config
+npx playwright test --config e2e/playwright.codegen.config.ts
 ```
 
-Config: [`e2e/playwright.codegen.config.ts`](../../e2e/playwright.codegen.config.ts). Override the web URL with `KATACODE_WEB_URL`.
+Override the web URL with `KATACODE_WEB_URL` (default `http://localhost:5733`).
+
+### Writing web tests
+
+Use the `webTest` fixture from [`webSetup.ts`](../../e2e/src/harness/webSetup.ts) instead of `@playwright/test` directly. The `webPage` fixture provides an authenticated page:
+
+```ts
+import { webTest as test, expect } from "../../src/harness/webSetup.ts";
+
+test("my web test", async ({ webPage }) => {
+  // webPage is already authenticated and on "/" with the app shell visible.
+  await expect(webPage.getByTestId("command-palette-trigger")).toBeVisible();
+});
+```
 
 ## Related docs
 

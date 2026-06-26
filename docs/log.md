@@ -1,6 +1,10 @@
 # OKF bundle log
 
-## 2026-06-26 (Pi provider vertical slice + branch doc sweep)
+## 2026-06-26 (E2E web test authentication + Pi provider locator fix)
+
+Updated the [E2E test catalog](/guides/e2e-test-catalog.md) web section: the `web-dev` Playwright project now uses a [`webSetup.ts`](../../e2e/src/harness/webSetup.ts) fixture that starts the dev server, captures the `pairingUrl` from stdout, and authenticates via the pairing URL auto-submit flow. The template test verifies the authenticated app shell. Fixed the Pi provider settings E2E test radio locator to match the "Pi Early Access" accessible name. Updated [specs log](/specs/log.md) and [guides log](/guides/log.md).
+
+## 2026-06-26 (Pi provider — strict quality review fixes + vertical slice doc sweep)
 
 Recorded the Pi coding-agent provider vertical slice across the bundle. Flipped the [specs roadmap](/specs/index.md) Pi entry from Draft to In progress and appended the post-slice [build progress](/specs/2026-06-25-pi-coding-agent-support-design.md#build-progress) (pi.dev logo, provider ordering, Early Access badge, model-switch session restart, error-banner layout, credentialed `@pi` e2e green). Added a [Pi provider full adapter parity](/specs/deferred-work.md#pi-provider-full-adapter-parity) deferred-work entry. Documented the provider end-to-end: new [Pi provider guide](/providers/pi.md), [providers index](/providers/index.md) row, and the `pi` driver in [provider architecture](/architecture/providers.md), [architecture overview](/architecture/overview.md), and [architecture index](/architecture/index.md). Logged in [specs log](/specs/log.md), [architecture log](/architecture/log.md), and [providers log](/providers/log.md).
 
