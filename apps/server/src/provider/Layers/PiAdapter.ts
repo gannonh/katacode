@@ -154,9 +154,7 @@ export function makePiAdapter(
       Effect.gen(function* () {
         const ctx = sessions.get(threadId);
         if (!ctx) {
-          return yield* Effect.fail(
-            new ProviderAdapterSessionNotFoundError({ provider: PROVIDER, threadId }),
-          );
+          return yield* new ProviderAdapterSessionNotFoundError({ provider: PROVIDER, threadId });
         }
         return ctx;
       });
@@ -300,14 +298,12 @@ export function makePiAdapter(
         const cwd = input.cwd?.trim() || process.cwd();
         const model = resolveModel(input.modelSelection);
         if (!model) {
-          return yield* Effect.fail(
-            new ProviderAdapterValidationError({
-              provider: PROVIDER,
-              operation: "startSession",
-              issue:
-                "Pi has no authenticated model available for this session. Configure Pi auth or select a runtime-discovered model.",
-            }),
-          );
+          return yield* new ProviderAdapterValidationError({
+            provider: PROVIDER,
+            operation: "startSession",
+            issue:
+              "Pi has no authenticated model available for this session. Configure Pi auth or select a runtime-discovered model.",
+          });
         }
         const thinkingLevel = resolveThinkingLevel(input.modelSelection);
 
@@ -378,13 +374,11 @@ export function makePiAdapter(
       Effect.gen(function* () {
         const ctx = yield* requireSession(input.threadId);
         if (ctx.activeTurnId && ctx.sdk.isStreaming) {
-          return yield* Effect.fail(
-            new ProviderAdapterValidationError({
-              provider: PROVIDER,
-              operation: "sendTurn",
-              issue: `A Pi turn is already active for thread ${input.threadId}.`,
-            }),
-          );
+          return yield* new ProviderAdapterValidationError({
+            provider: PROVIDER,
+            operation: "sendTurn",
+            issue: `A Pi turn is already active for thread ${input.threadId}.`,
+          });
         }
 
         const text = input.input?.trim() ?? "";
