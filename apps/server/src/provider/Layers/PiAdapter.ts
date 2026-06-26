@@ -260,16 +260,41 @@ export function makePiAdapter(
         );
       });
 
+    /**
+     * Tear down a session's SDK resources without publishing a lifecycle
+     * event. Used both by {@link stopSession} (which adds the
+     * `session.exited` event) and by {@link startSession} when restarting an
+     * existing thread (model switch), where a synthetic exit would confuse
+     * the UI.
+     */
+    const teardownSession = (ctx: PiSessionContext) => {
+      ctx.unsubscribe();
+      ctx.sdk.dispose();
+      ctx.stopped = true;
+      ctx.activeTurnId = undefined;
+      sessions.delete(ctx.threadId);
+    };
+
     const startSession = (input: ProviderSessionStartInput) =>
       Effect.gen(function* () {
-        if (sessions.has(input.threadId)) {
-          return yield* Effect.fail(
-            new ProviderAdapterValidationError({
-              provider: PROVIDER,
-              operation: "startSession",
-              issue: `A Pi session already exists for thread ${input.threadId}.`,
-            }),
-          );
+        // A thread can re-enter startSession when the user switches models
+        // mid-conversation. The Pi SDK session is bound to a single model at
+        // creation, so restart it rather than rejecting the request.
+        const existing = sessions.get(input.threadId);
+        if (existing) {
+          if (existing.activeTurnId && existing.sdk.isStreaming) {
+            yield* Effect.tryPromise({
+              try: () => existing.sdk.abort(),
+              catch: (cause) =>
+                new ProviderAdapterRequestError({
+                  provider: PROVIDER,
+                  method: "startSession",
+                  detail: `Failed to stop the active Pi turn before restart: ${cause instanceof Error ? cause.message : String(cause)}.`,
+                  cause,
+                }),
+            });
+          }
+          teardownSession(existing);
         }
 
         const cwd = input.cwd?.trim() || process.cwd();
@@ -437,11 +462,7 @@ export function makePiAdapter(
       Effect.gen(function* () {
         const ctx = sessions.get(threadId);
         if (!ctx) return;
-        ctx.unsubscribe();
-        ctx.sdk.dispose();
-        ctx.stopped = true;
-        ctx.activeTurnId = undefined;
-        sessions.delete(threadId);
+        teardownSession(ctx);
         yield* publish(
           makeEvent(threadId, {
             type: "session.exited",

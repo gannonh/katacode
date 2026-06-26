@@ -197,4 +197,44 @@ describe("makePiAdapter (vertical slice)", () => {
       expect(recorder.events.some((event) => event.type === "session.exited")).toBe(true);
     }),
   );
+
+  it.effect("restarts an existing thread session instead of failing (model switch)", () =>
+    Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const first = makeFakeSession();
+      const second = makeFakeSession();
+      let disposedFirst = false;
+      first.session.dispose = () => {
+        disposedFirst = true;
+      };
+      const queue = [first.session, second.session];
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session: queue.shift() })) as never,
+        onEvent: recorder.onEvent,
+      });
+
+      const threadId = ThreadId.make("pi-thread-restart");
+      yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+
+      const restarted = yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+
+      expect(restarted.status).toBe("ready");
+      expect(disposedFirst).toBe(true);
+
+      // The restarted session must still accept turns.
+      const turn = yield* adapter.sendTurn({ threadId, input: "hello again" });
+      expect(turn.threadId).toBe(threadId);
+      yield* Effect.tryPromise(() => second.hooks.promptStarted);
+    }),
+  );
 });
