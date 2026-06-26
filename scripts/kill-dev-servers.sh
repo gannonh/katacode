@@ -36,3 +36,13 @@ if [[ -d "$electron_cache" ]]; then
   rm -rf "$electron_cache"
   echo "cleared Electron dev runtime cache"
 fi
+
+# Clear Electron dev session/cache so the renderer does not restore a stale
+# URL from a previous port. The app regenerates these on next launch.
+electron_user_data="${HOME}/Library/Application Support/katacode-dev"
+for subdir in "Session Storage" "Code Cache" "Cache" "GPUCache" "Service Worker"; do
+  if [[ -d "${electron_user_data}/${subdir}" ]]; then
+    rm -rf "${electron_user_data}/${subdir}"
+    echo "cleared Electron dev ${subdir}"
+  fi
+done
