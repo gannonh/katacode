@@ -81,6 +81,31 @@ vp run e2e:mobile:studio                        # boot sim + launch maestro stud
 
 For locator discovery, editing flows, and authoring new tests, see [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md).
 
+## Web codegen — Playwright (browser)
+
+Lightweight Playwright config for recording tests against the running web app at `http://localhost:5733`. Uses standard `@playwright/test` with no Electron harness.
+
+Specs under [`e2e/tests/web/`](../../e2e/tests/web/). Starter template: [`recorded.spec.ts`](../../e2e/tests/web/recorded.spec.ts).
+
+| Test                                                           | Covers                     |
+| -------------------------------------------------------------- | -------------------------- |
+| [`web/recorded.spec.ts`](../../e2e/tests/web/recorded.spec.ts) | App loads, main UI visible |
+
+### Commands
+
+```bash
+# Start the web app (if not already running)
+pnpm run dev:web
+
+# Open codegen — records interactions in the browser
+pnpm run e2e:codegen
+
+# Run recorded tests
+pnpm run e2e:web
+```
+
+Config: [`e2e/playwright.codegen.config.ts`](../../e2e/playwright.codegen.config.ts). Override the web URL with `KATACODE_WEB_URL`.
+
 ## Related docs
 
 - [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md) — canonical Studio authoring guide

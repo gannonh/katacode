@@ -132,6 +132,23 @@ KATACODE_E2E_RELEASE_APP="/path/to/Kata Code.app" vp run e2e:release --grep @set
 
 See `.agents/skills/kata-code-e2e-testing/SKILL.md` for agent-oriented guidance when that local skill is installed.
 
+## Web codegen (browser recording)
+
+A separate Playwright config targets the web app at `http://localhost:5733` for recording tests with `playwright codegen`. This bypasses the Electron harness entirely.
+
+```bash
+# Start the web app
+pnpm run dev:web
+
+# Open codegen recorder
+pnpm run e2e:codegen
+
+# Run recorded web tests
+pnpm run e2e:web
+```
+
+Config: [`e2e/playwright.codegen.config.ts`](e2e/playwright.codegen.config.ts). Recorded tests go in [`e2e/tests/web/`](e2e/tests/web/). Override the URL with `KATACODE_WEB_URL`.
+
 ## Adopting this foundation in other repos
 
 See [docs/guides/e2e-foundation-adoption.md](../docs/guides/e2e-foundation-adoption.md) for Kata Agents and Skillr App rollout steps, env mapping, and lessons learned.
