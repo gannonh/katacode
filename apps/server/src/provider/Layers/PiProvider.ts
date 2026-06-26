@@ -28,6 +28,7 @@ import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 import type {
@@ -99,6 +100,18 @@ export interface PiDiscoveryResult {
   readonly models: ReadonlyArray<ServerProviderModel>;
   readonly skills: ReadonlyArray<ServerProviderSkill>;
   readonly slashCommands: ReadonlyArray<ServerProviderSlashCommand>;
+}
+
+export class PiProviderDiscoveryError extends Schema.TaggedErrorClass<PiProviderDiscoveryError>()(
+  "PiProviderDiscoveryError",
+  {
+    detail: Schema.String,
+    cause: Schema.optional(Schema.Defect()),
+  },
+) {
+  override get message(): string {
+    return this.detail;
+  }
 }
 
 /**
@@ -335,7 +348,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
     readonly environment?: NodeJS.ProcessEnv;
   }) => Effect.Effect<
     PiDiscoveryResult,
-    unknown,
+    PiProviderDiscoveryError,
     ChildProcessSpawner.ChildProcessSpawner
   > = discoverPiProvider,
   environment: NodeJS.ProcessEnv = process.env,

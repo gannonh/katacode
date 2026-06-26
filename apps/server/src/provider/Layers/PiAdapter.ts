@@ -388,7 +388,13 @@ export function makePiAdapter(
         // aborted) is emitted when the prompt resolves.
         const turnRunner = Effect.tryPromise({
           try: () => ctx.sdk.prompt(text),
-          catch: (cause) => cause as unknown,
+          catch: (cause) =>
+            new ProviderAdapterRequestError({
+              provider: PROVIDER,
+              method: "sendTurn",
+              detail: `Pi turn failed: ${cause instanceof Error ? cause.message : String(cause)}.`,
+              cause,
+            }),
         }).pipe(
           Effect.matchEffect({
             onFailure: (cause) => {

@@ -6,6 +6,7 @@ import { PiSettings, type ServerProviderModel } from "@kata-sh/code-contracts";
 
 import {
   checkPiProviderStatus,
+  PiProviderDiscoveryError,
   makePendingPiProvider,
   mapPiModels,
   mapPiSlashCommands,
@@ -121,7 +122,11 @@ it.layer(NodeServices.layer)("checkPiProviderStatus", (it) => {
   it.effect("marks the provider unavailable when SDK discovery fails", () =>
     Effect.gen(function* () {
       const snapshot = yield* checkPiProviderStatus(enabledSettings, () =>
-        Effect.fail(new Error("Cannot find module '@earendil-works/pi-coding-agent'")),
+        Effect.fail(
+          new PiProviderDiscoveryError({
+            detail: "Cannot find module '@earendil-works/pi-coding-agent'",
+          }),
+        ),
       );
       expect(snapshot.installed).toBe(false);
       expect(snapshot.status).toBe("error");
@@ -184,7 +189,7 @@ it.layer(NodeServices.layer)("checkPiProviderStatus", (it) => {
   it.effect("returns a disabled snapshot when settings.enabled is false", () =>
     Effect.gen(function* () {
       const snapshot = yield* checkPiProviderStatus(decodePiSettings({ enabled: false }), () =>
-        Effect.fail(new Error("should not be called")),
+        Effect.fail(new PiProviderDiscoveryError({ detail: "should not be called" })),
       );
       expect(snapshot.enabled).toBe(false);
       expect(snapshot.status).toBe("disabled");

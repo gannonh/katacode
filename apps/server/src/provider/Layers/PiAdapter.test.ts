@@ -13,8 +13,10 @@ import type { PiModelShape } from "./PiProvider.ts";
 
 const decodePiSettings = Schema.decodeSync(PiSettings);
 
+type PiSdkSessionEvent = Parameters<Parameters<PiSdkSession["subscribe"]>[0]>[0];
+
 interface FakeSessionHooks {
-  emit: ((event: unknown) => void) | undefined;
+  emit: ((event: PiSdkSessionEvent) => void) | undefined;
   promptStarted: Promise<void>;
   resolvePrompt: () => void;
   rejectPrompt: (error: Error) => void;
@@ -122,7 +124,7 @@ describe("makePiAdapter (vertical slice)", () => {
       hooks.emit?.({
         type: "message_update",
         assistantMessageEvent: { type: "text_delta", delta: "Hi" },
-      });
+      } as PiSdkSessionEvent);
       hooks.resolvePrompt();
       yield* Effect.tryPromise(() => recorder.waitFor((event) => event.type === "turn.completed"));
 
@@ -140,7 +142,7 @@ describe("makePiAdapter (vertical slice)", () => {
       const delta = recorder.events.find(
         (event) => event.type === "content.delta" && event.payload.streamKind === "assistant_text",
       );
-      expect(delta?.payload.delta).toBe("Hi");
+      expect((delta?.payload as { readonly delta?: string } | undefined)?.delta).toBe("Hi");
     }),
   );
 
