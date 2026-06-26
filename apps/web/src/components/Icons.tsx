@@ -212,18 +212,14 @@ export const GrokIcon: Icon = ({ className, ...props }) => (
 );
 
 export const PiIcon: Icon = ({ className, ...props }) => (
-  <svg
-    {...props}
-    viewBox="0 0 24 24"
-    fill="none"
-    className={cn("fill-[#0F172A] dark:fill-[#F8FAFC]", className)}
-    aria-hidden
-  >
-    {/* Pi glyph: top crossbar, two outer legs, and the forked middle descender */}
-    <rect x="2.75" y="4" width="18.5" height="3" rx="1" />
-    <rect x="4.25" y="4" width="3" height="16" rx="1.4" />
-    <rect x="16.75" y="4" width="3" height="16" rx="1.4" />
-    <rect x="10.5" y="7" width="3" height="7.5" rx="1.4" />
+  <svg {...props} viewBox="0 0 800 800" className={cn("rounded-[15%]", className)} aria-hidden>
+    <rect width="800" height="800" rx="120" fill="#09090b" />
+    <path
+      fill="#fff"
+      fillRule="evenodd"
+      d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"
+    />
+    <path fill="#fff" d="M517.36 400H634.72V634.72H517.36Z" />
   </svg>
 );
 
