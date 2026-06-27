@@ -23,9 +23,15 @@ const isDevelopment = Boolean(process.env.VITE_DEV_SERVER_URL);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const desktopDir = resolve(__dirname, "..");
 const repoRoot = resolve(desktopDir, "..", "..");
-const devBundleIdSuffix = basename(repoRoot)
-  .toLowerCase()
-  .replaceAll(/[^a-z0-9]+/g, "");
+// E2E workers override the suffix via KATACODE_DEV_BUNDLE_ID_SUFFIX so each
+// parallel worker's dev .app gets a unique CFBundleIdentifier; macOS Launch
+// Services otherwise treats same-bundle-ID apps as single-instance and the
+// second concurrent electron.launch exits before opening a window.
+const devBundleIdSuffix =
+  process.env.KATACODE_DEV_BUNDLE_ID_SUFFIX?.trim() ||
+  basename(repoRoot)
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "");
 const devBranding = resolveAppBranding({
   isDevelopment,
   appVersion: process.env.npm_package_version ?? "0.0.0-dev",
@@ -407,7 +413,11 @@ function readJson(path) {
 
 function buildMacLauncher(electronBinaryPath) {
   const sourceAppBundlePath = resolve(dirname(electronBinaryPath), "../..");
-  const runtimeDir = join(desktopDir, ".electron-runtime");
+  // The dev launcher cache is repo-relative by default. E2E workers override it
+  // via KATACODE_ELECTRON_RUNTIME_DIR so parallel workers don't clobber a
+  // shared .electron-runtime (concurrent cpSync/writeFileSync races otherwise).
+  const runtimeDir =
+    process.env.KATACODE_ELECTRON_RUNTIME_DIR?.trim() || join(desktopDir, ".electron-runtime");
   const targetAppBundlePath = join(runtimeDir, `${APP_DISPLAY_NAME}.app`);
   const targetBinaryPath = join(targetAppBundlePath, "Contents", "MacOS", "Electron");
   const iconPath = isDevelopment ? ensureDevelopmentIconIcns(runtimeDir) : defaultIconPath;

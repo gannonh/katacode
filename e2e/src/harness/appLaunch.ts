@@ -4,7 +4,6 @@ import { _electron as electron, type ElectronApplication, type Page } from "@pla
 
 import { appendProcessLog } from "./artifacts.ts";
 import { E2E_TIMEOUTS } from "../config/timeouts.ts";
-import { cleanupStaleDesktopDevApps } from "./cleanupStaleDesktopDev.ts";
 import { assertDesktopBuildArtifacts } from "./desktopArtifacts.ts";
 import { startDevStack } from "./devStack.ts";
 import type { E2ERunContext } from "./isolatedRun.ts";
@@ -15,7 +14,15 @@ import { buildElectronLaunchEnv, isRendererWindow, resolveRendererTarget } from 
 
 async function resolveDevElectronLaunchCommand(
   args: string[],
+  context: E2ERunContext,
 ): Promise<{ readonly electronPath: string; readonly args: string[] }> {
+  // The launcher reads KATACODE_ELECTRON_RUNTIME_DIR and
+  // KATACODE_DEV_BUNDLE_ID_SUFFIX from process.env to pick a per-worker cache
+  // dir and a unique dev app bundle id. Set them for the in-process launcher
+  // call so parallel workers don't clobber a shared .electron-runtime or collide
+  // on macOS single-instance launch services.
+  process.env.KATACODE_ELECTRON_RUNTIME_DIR = context.electronRuntimeDir;
+  process.env.KATACODE_DEV_BUNDLE_ID_SUFFIX = context.devEnv.KATACODE_DEV_BUNDLE_ID_SUFFIX;
   const { resolveRawElectronLaunchCommand } =
     await import("../../../apps/desktop/scripts/electron-launcher.mjs");
   // The macOS `.app` dev launcher boots a 2s auth-callback shim that exits when
@@ -123,9 +130,13 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
   const repoDesktopDir = join(context.repoRoot, "apps/desktop");
 
   if (context.launchTarget === "dev") {
-    cleanupStaleDesktopDevApps(context.repoRoot);
     await assertDesktopBuildArtifacts(context.repoRoot);
     await startDevStack(context);
+  } else {
+    // Release target binds the embedded server on serverPort inside Electron;
+    // release the placeholder claim so that bind succeeds. (Dev target's claim
+    // is released inside startDevStack right before Vite binds.)
+    await context.releasePortClaim();
   }
 
   const env = buildElectronLaunchEnv(context);
@@ -146,7 +157,7 @@ export async function launchApp(context: E2ERunContext): Promise<LaunchedApp> {
       env,
     });
   } else {
-    const devLaunch = await resolveDevElectronLaunchCommand(launchArgs);
+    const devLaunch = await resolveDevElectronLaunchCommand(launchArgs, context);
     electronApp = await electron.launch({
       executablePath: devLaunch.electronPath,
       args: devLaunch.args,

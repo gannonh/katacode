@@ -108,3 +108,69 @@ export async function findAvailablePortOffset(startOffset: number): Promise<{
     `No available dev ports found from offset ${startOffset}. Tried server=${BASE_SERVER_PORT}+n web=${BASE_WEB_PORT}+n up to port ${MAX_PORT}. Free local ports or set KATACODE_PORT_OFFSET.`,
   );
 }
+
+/**
+ * Claim a server/web port pair by opening listening sockets on every probe host
+ * and holding them open. The returned `release` closes the placeholders so the
+ * caller can immediately bind the ports (e.g. spawn Vite). Holding the sockets
+ * closes the TOCTOU window where two concurrent workers both observe the same
+ * free port and then race to bind it.
+ */
+export async function claimAvailablePortOffset(startOffset: number): Promise<{
+  readonly offset: number;
+  readonly serverPort: number;
+  readonly webPort: number;
+  readonly release: () => Promise<void>;
+}> {
+  for (let offset = startOffset; offset < 10_000; offset += 1) {
+    const { serverPort, webPort } = portPairForOffset(offset);
+    if (serverPort > MAX_PORT || webPort > MAX_PORT) {
+      break;
+    }
+
+    const claimed = await tryClaimPortPair(serverPort, webPort);
+    if (claimed) {
+      return { offset, serverPort, webPort, release: claimed };
+    }
+  }
+
+  throw new Error(
+    `No available dev ports found from offset ${startOffset}. Tried server=${BASE_SERVER_PORT}+n web=${BASE_WEB_PORT}+n up to port ${MAX_PORT}. Free local ports or set KATACODE_PORT_OFFSET.`,
+  );
+}
+
+async function tryClaimPortPair(
+  serverPort: number,
+  webPort: number,
+): Promise<(() => Promise<void>) | null> {
+  const servers: ReturnType<typeof createServer>[] = [];
+  const tryBind = (port: number, host: string) =>
+    new Promise<boolean>((resolve) => {
+      const server = createServer();
+      server.once("error", () => {
+        server.close(() => resolve(false));
+      });
+      server.listen(port, host, () => resolve(true));
+      servers.push(server);
+    });
+
+  const hosts = DEV_PORT_PROBE_HOSTS;
+  const results = await Promise.all([
+    ...hosts.map((host) => tryBind(serverPort, host)),
+    ...hosts.map((host) => tryBind(webPort, host)),
+  ]);
+
+  if (results.every(Boolean)) {
+    return async () => {
+      await Promise.all(
+        servers.map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
+      );
+    };
+  }
+
+  // Some hosts failed to bind: release whatever we held and signal failure.
+  await Promise.all(
+    servers.map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
+  );
+  return null;
+}

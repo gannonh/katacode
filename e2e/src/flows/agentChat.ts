@@ -124,33 +124,107 @@ export async function readLatestAssistantMessage(page: Page): Promise<string> {
   return (await assistantMessages.nth(count - 1).innerText()).trim();
 }
 
+/**
+ * Read the thread error banner text, if present. A failed turn (provider out of
+ * credits, auth error, rate limit, model unavailable) surfaces here as the real
+ * server-side error message. Returns null when no thread error is shown.
+ */
+export async function readThreadError(page: Page): Promise<string | null> {
+  const description = page.locator('[role="alert"] [data-slot="alert-description"]').first();
+  if (!(await description.isVisible().catch(() => false))) {
+    return null;
+  }
+  return (await description.innerText()).trim();
+}
+
 export async function expectAssistantReply(
   page: Page,
   expected: string,
   metadata: DeterministicAgentTurn,
   timeoutMs = E2E_TIMEOUTS.agentReplyMs,
 ): Promise<void> {
-  try {
-    await expect
-      .poll(async () => normalizeAssistantText(await readLatestAssistantMessage(page)), {
-        timeout: timeoutMs,
-      })
-      .toBe(normalizeAssistantText(expected));
-  } catch (error) {
-    const captured = await readLatestAssistantMessage(page);
-    throw new Error(
-      [
-        "Deterministic agent assertion failed.",
-        `provider=${metadata.provider}`,
-        `model=${metadata.model}`,
-        `prompt=${metadata.prompt}`,
-        `expected=${metadata.expected}`,
-        `captured=${JSON.stringify(captured)}`,
-        error instanceof Error ? error.message : String(error),
-      ].join("\n"),
-      { cause: error },
-    );
+  const expectedText = normalizeAssistantText(expected);
+  const deadline = Date.now() + timeoutMs;
+
+  // Race the reply poll against the thread error banner. A failed turn (out of
+  // credits, auth error, rate limit, model unavailable) surfaces in the banner
+  // as the real server-side error. Fail fast with that message instead of
+  // polling to timeout and reporting an empty capture.
+  while (Date.now() < deadline) {
+    const threadError = await readThreadError(page);
+    if (threadError) {
+      throw new Error(
+        [
+          "Deterministic agent turn failed before replying.",
+          `provider=${metadata.provider}`,
+          `model=${metadata.model}`,
+          `prompt=${metadata.prompt}`,
+          `expected=${metadata.expected}`,
+          `threadError=${JSON.stringify(threadError)}`,
+          "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
+        ].join("\n"),
+      );
+    }
+
+    if (normalizeAssistantText(await readLatestAssistantMessage(page)) === expectedText) {
+      return;
+    }
+
+    await page.waitForTimeout(500);
   }
+
+  const captured = await readLatestAssistantMessage(page);
+  const threadError = await readThreadError(page);
+  throw new Error(
+    [
+      "Deterministic agent assertion failed.",
+      `provider=${metadata.provider}`,
+      `model=${metadata.model}`,
+      `prompt=${metadata.prompt}`,
+      `expected=${metadata.expected}`,
+      `captured=${JSON.stringify(captured)}`,
+      ...(threadError ? [`threadError=${JSON.stringify(threadError)}`] : []),
+      "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
+    ].join("\n"),
+  );
+}
+
+/**
+ * Poll a value until `satisfies` returns true, but fail fast if the thread
+ * error banner appears. A failed turn (out of credits, auth error, rate limit,
+ * model unavailable) surfaces in the banner as the real server-side error;
+ * waiting out the full reply timeout would just mask it as an empty result.
+ */
+export async function pollWithThreadErrorGuard<T>(
+  page: Page,
+  read: () => Promise<T>,
+  satisfies: (value: T) => boolean,
+  timeoutMessage: string,
+  timeoutMs: number = E2E_TIMEOUTS.agentReplyMs,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const threadError = await readThreadError(page);
+    if (threadError) {
+      throw new Error(
+        [
+          `${timeoutMessage}: the agent turn failed first.`,
+          `threadError=${JSON.stringify(threadError)}`,
+          "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
+        ].join("\n"),
+      );
+    }
+    if (satisfies(await read())) {
+      return;
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error(
+    [
+      `${timeoutMessage} within ${timeoutMs}ms.`,
+      "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
+    ].join("\n"),
+  );
 }
 
 export function normalizeAssistantText(value: string): string {
@@ -195,9 +269,10 @@ export async function expectTimelineWarning(page: Page, text: string): Promise<v
  *  `aria-label` derived from the tool name + args. The work group may collapse
  *  previous tool calls, so assert the group exists and is non-empty. */
 export async function expectToolCallWorkRow(page: Page): Promise<void> {
-  await expect
-    .poll(async () => page.locator('[data-timeline-row-kind="work"]').count(), {
-      timeout: E2E_TIMEOUTS.agentReplyMs,
-    })
-    .toBeGreaterThanOrEqual(1);
+  await pollWithThreadErrorGuard(
+    page,
+    async () => page.locator('[data-timeline-row-kind="work"]').count(),
+    (count) => count >= 1,
+    "Tool-call work row did not appear",
+  );
 }

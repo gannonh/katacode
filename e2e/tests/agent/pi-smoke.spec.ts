@@ -17,13 +17,19 @@ import {
   readPiSmokeConfig,
 } from "../../src/flows/piProvider.ts";
 import { createOrOpenProject, createSeededWorkspace } from "../../src/flows/workspace.ts";
-import { expect, test } from "../../src/harness/testFixtures.ts";
+import { expect, resetAppToHome, test } from "../../src/harness/testFixtures.ts";
 
 const piSmoke = readPiSmokeConfig();
 
 test.describe(`Pi provider smoke ${E2E_TAGS.pi}`, () => {
   test.skip(!piSmoke.ok, piSmoke.ok ? undefined : formatPiSmokeSkipReason(piSmoke.missing));
   test.describe.configure({ timeout: E2E_TIMEOUTS.agentTestMs });
+
+  // Shared worker session: reset to the threads home between tests so each
+  // starts from a known navigation point without re-launching Electron.
+  test.beforeEach(async ({ authenticatedAppWindow }) => {
+    await resetAppToHome(authenticatedAppWindow);
+  });
 
   test("streams a deterministic response from a configured Pi model", async ({
     authenticatedAppWindow,

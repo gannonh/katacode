@@ -3,9 +3,15 @@ import { E2E_TIMEOUTS } from "../../src/config/timeouts.ts";
 import { dismissBlockingToasts } from "../../src/flows/navigation.ts";
 import { openProviderSettings } from "../../src/flows/settings.ts";
 import { createOrOpenProject, createSeededWorkspace } from "../../src/flows/workspace.ts";
-import { expect, test } from "../../src/harness/testFixtures.ts";
+import { expect, resetAppToHome, test } from "../../src/harness/testFixtures.ts";
 
 test.describe(`Settings Pi provider ${E2E_TAGS.settings}`, () => {
+  // Shared worker session: reset to the threads home between tests so each
+  // starts from a known navigation point without re-launching Electron.
+  test.beforeEach(async ({ authenticatedAppWindow }) => {
+    await resetAppToHome(authenticatedAppWindow);
+  });
+
   test("adds Pi as an enabled first-party provider instance", async ({
     authenticatedAppWindow,
   }) => {
