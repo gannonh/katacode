@@ -14,6 +14,9 @@ test.describe(`Settings Pi provider ${E2E_TAGS.settings}`, () => {
     await expect(dialog).toBeVisible();
 
     const piDriver = dialog.getByRole("radio", { name: "Pi Early Access" });
+    // Encode the "Pi is first in provider settings" acceptance criterion: a
+    // non-Pi-first ordering regression fails this assertion before selection.
+    await expect(dialog.getByRole("radio").first()).toHaveAccessibleName("Pi Early Access");
     await expect(piDriver).toBeEnabled();
     await piDriver.click();
 

@@ -51,6 +51,7 @@ async function startDevServerAndCapturePairingUrl(): Promise<{
         KATACODE_NO_BROWSER: "true",
       },
       stdio: ["ignore", "pipe", "pipe"],
+      detached: true,
     });
 
     let pairingUrl: string | null = null;
@@ -74,14 +75,24 @@ async function startDevServerAndCapturePairingUrl(): Promise<{
       }
     };
 
+    // Buffer incomplete trailing fragments across chunk boundaries so a
+    // `pairingUrl:` line split between two data events still matches.
+    const lineBuffer = () => {
+      let pending = "";
+      return (chunk: string) => {
+        pending += chunk;
+        const lines = pending.split("\n");
+        pending = lines.pop() ?? "";
+        for (const line of lines) onLine(line);
+      };
+    };
+
     child.stdout?.setEncoding("utf8");
     child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (chunk: string) => {
-      for (const line of chunk.split("\n")) onLine(line);
-    });
-    child.stderr?.on("data", (chunk: string) => {
-      for (const line of chunk.split("\n")) onLine(line);
-    });
+    const onStdout = lineBuffer();
+    const onStderr = lineBuffer();
+    child.stdout?.on("data", onStdout);
+    child.stderr?.on("data", onStderr);
 
     child.on("error", (err) => {
       if (!resolved) {
@@ -123,8 +134,23 @@ export const webTest = base.extend<{
       await use({ pairingUrl: pairingUrl ?? "", webUrl: WEB_URL });
     } finally {
       if (serverProcess) {
-        serverProcess.kill("SIGTERM");
-        serverProcess.kill("SIGKILL");
+        // Signal the whole detached process group (pnpm wraps the real dev
+        // server as a grandchild), then give SIGTERM a grace window before
+        // escalating to SIGKILL so the dev server can shut down gracefully.
+        const pid = serverProcess.pid;
+        if (pid) {
+          try {
+            process.kill(-pid, "SIGTERM");
+          } catch {
+            serverProcess.kill("SIGTERM");
+          }
+          await new Promise((resolve) => setTimeout(resolve, 2_000));
+          try {
+            process.kill(-pid, "SIGKILL");
+          } catch {
+            serverProcess.kill("SIGKILL");
+          }
+        }
       }
     }
   },

@@ -49,13 +49,11 @@ export async function configureDefaultPiProvider(page: Page, config: PiSmokeConf
   await agentDir.press("Enter");
 
   const customModelInput = page.locator("#provider-instance-pi-custom-model");
-  if (
-    !(await page
-      .getByText(config.model, { exact: true })
-      .isVisible()
-      .catch(() => false))
-  ) {
-    await customModelInput.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+  await customModelInput.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+  // Scope the presence check to the Pi custom-model field itself instead of
+  // searching the whole page, so the fill path only skips when that specific
+  // input already holds the configured model.
+  if ((await customModelInput.inputValue()) !== config.model) {
     await customModelInput.fill(config.model);
     await customModelInput.press("Enter");
   }
