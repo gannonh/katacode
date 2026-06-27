@@ -11,6 +11,7 @@ import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import {
   PiSettings,
+  ProviderDriverKind,
   ProviderInstanceId,
   ProviderRuntimeEvent,
   type ProviderRuntimeEvent as ProviderRuntimeEventType,
@@ -23,6 +24,7 @@ import { makePiAdapter, type PiSdkSession } from "./PiAdapter.ts";
 import type { PiExtensionUIContext } from "./piExtensionUi.ts";
 import type { PiModelShape } from "./PiProvider.ts";
 import type { ProviderAdapterShape } from "../Services/ProviderAdapter.ts";
+import { ProviderAdapterRequestError } from "../Errors.ts";
 import type { ProviderAdapterError } from "../Errors.ts";
 
 const decodePiSettings = Schema.decodeSync(PiSettings);
@@ -922,55 +924,52 @@ describe("makePiAdapter extension UI bridge", () => {
   // Bridge tests grab the uiContext via the `onUiContext` hook, invoke a
   // bridged method, then resolve the pending request through the public
   // `adapter.respondToUserInput` surface. Events are recorded for assertion.
-  async function startBridgedSession(piSettings: ReturnType<typeof decodePiSettings>): Promise<{
-    adapter: ProviderAdapterShape<ProviderAdapterError>;
-    uiContext: PiExtensionUIContext;
-    recorder: ReturnType<typeof makeEventRecorder>;
-    threadId: ReturnType<typeof ThreadId.make>;
-    resolveUserInput: (
-      requestId: string,
-      answers: Record<string, unknown>,
-    ) => Effect.Effect<void, ProviderAdapterError>;
-  }> {
-    const recorder = makeEventRecorder();
-    const { session } = makeFakeSession();
-    let capturedUiContext: PiExtensionUIContext | undefined;
-    const adapter = await Effect.runPromise(
-      Effect.scoped(
-        makePiAdapter(piSettings, {
-          instanceId: ProviderInstanceId.make("pi"),
-          availableModels: [SAMPLE_MODEL],
-          createSession: (() => Promise.resolve({ session })) as never,
-          onEvent: recorder.onEvent,
-          onUiContext: (uiContext) => {
-            capturedUiContext = uiContext;
-          },
-        }),
-      ),
-    );
-    const threadId = ThreadId.make("pi-ui-thread");
-    await Effect.runPromise(
-      adapter.startSession({
+  // Built as an Effect so the adapter shares the `it.effect` Scope instead of
+  // spinning up a manual Effect runtime (kata-code/no-manual-effect-runtime-in-tests).
+  function startBridgedSession(piSettings: ReturnType<typeof decodePiSettings>) {
+    return Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session } = makeFakeSession();
+      let capturedUiContext: PiExtensionUIContext | undefined;
+      const adapter = yield* makePiAdapter(piSettings, {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+        onUiContext: (uiContext) => {
+          capturedUiContext = uiContext;
+        },
+      });
+      const threadId = ThreadId.make("pi-ui-thread");
+      yield* adapter.startSession({
         threadId,
         runtimeMode: "full-access",
         modelSelection: MODEL_SELECTION,
-      }),
-    );
-    if (!capturedUiContext) throw new Error("onUiContext was not invoked during startSession");
-    return {
-      adapter,
-      uiContext: capturedUiContext,
-      recorder,
-      threadId,
-      resolveUserInput: (requestId, answers) =>
-        adapter.respondToUserInput(threadId, requestId as never, answers as never),
-    };
+      });
+      if (!capturedUiContext) {
+        return yield* Effect.fail(
+          new ProviderAdapterRequestError({
+            provider: ProviderDriverKind.make("pi"),
+            method: "startSession",
+            detail: "onUiContext was not invoked during startSession.",
+          }),
+        );
+      }
+      return {
+        adapter,
+        uiContext: capturedUiContext,
+        recorder,
+        threadId,
+        resolveUserInput: (requestId: string, answers: Record<string, unknown>) =>
+          adapter.respondToUserInput(threadId, requestId as never, answers as never),
+      };
+    });
   }
 
   it.effect("bridges select onto user-input.requested and resolves the chosen option", () =>
     Effect.gen(function* () {
-      const { uiContext, recorder, resolveUserInput } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
+      const { uiContext, recorder, resolveUserInput } = yield* startBridgedSession(
+        decodePiSettings({}),
       );
 
       const selectPromise = uiContext.select("Pick a tool", ["bash", "edit", "grep"]);
@@ -1001,8 +1000,8 @@ describe("makePiAdapter extension UI bridge", () => {
 
   it.effect("bridges confirm onto a Yes/No question and resolves to a boolean", () =>
     Effect.gen(function* () {
-      const { uiContext, recorder, resolveUserInput } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
+      const { uiContext, recorder, resolveUserInput } = yield* startBridgedSession(
+        decodePiSettings({}),
       );
 
       const confirmPromise = uiContext.confirm("Run tests?", "This will execute the suite");
@@ -1026,8 +1025,8 @@ describe("makePiAdapter extension UI bridge", () => {
 
   it.effect("bridges input onto a free-text question and resolves the string", () =>
     Effect.gen(function* () {
-      const { uiContext, recorder, resolveUserInput } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
+      const { uiContext, recorder, resolveUserInput } = yield* startBridgedSession(
+        decodePiSettings({}),
       );
 
       const inputPromise = uiContext.input("Branch name", "feat/...");
@@ -1052,9 +1051,7 @@ describe("makePiAdapter extension UI bridge", () => {
 
   it.effect("resolves a pre-aborted select immediately without publishing a request", () =>
     Effect.gen(function* () {
-      const { uiContext, recorder } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
-      );
+      const { uiContext, recorder } = yield* startBridgedSession(decodePiSettings({}));
       const controller = new AbortController();
       controller.abort();
 
@@ -1070,9 +1067,7 @@ describe("makePiAdapter extension UI bridge", () => {
     "resolves to a cancelled value after the timeout and publishes user-input.resolved",
     () =>
       Effect.gen(function* () {
-        const { uiContext, recorder } = yield* Effect.tryPromise(() =>
-          startBridgedSession(decodePiSettings({})),
-        );
+        const { uiContext, recorder } = yield* startBridgedSession(decodePiSettings({}));
 
         const answer = yield* Effect.tryPromise(() =>
           uiContext.select("Pick", ["a", "b"], { timeout: 10 }),
@@ -1088,9 +1083,7 @@ describe("makePiAdapter extension UI bridge", () => {
 
   it.effect("maps notify(warning/error) to runtime.warning and notify(info) to tool.progress", () =>
     Effect.gen(function* () {
-      const { uiContext, recorder } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
-      );
+      const { uiContext, recorder } = yield* startBridgedSession(decodePiSettings({}));
 
       uiContext.notify("careful", "warning");
       uiContext.notify("boom", "error");
@@ -1108,9 +1101,7 @@ describe("makePiAdapter extension UI bridge", () => {
 
   it.effect("emits one runtime.warning per TUI-only method per session and no-ops", () =>
     Effect.gen(function* () {
-      const { uiContext, recorder } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
-      );
+      const { uiContext, recorder } = yield* startBridgedSession(decodePiSettings({}));
 
       uiContext.setWidget("w", ["x"]);
       uiContext.setWidget("w", ["y"]);
@@ -1139,9 +1130,7 @@ describe("makePiAdapter extension UI bridge", () => {
 
   it.effect("fails loud when respondToUserInput targets an unknown request id", () =>
     Effect.gen(function* () {
-      const { adapter, threadId } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
-      );
+      const { adapter, threadId } = yield* startBridgedSession(decodePiSettings({}));
       const result = yield* Effect.exit(
         adapter.respondToUserInput(threadId, "unknown-request-id" as never, {} as never),
       );
@@ -1151,8 +1140,8 @@ describe("makePiAdapter extension UI bridge", () => {
 
   it.effect("emits schema-valid runtime events for the select bridge", () =>
     Effect.gen(function* () {
-      const { uiContext, recorder, resolveUserInput } = yield* Effect.tryPromise(() =>
-        startBridgedSession(decodePiSettings({})),
+      const { uiContext, recorder, resolveUserInput } = yield* startBridgedSession(
+        decodePiSettings({}),
       );
       const selectPromise = uiContext.select("Pick", ["a", "b"]);
       yield* Effect.tryPromise(() =>
@@ -1171,34 +1160,30 @@ describe("makePiAdapter extension UI bridge", () => {
 });
 
 describe("makePiAdapter runtime mode mapping", () => {
-  async function startSessionForMode(
+  function startSessionForMode(
     runtimeMode: "full-access" | "auto-accept-edits" | "approval-required",
-  ): Promise<ReturnType<typeof makeEventRecorder>> {
-    const recorder = makeEventRecorder();
-    const { session } = makeFakeSession();
-    const adapter = await Effect.runPromise(
-      Effect.scoped(
-        makePiAdapter(decodePiSettings({}), {
-          instanceId: ProviderInstanceId.make("pi"),
-          availableModels: [SAMPLE_MODEL],
-          createSession: (() => Promise.resolve({ session })) as never,
-          onEvent: recorder.onEvent,
-        }),
-      ),
-    );
-    await Effect.runPromise(
-      adapter.startSession({
+  ) {
+    return Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+      yield* adapter.startSession({
         threadId: ThreadId.make("pi-mode-thread"),
         runtimeMode,
         modelSelection: MODEL_SELECTION,
-      }),
-    );
-    return recorder;
+      });
+      return recorder;
+    });
   }
 
   it.effect("emits no runtime warning for full-access", () =>
     Effect.gen(function* () {
-      const recorder = yield* Effect.tryPromise(() => startSessionForMode("full-access"));
+      const recorder = yield* startSessionForMode("full-access");
       const warnings = recorder.events.filter((event) => event.type === "runtime.warning");
       expect(warnings).toHaveLength(0);
     }),
@@ -1206,7 +1191,7 @@ describe("makePiAdapter runtime mode mapping", () => {
 
   it.effect("warns that auto-accept-edits is treated as full-access", () =>
     Effect.gen(function* () {
-      const recorder = yield* Effect.tryPromise(() => startSessionForMode("auto-accept-edits"));
+      const recorder = yield* startSessionForMode("auto-accept-edits");
       const warnings = recorder.events.filter((event) => event.type === "runtime.warning");
       expect(warnings).toHaveLength(1);
       const message = (warnings[0]?.payload as { message?: string })?.message ?? "";
@@ -1217,7 +1202,7 @@ describe("makePiAdapter runtime mode mapping", () => {
 
   it.effect("warns before the first turn that approval-required cannot be enforced", () =>
     Effect.gen(function* () {
-      const recorder = yield* Effect.tryPromise(() => startSessionForMode("approval-required"));
+      const recorder = yield* startSessionForMode("approval-required");
       const warnings = recorder.events.filter((event) => event.type === "runtime.warning");
       expect(warnings).toHaveLength(1);
       const message = (warnings[0]?.payload as { message?: string })?.message ?? "";
@@ -1230,34 +1215,28 @@ describe("makePiAdapter runtime mode mapping", () => {
 });
 
 describe("makePiAdapter project trust policy", () => {
-  async function startSessionWithPolicy(
-    projectTrustPolicy: "never" | "always",
-  ): Promise<ReturnType<typeof makeEventRecorder>> {
-    const recorder = makeEventRecorder();
-    const { session } = makeFakeSession();
-    const adapter = await Effect.runPromise(
-      Effect.scoped(
-        makePiAdapter(decodePiSettings({ projectTrustPolicy }), {
-          instanceId: ProviderInstanceId.make("pi"),
-          availableModels: [SAMPLE_MODEL],
-          createSession: (() => Promise.resolve({ session })) as never,
-          onEvent: recorder.onEvent,
-        }),
-      ),
-    );
-    await Effect.runPromise(
-      adapter.startSession({
+  function startSessionWithPolicy(projectTrustPolicy: "never" | "always") {
+    return Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({ projectTrustPolicy }), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+      yield* adapter.startSession({
         threadId: ThreadId.make("pi-trust-thread"),
         runtimeMode: "full-access",
         modelSelection: MODEL_SELECTION,
-      }),
-    );
-    return recorder;
+      });
+      return recorder;
+    });
   }
 
   it.effect("does not warn and loads no project-local resources when policy is never", () =>
     Effect.gen(function* () {
-      const recorder = yield* Effect.tryPromise(() => startSessionWithPolicy("never"));
+      const recorder = yield* startSessionWithPolicy("never");
       const trustWarnings = recorder.events
         .filter((event) => event.type === "runtime.warning")
         .filter((event) =>
@@ -1269,7 +1248,7 @@ describe("makePiAdapter project trust policy", () => {
 
   it.effect("warns that project-local resources are loaded when policy is always", () =>
     Effect.gen(function* () {
-      const recorder = yield* Effect.tryPromise(() => startSessionWithPolicy("always"));
+      const recorder = yield* startSessionWithPolicy("always");
       const trustWarnings = recorder.events
         .filter((event) => event.type === "runtime.warning")
         .filter((event) =>
