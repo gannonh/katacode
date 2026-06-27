@@ -689,6 +689,28 @@ export function makePiAdapter(
           );
         }
 
+        // Surface the active project trust policy so loading project-local
+        // .pi resources and project .agents/skills is a visible, explicit
+        // decision. The default "never" keeps those resources out and needs
+        // no warning; "always" is security-sensitive and states it is loaded.
+        if (piSettings.projectTrustPolicy === "always") {
+          yield* publish(
+            makeEvent(input.threadId, {
+              type: "runtime.warning",
+              payload: {
+                message:
+                  "Pi project trust policy is 'always': project-local .pi resources and project .agents/skills are loaded for this session.",
+                detail: { projectTrustPolicy: piSettings.projectTrustPolicy },
+              },
+              raw: {
+                source: "pi.sdk.event",
+                method: "project-trust/always",
+                payload: { projectTrustPolicy: piSettings.projectTrustPolicy },
+              },
+            }),
+          );
+        }
+
         return providerSession;
       });
 

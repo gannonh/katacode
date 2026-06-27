@@ -1228,3 +1228,56 @@ describe("makePiAdapter runtime mode mapping", () => {
     }),
   );
 });
+
+describe("makePiAdapter project trust policy", () => {
+  async function startSessionWithPolicy(
+    projectTrustPolicy: "never" | "always",
+  ): Promise<ReturnType<typeof makeEventRecorder>> {
+    const recorder = makeEventRecorder();
+    const { session } = makeFakeSession();
+    const adapter = await Effect.runPromise(
+      Effect.scoped(
+        makePiAdapter(decodePiSettings({ projectTrustPolicy }), {
+          instanceId: ProviderInstanceId.make("pi"),
+          availableModels: [SAMPLE_MODEL],
+          createSession: (() => Promise.resolve({ session })) as never,
+          onEvent: recorder.onEvent,
+        }),
+      ),
+    );
+    await Effect.runPromise(
+      adapter.startSession({
+        threadId: ThreadId.make("pi-trust-thread"),
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      }),
+    );
+    return recorder;
+  }
+
+  it.effect("does not warn and loads no project-local resources when policy is never", () =>
+    Effect.gen(function* () {
+      const recorder = yield* Effect.tryPromise(() => startSessionWithPolicy("never"));
+      const trustWarnings = recorder.events
+        .filter((event) => event.type === "runtime.warning")
+        .filter((event) =>
+          ((event.payload as { message?: string })?.message ?? "").includes("project-local"),
+        );
+      expect(trustWarnings).toHaveLength(0);
+    }),
+  );
+
+  it.effect("warns that project-local resources are loaded when policy is always", () =>
+    Effect.gen(function* () {
+      const recorder = yield* Effect.tryPromise(() => startSessionWithPolicy("always"));
+      const trustWarnings = recorder.events
+        .filter((event) => event.type === "runtime.warning")
+        .filter((event) =>
+          ((event.payload as { message?: string })?.message ?? "").includes("project-local"),
+        );
+      expect(trustWarnings).toHaveLength(1);
+      const message = (trustWarnings[0]?.payload as { message?: string })?.message ?? "";
+      expect(message).toContain("always");
+    }),
+  );
+});
