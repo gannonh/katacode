@@ -33,8 +33,9 @@ import {
   TurnId,
 } from "@kata-sh/code-contracts";
 import * as DateTime from "effect/DateTime";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
-import type * as Fiber from "effect/Fiber";
+import * as Fiber from "effect/Fiber";
 import * as PubSub from "effect/PubSub";
 import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
@@ -271,6 +272,7 @@ export function makePiAdapter(
     const teardownSession = (ctx: PiSessionContext): Effect.Effect<void> =>
       Effect.gen(function* () {
         ctx.stopped = true;
+        const fiber = ctx.turnFiber;
         if (ctx.activeTurnId && ctx.sdk.isStreaming) {
           // Abort the in-flight turn. Errors during teardown are non-fatal —
           // the stopped flag prevents stale settlement events from the
@@ -281,6 +283,13 @@ export function makePiAdapter(
               () => {},
             ),
           );
+        }
+        // Wait for the in-flight turn fiber to observe `stopped` and settle
+        // before disposing the SDK session, so no settlement work runs after
+        // dispose and callers can assert the final event list deterministically.
+        // Bounded by a timeout in case the SDK does not honor abort.
+        if (fiber) {
+          yield* Fiber.join(fiber).pipe(Effect.timeout(Duration.seconds(2)), Effect.ignore);
         }
         ctx.unsubscribe();
         ctx.sdk.dispose();

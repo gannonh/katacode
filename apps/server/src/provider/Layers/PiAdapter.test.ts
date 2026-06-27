@@ -269,14 +269,10 @@ describe("makePiAdapter (vertical slice)", () => {
 
       // R1+R2: stopSession during streaming aborts the turn, but the stopped
       // flag prevents the turn fiber from publishing stale settlement events
-      // after session.exited.
+      // after session.exited. teardownSession awaits the turn fiber before
+      // disposing, so by the time stopSession returns the fiber has settled
+      // and no late turn.aborted/turn.completed can slip past this assertion.
       yield* adapter.stopSession(threadId);
-
-      // Wait for the aborted prompt/turn fiber to settle before asserting so
-      // a late turn.aborted or turn.completed published on the next tick
-      // cannot slip through undetected. Use a real-time delay (not
-      // Effect.sleep, which runs on the test clock and never advances).
-      yield* Effect.tryPromise(() => new Promise<void>((resolve) => setTimeout(resolve, 10)));
 
       // session.exited is published synchronously within stopSession.
       const types = recorder.events.map((event) => event.type);
