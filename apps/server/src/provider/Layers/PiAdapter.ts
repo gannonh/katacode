@@ -649,6 +649,46 @@ export function makePiAdapter(
           }),
         );
 
+        // Pi's SDK exposes no enforceable approval/sandbox gate (its
+        // ToolExecutionMode is only sequential/parallel). Map Kata runtime
+        // modes to visible warnings so the limitation is surfaced, not
+        // hidden behind a silent fallback. full-access needs no warning;
+        // auto-accept-edits and approval-required emit a runtime.warning at
+        // startSession so it is visible before the first turn.
+        if (input.runtimeMode === "auto-accept-edits") {
+          yield* publish(
+            makeEvent(input.threadId, {
+              type: "runtime.warning",
+              payload: {
+                message:
+                  "Pi cannot enforce auto-accept-edits mode; this session runs as full-access.",
+                detail: { runtimeMode: input.runtimeMode, treatedAs: "full-access" },
+              },
+              raw: {
+                source: "pi.sdk.event",
+                method: "runtime-mode/auto-accept-edits",
+                payload: { runtimeMode: input.runtimeMode },
+              },
+            }),
+          );
+        } else if (input.runtimeMode === "approval-required") {
+          yield* publish(
+            makeEvent(input.threadId, {
+              type: "runtime.warning",
+              payload: {
+                message:
+                  "Pi cannot enforce approval-required mode; tool calls will run without Kata approval gates. Review tool output before relying on this session.",
+                detail: { runtimeMode: input.runtimeMode },
+              },
+              raw: {
+                source: "pi.sdk.event",
+                method: "runtime-mode/approval-required",
+                payload: { runtimeMode: input.runtimeMode },
+              },
+            }),
+          );
+        }
+
         return providerSession;
       });
 

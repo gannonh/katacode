@@ -1169,3 +1169,62 @@ describe("makePiAdapter extension UI bridge", () => {
     }),
   );
 });
+
+describe("makePiAdapter runtime mode mapping", () => {
+  async function startSessionForMode(
+    runtimeMode: "full-access" | "auto-accept-edits" | "approval-required",
+  ): Promise<ReturnType<typeof makeEventRecorder>> {
+    const recorder = makeEventRecorder();
+    const { session } = makeFakeSession();
+    const adapter = await Effect.runPromise(
+      Effect.scoped(
+        makePiAdapter(decodePiSettings({}), {
+          instanceId: ProviderInstanceId.make("pi"),
+          availableModels: [SAMPLE_MODEL],
+          createSession: (() => Promise.resolve({ session })) as never,
+          onEvent: recorder.onEvent,
+        }),
+      ),
+    );
+    await Effect.runPromise(
+      adapter.startSession({
+        threadId: ThreadId.make("pi-mode-thread"),
+        runtimeMode,
+        modelSelection: MODEL_SELECTION,
+      }),
+    );
+    return recorder;
+  }
+
+  it.effect("emits no runtime warning for full-access", () =>
+    Effect.gen(function* () {
+      const recorder = yield* Effect.tryPromise(() => startSessionForMode("full-access"));
+      const warnings = recorder.events.filter((event) => event.type === "runtime.warning");
+      expect(warnings).toHaveLength(0);
+    }),
+  );
+
+  it.effect("warns that auto-accept-edits is treated as full-access", () =>
+    Effect.gen(function* () {
+      const recorder = yield* Effect.tryPromise(() => startSessionForMode("auto-accept-edits"));
+      const warnings = recorder.events.filter((event) => event.type === "runtime.warning");
+      expect(warnings).toHaveLength(1);
+      const message = (warnings[0]?.payload as { message?: string })?.message ?? "";
+      expect(message).toContain("auto-accept-edits");
+      expect(message.toLowerCase()).toContain("full-access");
+    }),
+  );
+
+  it.effect("warns before the first turn that approval-required cannot be enforced", () =>
+    Effect.gen(function* () {
+      const recorder = yield* Effect.tryPromise(() => startSessionForMode("approval-required"));
+      const warnings = recorder.events.filter((event) => event.type === "runtime.warning");
+      expect(warnings).toHaveLength(1);
+      const message = (warnings[0]?.payload as { message?: string })?.message ?? "";
+      expect(message).toContain("approval-required");
+      // The warning is emitted at startSession, before any turn is sent.
+      const turnStarts = recorder.events.filter((event) => event.type === "turn.started");
+      expect(turnStarts).toHaveLength(0);
+    }),
+  );
+});
