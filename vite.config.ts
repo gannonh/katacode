@@ -19,6 +19,7 @@ export default defineConfig({
   },
   fmt: {
     ignorePatterns: [
+      ".agents",
       ".agents/skills/**",
       ".reference",
       ".repos/**",
@@ -49,6 +50,7 @@ export default defineConfig({
   },
   lint: {
     ignorePatterns: [
+      ".agents",
       ".repos",
       ".repos/**",
       "dist",

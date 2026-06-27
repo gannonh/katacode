@@ -167,6 +167,13 @@ function createBaseServerConfig(): ServerConfig {
           serverPassword: "",
           customModels: [],
         },
+        pi: {
+          enabled: true,
+          binaryPath: "pi",
+          agentDir: "",
+          projectTrustPolicy: "never",
+          customModels: [],
+        },
       },
     },
   };

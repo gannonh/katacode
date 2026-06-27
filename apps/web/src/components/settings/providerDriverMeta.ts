@@ -4,10 +4,11 @@ import {
   CursorSettings,
   GrokSettings,
   OpenCodeSettings,
+  PiSettings,
   ProviderDriverKind,
 } from "@kata-sh/code-contracts";
 import type * as Schema from "effect/Schema";
-import { ClaudeAI, CursorIcon, GrokIcon, type Icon, OpenAI, OpenCodeIcon } from "../Icons";
+import { ClaudeAI, CursorIcon, GrokIcon, type Icon, OpenAI, OpenCodeIcon, PiIcon } from "../Icons";
 
 type ProviderSettingsSchema = {
   readonly fields: Readonly<Record<string, Schema.Top>>;
@@ -36,6 +37,13 @@ export interface ProviderClientDefinition {
 
 export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = [
   {
+    value: ProviderDriverKind.make("pi"),
+    label: "Pi",
+    icon: PiIcon,
+    badgeLabel: "Early Access",
+    settingsSchema: PiSettings,
+  },
+  {
     value: ProviderDriverKind.make("codex"),
     label: "Codex",
     icon: OpenAI,
@@ -51,21 +59,19 @@ export const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = 
     value: ProviderDriverKind.make("cursor"),
     label: "Cursor",
     icon: CursorIcon,
-    badgeLabel: "Early Access",
     settingsSchema: CursorSettings,
-  },
-  {
-    value: ProviderDriverKind.make("grok"),
-    label: "Grok",
-    icon: GrokIcon,
-    badgeLabel: "Early Access",
-    settingsSchema: GrokSettings,
   },
   {
     value: ProviderDriverKind.make("opencode"),
     label: "OpenCode",
     icon: OpenCodeIcon,
     settingsSchema: OpenCodeSettings,
+  },
+  {
+    value: ProviderDriverKind.make("grok"),
+    label: "Grok",
+    icon: GrokIcon,
+    settingsSchema: GrokSettings,
   },
 ];
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   DEFAULT_MODEL,
+  MODEL_SLUG_ALIASES_BY_PROVIDER,
+  PROVIDER_DISPLAY_NAMES,
   ProviderDriverKind,
   ProviderInstanceId,
   type ModelCapabilities,
@@ -245,5 +247,17 @@ describe("formatModelDisplayName", () => {
 
   it("leaves an already-display slug untouched", () => {
     expect(formatModelDisplayName("GPT-5.4-Mini")).toBe("GPT-5.4-Mini");
+  });
+});
+
+describe("Pi provider metadata", () => {
+  const pi = ProviderDriverKind.make("pi");
+
+  it("registers Pi as a first-party provider display name", () => {
+    expect(PROVIDER_DISPLAY_NAMES[pi]).toBe("Pi");
+  });
+
+  it("ships an empty Pi model slug alias map so runtime discovery owns slugs", () => {
+    expect(MODEL_SLUG_ALIASES_BY_PROVIDER[pi]).toEqual({});
   });
 });

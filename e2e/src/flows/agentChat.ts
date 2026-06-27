@@ -43,19 +43,34 @@ export function assertAgentPrerequisites(phase: string): DeterministicAgentTurn 
   return buildDeterministicAgentTurn(provider, model);
 }
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function modelSlugToPickerPattern(modelSlug: string): RegExp {
-  const pattern = modelSlug
-    .split("-")
-    .map((segment) => segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("[-.\\s]");
-  return new RegExp(pattern, "i");
+  const tokenAssertions = modelSlug
+    .split(/[-./_\s]+/u)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => `(?=.*${escapeRegex(segment)})`)
+    .join("");
+  return new RegExp(tokenAssertions, "i");
 }
 
 function modelSlugToSearchQuery(modelSlug: string): string {
-  return modelSlug.replace(/-/g, " ");
+  return modelSlug.replace(/[-./_]+/gu, " ");
 }
 
-export async function selectComposerModel(page: Page, modelSlug: string): Promise<void> {
+async function selectVisibleModelOption(page: Page, modelSlug: string): Promise<void> {
+  await page.getByPlaceholder("Search models...").fill(modelSlugToSearchQuery(modelSlug));
+
+  const modelOption = page
+    .getByRole("option", { name: modelSlugToPickerPattern(modelSlug) })
+    .first();
+  await modelOption.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+  await modelOption.click();
+}
+
+async function openComposerModelPicker(page: Page) {
   await dismissBlockingToasts(page);
   await page
     .getByTestId("composer-editor")
@@ -66,15 +81,28 @@ export async function selectComposerModel(page: Page, modelSlug: string): Promis
 
   const modelList = page.locator(".model-picker-list");
   await modelList.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+  return modelList;
+}
 
-  await page.getByPlaceholder("Search models...").fill(modelSlugToSearchQuery(modelSlug));
+export async function selectComposerModel(page: Page, modelSlug: string): Promise<void> {
+  const modelList = await openComposerModelPicker(page);
+  await selectVisibleModelOption(page, modelSlug);
+  await modelList
+    .waitFor({ state: "hidden", timeout: E2E_TIMEOUTS.assertionMs })
+    .catch(() => undefined);
+}
 
-  const modelOption = page
-    .getByRole("option", { name: modelSlugToPickerPattern(modelSlug) })
-    .first();
-  await modelOption.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
-  await modelOption.click();
-
+export async function selectComposerModelForProvider(
+  page: Page,
+  providerLabel: string,
+  modelSlug: string,
+): Promise<void> {
+  const modelList = await openComposerModelPicker(page);
+  await page
+    .locator('[data-model-picker-sidebar="true"]')
+    .getByRole("button", { name: providerLabel, exact: true })
+    .click();
+  await selectVisibleModelOption(page, modelSlug);
   await modelList
     .waitFor({ state: "hidden", timeout: E2E_TIMEOUTS.assertionMs })
     .catch(() => undefined);

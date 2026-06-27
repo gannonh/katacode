@@ -4,14 +4,14 @@ title: "Pi coding agent provider support"
 description: "Design for adding Pi as a first-party Kata Code provider using a Kata-native driver while using Synara as a reference implementation."
 tags: [providers, pi, agent-runtime, sdk]
 timestamp: 2026-06-25T00:00:00Z
-status: Draft
+status: Approved
 ---
 
 # Pi coding agent provider support
 
 ## Status
 
-Draft
+Approved
 
 ## Goal
 
@@ -346,6 +346,38 @@ Run the app locally with a Pi-authenticated environment:
 - `vp run test`
 - `vp run release:smoke` before push or CI parity review
 - `KATACODE_E2E_ENABLE_PI=1 KATACODE_E2E_PI_AGENT_DIR=<path> KATACODE_E2E_PI_MODEL=<model> vp run e2e --project desktop-dev --grep @pi` for credentialed Pi E2E smoke
+
+## Build progress
+
+2026-06-26 vertical slice completed:
+
+- Contracts/settings/web metadata: `PiSettings`, `providers.pi`, Pi display/model metadata, and `pi.sdk.event` raw event source are implemented.
+- Snapshot discovery: Pi SDK-backed model, skill, and slash-command discovery is implemented with tests for SDK failure, missing CLI binary with authenticated models, no authenticated models, and authenticated models with skills/commands.
+- Driver shell: `PiDriver` is registered in `BUILT_IN_DRIVERS`; settings hydration synthesizes the default `providerInstances.pi`; custom Pi provider instances can be added from the settings UI.
+- Adapter slice: Pi sessions support start, send turn, assistant/reasoning deltas, interrupt, stop, list/read basic thread state, and typed errors for unsupported rollback, approvals, UI bridge, and compaction paths.
+- Text generation: Pi currently returns typed `TextGenerationError` for all git text-generation operations. Full parity remains required by acceptance criterion 11.
+- E2E coverage: `e2e/tests/settings/pi-provider.spec.ts` verifies Pi is an enabled first-party provider option and a custom Pi instance can be added. `e2e/tests/agent/pi-smoke.spec.ts` adds the required credential-gated `@pi` smoke path.
+
+Verified commands during this slice:
+
+- `npx vp test apps/server/src/provider/Layers/PiAdapter.test.ts apps/server/src/provider/Layers/PiProvider.test.ts apps/server/src/provider/Layers/ProviderInstanceRegistryHydration.test.ts` - passed, 16 tests.
+- `npx vp run --filter @kata-sh/code-cli typecheck` - passed, Effect diagnostics suggestions only.
+- `npx playwright test --config e2e/playwright.config.ts --project desktop-dev --grep "Pi provider"` - passed, 3 tests.
+- `npx playwright test --config e2e/playwright.config.ts --project desktop-dev --grep @pi` - passed with 1 skipped gated Pi test and 2 setup tests.
+
+2026-06-26 post-slice fixes and UI polish:
+
+- Provider icon now uses the first-party pi.dev logo mark (`apps/web/src/components/Icons.tsx`).
+- Pi is listed first in provider settings, Add Provider dialog, and the model picker rail; Cursor/Grok lost their early-access badges and Grok moved last (`apps/web/src/components/settings/providerDriverMeta.ts`).
+- Model-switch on an existing Pi thread restarts the SDK session instead of failing with a duplicate-session error (`apps/server/src/provider/Layers/PiAdapter.ts`); covered by a new restart unit test.
+- The thread error banner no longer clips or collapses long provider errors; it renders full-width with an expandable details disclosure (`apps/web/src/components/chat/ThreadErrorBanner.tsx`).
+- Credentialed `@pi` smoke now passes end to end against a real Pi model after fixing model-picker provider scoping and slug tokenization (`e2e/src/flows/agentChat.ts`, `e2e/src/flows/piProvider.ts`).
+
+Remaining acceptance work:
+
+- Full tool lifecycle, image attachments, resume cursor, rollback, compaction, extension UI bridge, runtime mode mapping, project trust controls, and Pi text-generation parity.
+- Manual Pi-authenticated validation for real model selection, streaming prompt output, interrupt, and stop.
+- CI parity run of `vp run test` and `vp run release:smoke` before push, with exact output recorded per acceptance criterion 17.
 
 ## Implementation phases
 

@@ -1,6 +1,7 @@
 import {
   EventId,
   MessageId,
+  ProviderDriverKind,
   ThreadId,
   TurnId,
   type OrchestrationThreadActivity,
@@ -21,7 +22,17 @@ import {
   workEntryIndicatesToolFailure,
   workEntryIndicatesToolNeutralStatus,
   workEntryIndicatesToolSuccess,
+  PROVIDER_OPTIONS,
 } from "./session-logic";
+
+describe("PROVIDER_OPTIONS", () => {
+  it("lists Pi as an available first-party provider", () => {
+    const pi = PROVIDER_OPTIONS.find((option) => option.value === ProviderDriverKind.make("pi"));
+    expect(pi).toBeDefined();
+    expect(pi?.available).toBe(true);
+    expect(pi?.label).toBe("Pi");
+  });
+});
 
 let nextActivityId = 0;
 

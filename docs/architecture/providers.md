@@ -60,13 +60,14 @@ It does **not** implement provider-native protocols — that is each adapter's j
 
 Built-in drivers are registered in `apps/server/src/provider/builtInDrivers.ts`:
 
-| Driver kind (`ProviderDriverKind`) | Runtime                          | Integration                                     |
-| ---------------------------------- | -------------------------------- | ----------------------------------------------- |
-| `codex`                            | `codex app-server` child process | JSON-RPC over stdio (`effect-codex-app-server`) |
-| `claudeAgent`                      | Claude Code / Agent SDK          | In-process `@anthropic-ai/claude-agent-sdk`     |
-| `cursor`                           | Cursor `agent` CLI               | ACP (Agent Client Protocol) over subprocess     |
-| `grok`                             | Grok agent CLI                   | ACP over subprocess                             |
-| `opencode`                         | OpenCode server                  | Local child process or configured `serverUrl`   |
+| Driver kind (`ProviderDriverKind`) | Runtime                          | Integration                                                 |
+| ---------------------------------- | -------------------------------- | ----------------------------------------------------------- |
+| `codex`                            | `codex app-server` child process | JSON-RPC over stdio (`effect-codex-app-server`)             |
+| `claudeAgent`                      | Claude Code / Agent SDK          | In-process `@anthropic-ai/claude-agent-sdk`                 |
+| `cursor`                           | Cursor `agent` CLI               | ACP (Agent Client Protocol) over subprocess                 |
+| `grok`                             | Grok agent CLI                   | ACP over subprocess                                         |
+| `opencode`                         | OpenCode server                  | Local child process or configured `serverUrl`               |
+| `pi`                               | Pi coding agent SDK              | In-process `@earendil-works/pi-coding-agent` (early access) |
 
 Each **driver** is a factory. Settings can define multiple **instances** of the same driver (for example separate Codex or Claude homes). Every instance bundles three closures:
 
@@ -80,7 +81,7 @@ Instance materialization lives in `ProviderInstanceRegistry`. Tearing down an in
 
 Adapters translate provider-native output into **`ProviderRuntimeEvent`** (`packages/contracts/src/providerRuntime.ts`): turn items, tool calls, approval prompts, errors, and related metadata in one schema.
 
-Orchestration, git checkpoints, and the React UI consume these **canonical** events. That is how one conversation UX spans Codex, Claude, Cursor, Grok, and OpenCode without provider-specific rendering paths in the client.
+Orchestration, git checkpoints, and the React UI consume these **canonical** events. That is how one conversation UX spans Codex, Claude, Cursor, Grok, OpenCode, and Pi without provider-specific rendering paths in the client.
 
 ## Models: two meanings
 

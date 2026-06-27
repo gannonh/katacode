@@ -1,5 +1,6 @@
 import type {
   ProviderDriverKind,
+  ProviderInstanceId,
   ModelCapabilities,
   ServerProvider,
   ServerProviderAuth,
@@ -230,6 +231,34 @@ export function buildServerProvider(input: {
     skills: [...(input.skills ?? [])],
     ...(versionAdvisory ? { versionAdvisory } : {}),
   };
+}
+
+/**
+ * Curry a snapshot stamper that stamps `instanceId`, `driver`, display
+ * fields, and `continuation.groupKey` onto a `ServerProviderDraft`.
+ *
+ * Shared by every driver's `create()` so identity stamping is defined in
+ * one place. Each driver binds its `ProviderDriverKind` once:
+ *
+ * ```ts
+ * const withInstanceIdentity = stampProviderInstanceIdentity(DRIVER_KIND);
+ * ```
+ */
+export function stampProviderInstanceIdentity(driverKind: ProviderDriverKind) {
+  return (input: {
+    readonly instanceId: ProviderInstanceId;
+    readonly displayName: string | undefined;
+    readonly accentColor: string | undefined;
+    readonly continuationGroupKey: string;
+  }) =>
+    (snapshot: ServerProviderDraft): ServerProvider => ({
+      ...snapshot,
+      instanceId: input.instanceId,
+      driver: driverKind,
+      ...(input.displayName ? { displayName: input.displayName } : {}),
+      ...(input.accentColor ? { accentColor: input.accentColor } : {}),
+      continuation: { groupKey: input.continuationGroupKey },
+    });
 }
 
 export const collectStreamAsString = <E>(

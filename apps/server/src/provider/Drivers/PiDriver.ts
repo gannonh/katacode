@@ -1,40 +1,33 @@
-import { GrokSettings, ProviderDriverKind } from "@kata-sh/code-contracts";
+import { PiSettings, ProviderDriverKind } from "@kata-sh/code-contracts";
 import * as Duration from "effect/Duration";
-import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
-import { HttpClient } from "effect/unstable/http";
 import { ChildProcessSpawner } from "effect/unstable/process";
 
-import { ServerConfig } from "../../config.ts";
-import { makeGrokTextGeneration } from "../../textGeneration/GrokTextGeneration.ts";
+import { makePiTextGeneration } from "../../textGeneration/PiTextGeneration.ts";
 import { ProviderDriverError } from "../Errors.ts";
-import { makeGrokAdapter } from "../Layers/GrokAdapter.ts";
-import {
-  buildInitialGrokProviderSnapshot,
-  checkGrokProviderStatus,
-  enrichGrokSnapshot,
-} from "../Layers/GrokProvider.ts";
-import { ProviderEventLoggers } from "../Layers/ProviderEventLoggers.ts";
+import { makePiAdapter } from "../Layers/PiAdapter.ts";
+import { checkPiProviderStatus, makePendingPiProvider } from "../Layers/PiProvider.ts";
 import { makeManagedServerProvider } from "../makeManagedServerProvider.ts";
 import {
   defaultProviderContinuationIdentity,
   type ProviderDriver,
   type ProviderInstance,
 } from "../ProviderDriver.ts";
-import { stampProviderInstanceIdentity } from "../providerSnapshot.ts";
 import { mergeProviderInstanceEnvironment } from "../ProviderInstanceEnvironment.ts";
 import {
   makeManualOnlyProviderMaintenanceCapabilities,
   makeStaticProviderMaintenanceResolver,
   resolveProviderMaintenanceCapabilitiesEffect,
 } from "../providerMaintenance.ts";
-const decodeGrokSettings = Schema.decodeSync(GrokSettings);
+import { stampProviderInstanceIdentity } from "../providerSnapshot.ts";
 
-const DRIVER_KIND = ProviderDriverKind.make("grok");
+const decodePiSettings = Schema.decodeSync(PiSettings);
+
+const DRIVER_KIND = ProviderDriverKind.make("pi");
 const SNAPSHOT_REFRESH_INTERVAL = Duration.minutes(5);
 const UPDATE = makeStaticProviderMaintenanceResolver(
   makeManualOnlyProviderMaintenanceCapabilities({
@@ -43,30 +36,24 @@ const UPDATE = makeStaticProviderMaintenanceResolver(
   }),
 );
 
-export type GrokDriverEnv =
+export type PiDriverEnv =
   | ChildProcessSpawner.ChildProcessSpawner
-  | Crypto.Crypto
   | FileSystem.FileSystem
-  | HttpClient.HttpClient
-  | Path.Path
-  | ProviderEventLoggers
-  | ServerConfig;
+  | Path.Path;
 
 const withInstanceIdentity = stampProviderInstanceIdentity(DRIVER_KIND);
 
-export const GrokDriver: ProviderDriver<GrokSettings, GrokDriverEnv> = {
+export const PiDriver: ProviderDriver<PiSettings, PiDriverEnv> = {
   driverKind: DRIVER_KIND,
   metadata: {
-    displayName: "Grok",
+    displayName: "Pi",
     supportsMultipleInstances: true,
   },
-  configSchema: GrokSettings,
-  defaultConfig: (): GrokSettings => decodeGrokSettings({}),
+  configSchema: PiSettings,
+  defaultConfig: (): PiSettings => decodePiSettings({}),
   create: ({ instanceId, displayName, accentColor, environment, enabled, config }) =>
     Effect.gen(function* () {
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-      const httpClient = yield* HttpClient.HttpClient;
-      const eventLoggers = yield* ProviderEventLoggers;
       const processEnv = mergeProviderInstanceEnvironment(environment);
       const continuationIdentity = defaultProviderContinuationIdentity({
         driverKind: DRIVER_KIND,
@@ -78,39 +65,31 @@ export const GrokDriver: ProviderDriver<GrokSettings, GrokDriverEnv> = {
         accentColor,
         continuationGroupKey: continuationIdentity.continuationKey,
       });
-      const effectiveConfig = { ...config, enabled } satisfies GrokSettings;
+      const effectiveConfig = { ...config, enabled } satisfies PiSettings;
       const maintenanceCapabilities = yield* resolveProviderMaintenanceCapabilitiesEffect(UPDATE, {
         binaryPath: effectiveConfig.binaryPath,
         env: processEnv,
       });
 
-      const adapter = yield* makeGrokAdapter(effectiveConfig, {
+      const adapter = yield* makePiAdapter(effectiveConfig, {
         environment: processEnv,
-        ...(eventLoggers.native ? { nativeEventLogger: eventLoggers.native } : {}),
         instanceId,
       });
-      const textGeneration = yield* makeGrokTextGeneration(effectiveConfig, processEnv);
+      const textGeneration = makePiTextGeneration();
 
-      const checkProvider = checkGrokProviderStatus(effectiveConfig, processEnv).pipe(
+      const checkProvider = checkPiProviderStatus(effectiveConfig, undefined, processEnv).pipe(
         Effect.map(stampIdentity),
         Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
       );
 
-      const snapshot = yield* makeManagedServerProvider<GrokSettings>({
+      const snapshot = yield* makeManagedServerProvider<PiSettings>({
         maintenanceCapabilities,
         getSettings: Effect.succeed(effectiveConfig),
         streamSettings: Stream.never,
         haveSettingsChanged: () => false,
         initialSnapshot: (settings) =>
-          buildInitialGrokProviderSnapshot(settings).pipe(Effect.map(stampIdentity)),
+          makePendingPiProvider(settings).pipe(Effect.map(stampIdentity)),
         checkProvider,
-        enrichSnapshot: ({ snapshot: currentSnapshot, publishSnapshot }) =>
-          enrichGrokSnapshot({
-            snapshot: currentSnapshot,
-            maintenanceCapabilities,
-            publishSnapshot,
-            httpClient,
-          }),
         refreshInterval: SNAPSHOT_REFRESH_INTERVAL,
       }).pipe(
         Effect.mapError(
@@ -118,7 +97,7 @@ export const GrokDriver: ProviderDriver<GrokSettings, GrokDriverEnv> = {
             new ProviderDriverError({
               driver: DRIVER_KIND,
               instanceId,
-              detail: `Failed to build Grok snapshot: ${cause.message ?? String(cause)}`,
+              detail: `Failed to build Pi snapshot: ${cause.message ?? String(cause)}`,
               cause,
             }),
         ),

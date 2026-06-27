@@ -2,7 +2,12 @@ import { describe, expect, it } from "vite-plus/test";
 import * as Schema from "effect/Schema";
 
 import { ProviderInstanceId } from "./providerInstance.ts";
-import { DEFAULT_SERVER_SETTINGS, ServerSettings, ServerSettingsPatch } from "./settings.ts";
+import {
+  DEFAULT_SERVER_SETTINGS,
+  PiSettings,
+  ServerSettings,
+  ServerSettingsPatch,
+} from "./settings.ts";
 
 const decodeServerSettings = Schema.decodeUnknownSync(ServerSettings);
 const decodeServerSettingsPatch = Schema.decodeUnknownSync(ServerSettingsPatch);
@@ -91,6 +96,67 @@ describe("ServerSettingsPatch.providerInstances", () => {
     });
     const ollamaId = ProviderInstanceId.make("ollama_local");
     expect(patch.providerInstances?.[ollamaId]?.driver).toBe("ollama");
+  });
+});
+
+describe("PiSettings", () => {
+  const decodePiSettings = Schema.decodeUnknownSync(PiSettings);
+
+  it("decodes an empty config with kata defaults", () => {
+    expect(decodePiSettings({})).toEqual({
+      enabled: true,
+      binaryPath: "pi",
+      agentDir: "",
+      projectTrustPolicy: "never",
+      customModels: [],
+    });
+  });
+
+  it("preserves an explicit agentDir and project trust policy", () => {
+    const decoded = decodePiSettings({ agentDir: "~/.config/pi", projectTrustPolicy: "always" });
+    expect(decoded.agentDir).toBe("~/.config/pi");
+    expect(decoded.projectTrustPolicy).toBe("always");
+  });
+
+  it("rejects an unknown project trust policy", () => {
+    expect(() => decodePiSettings({ projectTrustPolicy: "prompt" })).toThrow();
+  });
+
+  it("falls back to the pi binary path when binaryPath is blank", () => {
+    expect(decodePiSettings({ binaryPath: "" }).binaryPath).toBe("pi");
+  });
+});
+
+describe("ServerSettings.providers.pi", () => {
+  const decodeServerSettings = Schema.decodeUnknownSync(ServerSettings);
+
+  it("hydrates the pi provider with defaults when the key is absent", () => {
+    const decoded = decodeServerSettings({});
+    expect(decoded.providers.pi).toEqual({
+      enabled: true,
+      binaryPath: "pi",
+      agentDir: "",
+      projectTrustPolicy: "never",
+      customModels: [],
+    });
+  });
+
+  it("round-trips an explicit pi provider config", () => {
+    const decoded = decodeServerSettings({
+      providers: { pi: { agentDir: "~/.pi-work", projectTrustPolicy: "always" } },
+    });
+    expect(decoded.providers.pi?.agentDir).toBe("~/.pi-work");
+    expect(decoded.providers.pi?.projectTrustPolicy).toBe("always");
+  });
+
+  it("decodes partial pi provider patches preserving optional-key behavior", () => {
+    expect(
+      decodeServerSettingsPatch({
+        providers: { pi: { agentDir: "~/.pi-work" } },
+      }),
+    ).toEqual({
+      providers: { pi: { agentDir: "~/.pi-work" } },
+    });
   });
 });
 

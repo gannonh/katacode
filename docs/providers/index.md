@@ -4,10 +4,11 @@ Agent provider setup and usage.
 
 ## Documents
 
-| Document                       | Summary          |
-| ------------------------------ | ---------------- |
-| [Codex](/providers/codex.md)   | OpenAI Codex CLI |
-| [Claude](/providers/claude.md) | Claude Code      |
+| Document                       | Summary                            |
+| ------------------------------ | ---------------------------------- |
+| [Codex](/providers/codex.md)   | OpenAI Codex CLI                   |
+| [Claude](/providers/claude.md) | Claude Code                        |
+| [Pi](/providers/pi.md)         | Pi coding agent SDK (early access) |
 
 ## Related
 

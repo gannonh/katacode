@@ -8,6 +8,7 @@ packages:
 
 allowBuilds:
   "@clerk/shared": true
+  "@google/genai": true
   browser-tabs-lock: true
   bufferutil: true
   core-js: true
@@ -17,6 +18,7 @@ allowBuilds:
   msgpackr-extract: true
   msw: false
   node-pty: true
+  protobufjs: true
   sharp: true
   utf-8-validate: true
   workerd: true

@@ -8,6 +8,11 @@ import { resolveE2eRoot } from "./src/harness/artifacts.ts";
 
 const e2eRoot = resolveE2eRoot();
 
+const webUrl = process.env["KATACODE_WEB_URL"] ?? "http://localhost:5733";
+
+const WEB_TEST_IGNORE = /web\/.*\.spec\.ts/;
+const WEB_TEST_MATCH = /web\/.*\.spec\.ts/;
+
 export default defineConfig({
   testDir: "./tests",
   outputDir: `${e2eRoot}/test-results/playwright`,
@@ -33,11 +38,13 @@ export default defineConfig({
     {
       name: "setup",
       testMatch: /setup\/.*\.setup\.ts/,
+      testIgnore: WEB_TEST_IGNORE,
       timeout: E2E_TIMEOUTS.setupMs,
     },
     {
       name: "desktop-dev",
       testMatch: /.*\.spec\.ts/,
+      testIgnore: WEB_TEST_IGNORE,
       dependencies: ["setup"],
       metadata: {
         launchTarget: "dev",
@@ -46,9 +53,17 @@ export default defineConfig({
     {
       name: "desktop-release",
       testMatch: /.*\.spec\.ts/,
+      testIgnore: WEB_TEST_IGNORE,
       dependencies: ["setup"],
       metadata: {
         launchTarget: "release",
+      },
+    },
+    {
+      name: "web-dev",
+      testMatch: WEB_TEST_MATCH,
+      use: {
+        baseURL: webUrl,
       },
     },
   ],

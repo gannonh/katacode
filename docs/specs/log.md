@@ -1,5 +1,26 @@
 # Specs log
 
+## 2026-06-26 (E2E — web test authentication and Pi provider locator fix)
+
+- Fixed Pi provider E2E test: updated radio locator from `name: "Pi", exact: true` to `name: "Pi Early Access"` to match the accessible name (badge included).
+- Added `web-dev` project to [Playwright config](../../e2e/playwright.config.ts) with per-project `testIgnore` so Electron projects don't pick up web tests.
+- Created [`webSetup.ts`](../../e2e/src/harness/webSetup.ts) fixture: starts dev server, captures `pairingUrl` from stdout, authenticates via pairing URL auto-submit.
+- Updated [E2E test catalog](/guides/e2e-test-catalog.md) web section with fixture usage, `web-dev` project commands, and `webPage` authenticated fixture example.
+
+## 2026-06-26 (Pi provider — strict quality review fixes)
+
+- Fixed blockers from strict quality review: duplicate `turn.completed` emissions (single settlement owner in `settleTurn`), orphaned `item.started` on abort/fail (item closure on all exit paths).
+- Fixed high-priority issues: `stopSession` abort-before-dispose asymmetry (centralized in `teardownSession`), unsupervised turn fiber (tracked on context, `stopped` flag guards stale events), `projectTrustPolicy` dead config hidden from settings UI, `withInstanceIdentity` duplication extracted to shared `stampProviderInstanceIdentity` across all 6 drivers.
+- Fixed medium-priority issues: `makeEvent` generic type safety, `resolveModel` test-override branching eliminated, dead `turns` state removed from `readThread`.
+- Added [Pi provider strict quality review follow-ups](/specs/deferred-work.md) deferred-work entry (issue [#14](https://github.com/gannonh/kata-code/issues/14)).
+
+## 2026-06-26 (Pi provider — vertical slice + branch doc sweep)
+
+- Recorded the [Pi provider build progress](/specs/2026-06-25-pi-coding-agent-support-design.md#build-progress): vertical slice landed (snapshot discovery, session start/send/stream/interrupt/stop, driver registration, gated `@pi` e2e green), plus post-slice fixes (pi.dev logo, provider ordering, Early Access badge, model-switch session restart, error banner layout).
+- Flipped the [specs roadmap](/specs/index.md) Pi status from Draft to In progress.
+- Added a [Pi provider full adapter parity](/specs/deferred-work.md) deferred-work entry covering acceptance criteria 5,6,8,9,10,11.
+- Added the `pi` driver row to [provider architecture](/architecture/providers.md) and a [providers index](/providers/index.md) Pi entry.
+
 ## 2026-06-25 (mobile E2E — Verify outcome recorded)
 
 - Added a [Verify outcome (2026-06-25)](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md#verify-outcome-2026-06-25) section to the [mobile E2E design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md): `@smoke`/`@pairing`/`@agent` green on-device (iPhone 17 Pro) via Maestro Studio; `@auth` (native `presentAuth` modal) and the AC-4 distinct-ports clause recorded as open. Annotated the now-superseded "deferred to maintainer runtime" line in the Build report with a forward pointer.

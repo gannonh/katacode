@@ -1,5 +1,9 @@
 # Guides log
 
+## 2026-06-26 (E2E test catalog — web test authentication update)
+
+- Updated the web section of [E2E test catalog](/guides/e2e-test-catalog.md): replaced the "Web codegen" stub with a full "Web E2E" section documenting the `web-dev` Playwright project, the [`webSetup.ts`](../../e2e/src/harness/webSetup.ts) fixture (dev server startup, pairing URL capture, authenticated `webPage` fixture), run commands for both main and codegen configs, and a code example for writing new web tests.
+
 ## 2026-06-25 (mobile E2E Maestro Studio authoring guide)
 
 - Added [Mobile E2E authoring (Maestro Studio)](/guides/e2e-mobile-authoring-maestro-studio.md) — canonical guide consolidating scattered Studio/locator/flow-authoring guidance from READMEs, design spec, local dev guide, test catalog, and authoring skill. Linked from [guides index](/guides/index.md) Testing section, [E2E test catalog](/guides/e2e-test-catalog.md), [mobile local dev guide](/guides/mobile-local-dev-ios-simulator.md), [mobile E2E design spec](/specs/2026-06-24-mobile-e2e-testing-foundation-design.md), [mobile-e2e README](../../mobile-e2e/README.md), and [mobile-e2e-test-author skill](../../.agents/skills/mobile-e2e-test-author/SKILL.md).
