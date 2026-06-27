@@ -45,6 +45,14 @@ plans, or UI pixel specs; those belong in per-phase specs.
   spike, AC-0.5).
 - Cursor cloud environment model: <https://cursor.com/docs/cloud-agent/setup>
   (resolution order, `install`/`start`/`terminals`, snapshots, agent-driven setup, secrets).
+- Prior art — AgentBox (`madarco/agentbox`, MIT, local checkout at `/Volumes/EVO/repos/agentbox`):
+  a working multi-provider implementation that runs an agent box across Vercel Sandbox,
+  Hetzner, Daytona, and E2B behind **one** `CloudBackend` SPI composed once by
+  `createCloudProvider(backend)`. Directly validates the capability-based driver design in
+  this roadmap. Study its `packages/core/src/cloud-backend.ts` (the SPI),
+  `packages/sandbox-cloud/src/cloud-provider.ts` (the scaffolding), and
+  `packages/sandbox-{vercel,hetzner}/src/backend.ts` (two reachability models). Treat it as a
+  pattern reference; do not import or copy code (per AGENTS.md reference-repo policy).
 - UI reference comps (`docs/comps/cursor-cloud/`):
   - `SCR-20260627-hpes.png` — composer "Run on" dropdown (This Mac / Cloud / Worktree). Maps to Phase 4.
   - `SCR-20260627-hpyw.png` — Cloud Agents settings: Environments table, Defaults (branch prefix), Secrets. Maps to Phases 1–2.
@@ -70,14 +78,32 @@ plans, or UI pixel specs; those belong in per-phase specs.
    `.kata/environment.json` in the repo → saved per-repo environment in Settings → provider
    base-image default. Committable and team-shareable; authored manually, by agent, or both.
 
-4. **Modularity — cloud-provider driver SPI in dedicated packages.** A `CloudProvider`
-   driver SPI mirrors the existing provider-instance pattern (open driver-kind slug,
-   envelope config in a settings map, runtime registry, per-driver package). Vercel is the
-   first driver. Kata Agent reuses the same packages and registers its own driver.
+4. **Modularity — one capability-based cloud-provider SPI.** A single `CloudProvider` driver
+   SPI mirrors the existing provider-instance pattern (open driver-kind slug, envelope config
+   in a settings map, runtime registry, per-driver package) and follows AgentBox's proven
+   shape: a small set of **required** primitives (`validate`, `provision`, `exec`,
+   `reachability`, `dispose`, `describe`) plus **optional** capabilities a driver may omit
+   (`createSnapshot`/`deleteSnapshot`/`snapshotExists`, `renewTimeout`, `signedPreviewUrl`,
+   `networkPolicy`, and lifecycle pause/resume where the provider supports it). The registry
+   degrades gracefully when a capability is absent. `describe()` advertises which capabilities
+   and which reachability kind a driver supports. This is **not** two separate lifecycle
+   archetypes; ephemeral behavior is the default and persistence is out of scope for V1. The
+   canonical required/optional split is defined in the Architecture “CloudProvider driver SPI
+   (shape)” section below. Vercel is the first driver; Hetzner, DigitalOcean, Cloudflare,
+   Daytona, and E2B (plus a future Kata Agent driver) plug into the same SPI later.
 
-5. **Reachability — sandbox public route URL + required token.** The sandbox exposes the
-   Kata server port via Vercel Sandbox's public HTTPS route; the client connects over `wss`
-   using the existing WebSocket auth token. Modeled as a new `AccessEndpoint` kind.
+5. **Reachability — a capability axis on the SPI; V1 uses `public-route`.** Each driver
+   declares a reachability kind:
+   - `public-route` (Vercel) — sandbox exposes the Kata server port via a public HTTPS route;
+     client connects over `wss` with the existing WebSocket auth token. **V1.**
+   - `ssh-tunnel` (Hetzner) — no public URL; reachability is an SSH ControlMaster + `ssh -L`
+     forward, reusing the **desktop-managed SSH access method** already described in
+     [remote.md](/architecture/remote.md). Reduced hosted-web support (needs a desktop host to
+     own the forward).
+   - `worker-proxied` (Cloudflare Sandbox SDK) — preview URLs route through a Worker
+     (`proxyToSandbox`) and require a custom domain with wildcard DNS in production.
+   V1 implements only `public-route`. Tunneled/worker kinds are modeled now so later drivers
+   are not a retrofit, but are not built in this roadmap.
 
 6. **Agent credentials — injected secrets, per session.** Provider auth (e.g.
    `ANTHROPIC_API_KEY`, Codex API key) and repo env secrets are stored in Kata settings and
@@ -155,20 +181,36 @@ flowchart TB
 The CloudProvider driver SPI intentionally parallels `ProviderDriver`: a factory keyed by
 an open `CloudProviderDriverKind` slug, configured by an envelope in a
 `cloudProviderInstances` settings map, materialized by a registry that downgrades unknown
-drivers to "unavailable" rather than crashing.
+drivers to "unavailable" rather than crashing. The `packages/cloud` (scaffolding) +
+`packages/cloud-vercel` (driver) split mirrors AgentBox's `sandbox-cloud` +
+`sandbox-<provider>` layout, where shared seeding/lifecycle/URL logic lives once in the
+scaffolding and each provider is “~one file implementing the backend.”
 
 ### CloudProvider driver SPI (shape, not final API)
 
-A driver exposes capabilities the registry orchestrates:
+Follows AgentBox's `CloudBackend` shape: required primitives every driver implements, plus
+optional capabilities a driver may omit (the registry checks presence and degrades
+gracefully). Required:
 
 - `validate(config)` — credential/connectivity check ("Test connection").
 - `provision(envConfig, secrets)` — create/boot a VM, apply base image/snapshot, run `install`.
-- `exposePort(port)` — return a public HTTPS route URL for the Kata server port.
-- `snapshot(handle)` — capture a reusable VM snapshot; return a snapshot id.
+- `exec(handle, cmd)` — run a command in the VM.
+- `reachability(handle, port)` — resolve how the client reaches the Kata server port, per the
+  driver's declared reachability kind (`public-route` URL, `ssh-tunnel` forward, or
+  `worker-proxied` URL).
 - `dispose(handle)` — tear down the VM.
-- `describe()` — capabilities/limits (max lifetime, supports-snapshot, base images).
+- `describe()` — capabilities, reachability kind, and limits (max lifetime, supported base
+  images, which optional capabilities below are available).
 
-Exact method signatures are fixed in Phase 0's per-phase spec.
+Optional capabilities (driver may omit):
+
+- `createSnapshot` / `deleteSnapshot` / `snapshotExists` — VM snapshot lifecycle (Phase 5).
+- `renewTimeout(handle)` — extend session before idle/timeout death for active work.
+- `signedPreviewUrl` — browser-bound signed URL where the route model needs one.
+- `networkPolicy` — native egress control (drivers without it may enforce via firewall).
+
+Exact method signatures are frozen in Phase 0's per-phase spec before `cloud-vercel` work
+begins (see Phase 0 requirements).
 
 ### Environment configuration (`.kata/environment.json`)
 
@@ -276,7 +318,7 @@ the environment provisioned automatically from its repo config.
 - "Move back": push from sandbox, fetch locally, restore working branch.
 - Cloud session status (provisioning/ready/error/disposed) surfaced in the UI.
 
-**Acceptance criteria.** AC-4.1 … AC-4.6
+**Acceptance criteria.** AC-4.1 … AC-4.7
 
 ### Phase 5 — Snapshot save & reuse
 
@@ -436,9 +478,22 @@ specs may add finer criteria but must not weaken these.
 
 ## Out of scope (deferred to later specs)
 
-- **Other cloud drivers (Hetzner, Daytona, E2B).** The SPI must accommodate them; this
-  roadmap implements only Vercel.
+- **Other cloud drivers.** The capability-based SPI must accommodate them; this roadmap
+  implements only Vercel (reachability `public-route`). Future drivers, tagged by reachability
+  kind and snapshot capability (AgentBox proves all of these behind one SPI):
+  - **Cloudflare Sandbox SDK** — `worker-proxied`; snapshot-capable. **Preferred vendor;**
+    deferred because production preview URLs require a Worker (`proxyToSandbox`) + a custom
+    domain with wildcard DNS, and the SDK is undergoing active feature deprecation. Revisit
+    when onboarding and the SDK surface stabilize.
+  - **Hetzner** — `ssh-tunnel`; **ephemeral-capable** (per-box VPS from a base snapshot via
+    cloud-init; `create_image` snapshots; `destroy` deletes server + firewall). Reduced
+    hosted-web support (desktop-managed SSH forward).
+  - **DigitalOcean** — `ssh-tunnel`; droplet from snapshot via `POST /v2/droplets` +
+    cloud-init. Same class as Hetzner.
+  - **Daytona / E2B** — `public-route` + snapshot-capable; close analogues of the Vercel path.
 - **Persistent cloud workspaces / durable disk.** V1 is ephemeral + snapshot reuse only.
+  Ephemerality is the SPI default, not a per-provider trait — Hetzner/DO are ephemeral-capable
+  under this model, not persistent-only.
 - **Multi-repo environments / repo groups.** V1 scopes one repo per cloud environment.
 - **OAuth/session forwarding for provider auth.** V1 uses injected API-key/token secrets;
   OAuth forwarding is deferred future work, consistent with the credential decision.
@@ -467,7 +522,26 @@ specs may add finer criteria but must not weaken these.
 - **Git WIP loss during move.** Mitigation: explicit auto-commit to `kata/cloud/<id>` before
   clone; never discard uncommitted changes silently.
 - **SPI churn.** Freezing the SPI too late forces rework in `cloud-vercel`. Mitigation: lock
-  the SPI interface in Phase 0's per-phase spec before Vercel driver implementation.
+  the SPI interface in Phase 0's per-phase spec before Vercel driver implementation; validate
+  the shape against AgentBox's `CloudBackend` (prior art) so the required/optional split is
+  right the first time.
+
+## Prior art / references
+
+- **AgentBox** (`madarco/agentbox`, MIT; local checkout `/Volumes/EVO/repos/agentbox`). A
+  working multi-provider agent-sandbox tool that runs across Vercel, Hetzner, Daytona, and E2B
+  behind one `CloudBackend` SPI. Most relevant files to study before Phase 0:
+  - `packages/core/src/cloud-backend.ts` — the SPI: required primitives + optional
+    capabilities (`createSnapshot`, `renewTimeout`, `signedPreviewUrl`, volumes), which this
+    roadmap's SPI mirrors.
+  - `packages/sandbox-cloud/src/cloud-provider.ts` — `createCloudProvider(backend)`
+    scaffolding: workspace/git seeding, snapshot/checkpoint restore with stale-snapshot
+    fallback, credential injection, lifecycle re-ensure on wake.
+  - `packages/sandbox-vercel/src/backend.ts` and `packages/sandbox-hetzner/src/backend.ts` —
+    two reachability models (`public-route` vs `ssh-tunnel`) implementing the same SPI.
+  Use as a pattern reference only; do not import or copy code (AGENTS.md reference-repo
+  policy). It is a different product (multi-agent box runner, not a Kata `ExecutionEnvironment`
+  host), so adapt rather than transplant.
 
 ## Verification (roadmap-level)
 
@@ -493,10 +567,13 @@ specs may add finer criteria but must not weaken these.
 
 ## Build handoff
 
-- **Approved scope:** seven phases above; Vercel-only; ephemeral + snapshot; repo-file-first
-  env config; full Kata server in sandbox reached via public route + token; injected secrets;
-  git branch-sync move semantics.
-- **Non-goals:** other drivers, persistent disk, multi-repo, OAuth forwarding, billing.
+- **Approved scope:** seven phases above; Vercel-only (reachability `public-route`); one
+  capability-based cloud SPI (required primitives + optional capabilities, AgentBox-shaped);
+  ephemeral + snapshot; repo-file-first env config; full Kata server in sandbox reached via
+  public route + token; injected secrets; git branch-sync move semantics.
+- **Non-goals:** other drivers (Cloudflare/Hetzner/DO/Daytona/E2B), persistent disk,
+  multi-repo, OAuth forwarding, billing. Cloudflare is the preferred future vendor but is
+  deferred on SDK maturity + custom-domain onboarding.
 - **Required verification:** each phase's ACs + CI parity gates; `@cloud` e2e tag.
 - **Blocking questions for Phase 0 spec:** final SPI method signatures; exact
   `.kata/environment.json` schema fields; secret-storage bar (encrypted vs
