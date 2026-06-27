@@ -1,14 +1,23 @@
+// @effect-diagnostics nodeBuiltinImport:off
 import { describe, expect, it } from "@effect/vitest";
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import {
   PiSettings,
   ProviderInstanceId,
-  type ProviderRuntimeEvent,
+  ProviderRuntimeEvent,
+  type ProviderRuntimeEvent as ProviderRuntimeEventType,
   ThreadId,
 } from "@kata-sh/code-contracts";
 
+import { attachmentRelativePath } from "../../attachmentStore.ts";
+import { ServerConfig } from "../../config.ts";
 import { makePiAdapter, type PiSdkSession } from "./PiAdapter.ts";
 import type { PiModelShape } from "./PiProvider.ts";
 
@@ -21,6 +30,13 @@ interface FakeSessionHooks {
   promptStarted: Promise<void>;
   resolvePrompt: () => void;
   rejectPrompt: (error: Error) => void;
+  /** Args captured from the most recent `prompt` call (for image tests). */
+  lastPromptArgs:
+    | {
+        text: string;
+        options?: { images?: unknown[]; streamingBehavior?: "steer" | "followUp" } | undefined;
+      }
+    | undefined;
 }
 
 function makeFakeSession(): { session: PiSdkSession; hooks: FakeSessionHooks } {
@@ -33,6 +49,7 @@ function makeFakeSession(): { session: PiSdkSession; hooks: FakeSessionHooks } {
     promptStarted,
     resolvePrompt: () => {},
     rejectPrompt: () => {},
+    lastPromptArgs: undefined,
   };
   const session: PiSdkSession = {
     sessionId: "pi-session-1",
@@ -41,7 +58,8 @@ function makeFakeSession(): { session: PiSdkSession; hooks: FakeSessionHooks } {
       hooks.emit = listener;
       return () => {};
     },
-    prompt: () => {
+    prompt: (text, options) => {
+      hooks.lastPromptArgs = { text, options };
       markPromptStarted();
       return new Promise<void>((resolve, reject) => {
         hooks.resolvePrompt = resolve;
@@ -58,14 +76,14 @@ function makeFakeSession(): { session: PiSdkSession; hooks: FakeSessionHooks } {
 }
 
 function makeEventRecorder() {
-  const events: ProviderRuntimeEvent[] = [];
+  const events: ProviderRuntimeEventType[] = [];
   let waiters: Array<{
-    readonly predicate: (event: ProviderRuntimeEvent) => boolean;
+    readonly predicate: (event: ProviderRuntimeEventType) => boolean;
     readonly resolve: () => void;
   }> = [];
   return {
     events,
-    onEvent: (event: ProviderRuntimeEvent) => {
+    onEvent: (event: ProviderRuntimeEventType) => {
       events.push(event);
       const pending: typeof waiters = [];
       for (const waiter of waiters) {
@@ -74,7 +92,7 @@ function makeEventRecorder() {
       }
       waiters = pending;
     },
-    waitFor: (predicate: (event: ProviderRuntimeEvent) => boolean) =>
+    waitFor: (predicate: (event: ProviderRuntimeEventType) => boolean) =>
       new Promise<void>((resolve) => {
         if (events.some(predicate)) {
           resolve();
@@ -399,4 +417,201 @@ describe("makePiAdapter (vertical slice)", () => {
       expect(Exit.isFailure(result)).toBe(true);
     }),
   );
+
+  it.effect("maps tool_execution_start/update/end to item lifecycle events", () =>
+    Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session, hooks } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+
+      const threadId = ThreadId.make("pi-thread-tools");
+      yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+      yield* adapter.sendTurn({ threadId, input: "run tests" });
+      yield* Effect.tryPromise(() => hooks.promptStarted);
+
+      hooks.emit?.({
+        type: "tool_execution_start",
+        toolCallId: "tool-1",
+        toolName: "bash",
+        args: { command: "npm test" },
+      } as PiSdkSessionEvent);
+      hooks.emit?.({
+        type: "tool_execution_update",
+        toolCallId: "tool-1",
+        toolName: "bash",
+        args: { command: "npm test" },
+        partialResult: { stdout: "running...", exitCode: undefined },
+      } as PiSdkSessionEvent);
+      hooks.emit?.({
+        type: "tool_execution_end",
+        toolCallId: "tool-1",
+        toolName: "bash",
+        result: { stdout: "all passing", exitCode: 0 },
+        isError: false,
+      } as PiSdkSessionEvent);
+
+      yield* Effect.tryPromise(() => recorder.waitFor((event) => event.type === "item.completed"));
+
+      const started = recorder.events.find(
+        (event) => event.type === "item.started" && event.itemId === "pi-tool-tool-1",
+      );
+      expect(started).toBeDefined();
+      expect((started?.payload as { itemType?: string })?.itemType).toBe("command_execution");
+      expect((started?.payload as { status?: string })?.status).toBe("inProgress");
+      expect((started?.payload as { title?: string })?.title).toBe("npm test");
+      expect((started?.payload as { data?: { toolCallId?: string } })?.data?.toolCallId).toBe(
+        "tool-1",
+      );
+      expect((started?.raw as { source?: string })?.source).toBe("pi.sdk.event");
+
+      const updated = recorder.events.find(
+        (event) => event.type === "item.updated" && event.itemId === "pi-tool-tool-1",
+      );
+      expect(updated).toBeDefined();
+      expect((updated?.payload as { itemType?: string })?.itemType).toBe("command_execution");
+      expect((updated?.payload as { status?: string })?.status).toBe("inProgress");
+      expect((updated?.payload as { detail?: string })?.detail).toBe("running...");
+      expect(
+        (updated?.payload as { data?: { partialResult?: unknown } })?.data?.partialResult,
+      ).toEqual({ stdout: "running...", exitCode: undefined });
+
+      const completed = recorder.events.find(
+        (event) => event.type === "item.completed" && event.itemId === "pi-tool-tool-1",
+      );
+      expect(completed).toBeDefined();
+      expect((completed?.payload as { itemType?: string })?.itemType).toBe("command_execution");
+      expect((completed?.payload as { status?: string })?.status).toBe("completed");
+      expect((completed?.payload as { title?: string })?.title).toBe("npm test");
+      expect(
+        (completed?.payload as { data?: { result?: { stdout?: string }; isError?: boolean } })?.data
+          ?.result,
+      ).toEqual({ stdout: "all passing", exitCode: 0 });
+      expect((completed?.payload as { data?: { isError?: boolean } })?.data?.isError).toBe(false);
+
+      // All emitted tool-lifecycle events must pass ProviderRuntimeEvent schema
+      // validation (raw.source = "pi.sdk.event", itemId/itemType/status).
+      const isSchema = Schema.is(ProviderRuntimeEvent);
+      for (const event of recorder.events) {
+        expect(isSchema(event)).toBe(true);
+      }
+
+      hooks.resolvePrompt();
+      yield* Effect.tryPromise(() => recorder.waitFor((event) => event.type === "turn.completed"));
+    }),
+  );
+
+  it.effect("maps a failed tool_execution_end to a failed item.completed", () =>
+    Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session, hooks } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+
+      const threadId = ThreadId.make("pi-thread-tools-failed");
+      yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+      yield* adapter.sendTurn({ threadId, input: "run tests" });
+      yield* Effect.tryPromise(() => hooks.promptStarted);
+
+      hooks.emit?.({
+        type: "tool_execution_start",
+        toolCallId: "tool-err",
+        toolName: "bash",
+        args: { command: "npm test" },
+      } as PiSdkSessionEvent);
+      hooks.emit?.({
+        type: "tool_execution_end",
+        toolCallId: "tool-err",
+        toolName: "bash",
+        result: { stdout: "Error: ENOTFOUND", exitCode: 1 },
+        isError: true,
+      } as PiSdkSessionEvent);
+
+      yield* Effect.tryPromise(() =>
+        recorder.waitFor(
+          (event) => event.type === "item.completed" && event.itemId === "pi-tool-tool-err",
+        ),
+      );
+
+      const completed = recorder.events.find(
+        (event) => event.type === "item.completed" && event.itemId === "pi-tool-tool-err",
+      );
+      expect((completed?.payload as { status?: string })?.status).toBe("failed");
+      expect((completed?.payload as { data?: { isError?: boolean } })?.data?.isError).toBe(true);
+
+      hooks.resolvePrompt();
+      yield* Effect.tryPromise(() => recorder.waitFor((event) => event.type === "turn.completed"));
+    }),
+  );
+
+  it.effect("passes image attachments to ctx.sdk.prompt as base64 ImageContent", () => {
+    const baseDir = mkdtempSync(path.join(os.tmpdir(), "pi-attachments-"));
+    const servicesLayer = Layer.provideMerge(
+      ServerConfig.layerTest("/tmp/pi-adapter-test", baseDir),
+      NodeServices.layer,
+    );
+    return Effect.gen(function* () {
+      yield* Effect.addFinalizer(() =>
+        Effect.sync(() => rmSync(baseDir, { recursive: true, force: true })),
+      );
+
+      const recorder = makeEventRecorder();
+      const { session, hooks } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+
+      const { attachmentsDir } = yield* ServerConfig;
+      const attachment = {
+        type: "image" as const,
+        id: "pi-image-12345678-1234-1234-1234-123456789abc",
+        name: "diagram.png",
+        mimeType: "image/png",
+        sizeBytes: 4,
+      };
+      const attachmentPath = path.join(attachmentsDir, attachmentRelativePath(attachment));
+      mkdirSync(path.dirname(attachmentPath), { recursive: true });
+      writeFileSync(attachmentPath, Uint8Array.from([1, 2, 3, 4]));
+
+      const threadId = ThreadId.make("pi-thread-images");
+      yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+      yield* adapter.sendTurn({
+        threadId,
+        input: "What's in this image?",
+        attachments: [attachment],
+      });
+      yield* Effect.tryPromise(() => hooks.promptStarted);
+
+      expect(hooks.lastPromptArgs).toBeDefined();
+      expect(hooks.lastPromptArgs?.text).toBe("What's in this image?");
+      const images = hooks.lastPromptArgs?.options?.images;
+      expect(images).toEqual([{ type: "image", data: "AQIDBA==", mimeType: "image/png" }]);
+
+      hooks.resolvePrompt();
+      yield* Effect.tryPromise(() => recorder.waitFor((event) => event.type === "turn.completed"));
+    }).pipe(Effect.provide(servicesLayer));
+  });
 });

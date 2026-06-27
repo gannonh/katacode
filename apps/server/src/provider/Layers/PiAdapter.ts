@@ -19,10 +19,12 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import {
+  type ChatAttachment,
   EventId,
   type PiSettings,
   ProviderDriverKind,
   ProviderInstanceId,
+  ProviderItemId,
   type ProviderRuntimeEvent,
   type ProviderSession,
   type ProviderSessionStartInput,
@@ -35,11 +37,14 @@ import {
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Fiber from "effect/Fiber";
 import * as PubSub from "effect/PubSub";
 import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 
+import { resolveAttachmentPath } from "../../attachmentStore.ts";
+import { ServerConfig } from "../../config.ts";
 import {
   ProviderAdapterRequestError,
   ProviderAdapterSessionNotFoundError,
@@ -54,6 +59,13 @@ import {
   piModelSlug,
   resolvePiAgentDir,
 } from "./PiProvider.ts";
+import {
+  type PiTrackedToolCall,
+  toolItemType,
+  toolLifecycleData,
+  toolResultDetail,
+  toolTitle,
+} from "./piToolLifecycle.ts";
 
 const PROVIDER = ProviderDriverKind.make("pi");
 
@@ -76,6 +88,7 @@ interface PiSessionContext {
   activeTurnId: TurnId | undefined;
   turnFiber: Fiber.Fiber<void, never> | undefined;
   stopped: boolean;
+  activeToolItems: Map<string, PiTrackedToolCall>;
 }
 
 /**
@@ -129,7 +142,7 @@ export function makePiAdapter(
       };
       // exactOptionalPropertyTypes: optional branded fields must be absent,
       // not explicitly undefined.
-      for (const key of ["turnId", "itemId", "requestId", "raw"] as const) {
+      for (const key of ["turnId", "itemId", "requestId", "providerRefs", "raw"] as const) {
         if (event[key] === undefined) delete event[key];
       }
       return event as E;
@@ -158,6 +171,12 @@ export function makePiAdapter(
         return ctx;
       });
 
+    const toolEventRaw = (event: AgentSessionEvent) => ({
+      source: "pi.sdk.event" as const,
+      messageType: event.type,
+      payload: event,
+    });
+
     const mapSdkEvent = (
       event: AgentSessionEvent,
       ctx: PiSessionContext,
@@ -183,6 +202,94 @@ export function makePiAdapter(
             }),
           ];
         }
+      }
+      if (event.type === "tool_execution_start") {
+        const itemId = RuntimeItemId.make(`pi-tool-${event.toolCallId}`);
+        const itemType = toolItemType(event.toolName);
+        const tracked: PiTrackedToolCall = {
+          toolCallId: event.toolCallId,
+          toolName: event.toolName,
+          args: event.args,
+          itemType,
+        };
+        ctx.activeToolItems.set(event.toolCallId, tracked);
+        const title = toolTitle(event.toolName, event.args);
+        return [
+          makeEvent(ctx.threadId, {
+            type: "item.started",
+            turnId,
+            itemId,
+            providerRefs: { providerItemId: ProviderItemId.make(event.toolCallId) },
+            payload: {
+              itemType,
+              status: "inProgress",
+              title,
+              data: toolLifecycleData({
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                args: event.args,
+              }),
+            },
+            raw: toolEventRaw(event),
+          }),
+        ];
+      }
+      if (event.type === "tool_execution_update") {
+        const tracked = ctx.activeToolItems.get(event.toolCallId);
+        if (!tracked) return [];
+        const detail = toolResultDetail(event.partialResult);
+        return [
+          makeEvent(ctx.threadId, {
+            type: "item.updated",
+            turnId,
+            itemId: RuntimeItemId.make(`pi-tool-${event.toolCallId}`),
+            providerRefs: { providerItemId: ProviderItemId.make(event.toolCallId) },
+            payload: {
+              itemType: tracked.itemType,
+              status: "inProgress",
+              title: toolTitle(event.toolName, tracked.args),
+              ...(detail ? { detail } : {}),
+              data: toolLifecycleData({
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                args: tracked.args,
+                partialResult: event.partialResult,
+              }),
+            },
+            raw: toolEventRaw(event),
+          }),
+        ];
+      }
+      if (event.type === "tool_execution_end") {
+        const tracked = ctx.activeToolItems.get(event.toolCallId);
+        ctx.activeToolItems.delete(event.toolCallId);
+        const itemId = RuntimeItemId.make(`pi-tool-${event.toolCallId}`);
+        const itemType = tracked?.itemType ?? toolItemType(event.toolName);
+        const args = tracked?.args;
+        const title = toolTitle(event.toolName, args);
+        const detail = toolResultDetail(event.result);
+        return [
+          makeEvent(ctx.threadId, {
+            type: "item.completed",
+            turnId,
+            itemId,
+            providerRefs: { providerItemId: ProviderItemId.make(event.toolCallId) },
+            payload: {
+              itemType,
+              status: event.isError ? "failed" : "completed",
+              title,
+              ...(detail ? { detail } : {}),
+              data: toolLifecycleData({
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                args,
+                result: event.result,
+                isError: event.isError,
+              }),
+            },
+            raw: toolEventRaw(event),
+          }),
+        ];
       }
       // Turn and item settlement are owned solely by settleTurn (called when
       // prompt() resolves/rejects). SDK turn_end/agent_end events are not
@@ -295,6 +402,7 @@ export function makePiAdapter(
         ctx.sdk.dispose();
         ctx.activeTurnId = undefined;
         ctx.turnFiber = undefined;
+        ctx.activeToolItems.clear();
         sessions.delete(ctx.threadId);
       });
 
@@ -378,6 +486,7 @@ export function makePiAdapter(
           activeTurnId: undefined,
           turnFiber: undefined,
           stopped: false,
+          activeToolItems: new Map(),
         };
         ctx.unsubscribe = created.session.subscribe((event) => {
           for (const mapped of mapSdkEvent(event, ctx)) {
@@ -397,6 +506,70 @@ export function makePiAdapter(
         return providerSession;
       });
 
+    /**
+     * Materialize image attachments into base64 `ImageContent` blocks for the
+     * Pi SDK `prompt(text, { images })` call. ServerConfig and FileSystem are
+     * acquired lazily via `Effect.serviceOption` so the no-attachment path
+     * stays synchronous and existing tests (which provide neither service)
+     * keep working. When attachments are present but ServerConfig is missing,
+     * the effect fails loud with a typed validation error.
+     */
+    const buildPromptImages = (
+      attachments: ReadonlyArray<ChatAttachment> | undefined,
+    ): Effect.Effect<ReadonlyArray<unknown>, ProviderAdapterError> =>
+      Effect.gen(function* () {
+        if (!attachments || attachments.length === 0) return [];
+        const serverConfigOption = yield* Effect.serviceOption(ServerConfig);
+        if (serverConfigOption._tag === "None") {
+          return yield* new ProviderAdapterValidationError({
+            provider: PROVIDER,
+            operation: "sendTurn",
+            issue:
+              "Pi image attachments require ServerConfig, which is not available in this context.",
+          });
+        }
+        const { attachmentsDir } = serverConfigOption.value;
+        const fileSystemOption = yield* Effect.serviceOption(FileSystem.FileSystem);
+        if (fileSystemOption._tag === "None") {
+          return yield* new ProviderAdapterValidationError({
+            provider: PROVIDER,
+            operation: "sendTurn",
+            issue:
+              "Pi image attachments require FileSystem, which is not available in this context.",
+          });
+        }
+        const fs = fileSystemOption.value;
+        const images: Array<unknown> = [];
+        for (const attachment of attachments) {
+          if (attachment.type !== "image") continue;
+          const attachmentPath = resolveAttachmentPath({ attachmentsDir, attachment });
+          if (!attachmentPath) {
+            return yield* new ProviderAdapterValidationError({
+              provider: PROVIDER,
+              operation: "sendTurn",
+              issue: `Invalid attachment id '${attachment.id}'.`,
+            });
+          }
+          const bytes = yield* fs.readFile(attachmentPath).pipe(
+            Effect.mapError(
+              (cause) =>
+                new ProviderAdapterRequestError({
+                  provider: PROVIDER,
+                  method: "sendTurn",
+                  detail: `Failed to read attachment file: ${cause instanceof Error ? cause.message : String(cause)}.`,
+                  cause,
+                }),
+            ),
+          );
+          images.push({
+            type: "image",
+            data: Buffer.from(bytes).toString("base64"),
+            mimeType: attachment.mimeType,
+          });
+        }
+        return images;
+      });
+
     const sendTurn = (input: ProviderSendTurnInput) =>
       Effect.gen(function* () {
         const ctx = yield* requireSession(input.threadId);
@@ -413,6 +586,12 @@ export function makePiAdapter(
         }
 
         const text = input.input?.trim() ?? "";
+        // Resolve image attachments before starting the turn. Failures (missing
+        // services, invalid attachment ids, read errors) surface as typed
+        // adapter errors before `turn.started` is published, so no orphaned
+        // turn lifecycle is emitted for a rejected image materialization.
+        const images = yield* buildPromptImages(input.attachments);
+
         const turnId = TurnId.make(randomUUID());
         ctx.activeTurnId = turnId;
 
@@ -436,8 +615,9 @@ export function makePiAdapter(
         // immediately while content streams. Settlement (completed / failed /
         // aborted) is emitted when the prompt resolves. The `ctx.stopped` flag
         // is checked before settling so teardown doesn't produce stale events.
+        const promptOptions = images.length > 0 ? { images: [...images] as unknown[] } : undefined;
         const turnRunner = Effect.tryPromise({
-          try: () => ctx.sdk.prompt(text),
+          try: () => (promptOptions ? ctx.sdk.prompt(text, promptOptions) : ctx.sdk.prompt(text)),
           catch: (cause) =>
             new ProviderAdapterRequestError({
               provider: PROVIDER,
