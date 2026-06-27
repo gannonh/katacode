@@ -2,7 +2,8 @@
 type: Spec
 title: "Kata Environments / Deployments Phase 0 — SandboxProvider foundations"
 description: "Detailed design for the SandboxProvider SPI, schema-only contracts, settings map, registry, test-only stub driver, and a local-container feasibility spike. No user-facing surface; no driver shipped."
-status: Draft
+status: Approved
+approved_at: 2026-06-27T20:55:20Z
 tags: [specs, phase-0, environments, deployments, sandbox, spi, contracts, docker]
 timestamp: 2026-06-27T16:35:04Z
 ---
@@ -11,7 +12,7 @@ timestamp: 2026-06-27T16:35:04Z
 
 ## Status
 
-Draft
+Approved
 
 ## Goal
 

@@ -2,7 +2,8 @@
 type: Spec
 title: "Kata Environments — deployments (BYOC)"
 description: "High-level, multi-phase roadmap for a deployments model that extends Kata Environments: provision isolated containers and bring-your-own cloud sandboxes from the GUI, auto-joining the Connect relay pool. Free and open source; the foundation for a future managed Kata Cloud product."
-status: Draft
+status: Approved
+approved_at: 2026-06-27T20:55:20Z
 tags: [specs, roadmap, environments, deployments, byoc, sandbox, docker, cloudflare, connect]
 timestamp: 2026-06-27T15:12:43Z
 ---
@@ -11,7 +12,7 @@ timestamp: 2026-06-27T15:12:43Z
 
 ## Status
 
-Draft.
+Approved.
 
 ## Goal
 
