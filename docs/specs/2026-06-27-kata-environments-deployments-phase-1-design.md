@@ -2,7 +2,7 @@
 type: Spec
 title: "Kata Environments / Deployments Phase 1 — Container driver + foundations (deep-dive)"
 description: "Deep-dive design for Phase 1: the SandboxProvider SPI substrate (Part A) and the first demoable surface, the local Docker/OrbStack container driver with Settings UI, Connect auto-registration, and an e2e-proven demo (Part B)."
-status: Draft (Part A Approved; Part B in progress)
+status: Draft (Part A Approved; Part B drafted, blocked on Part A + 3 open questions)
 approved_at: 2026-06-27T20:55:20Z
 tags: [specs, phase-1, environments, deployments, sandbox, spi, contracts, docker, container-driver]
 timestamp: 2026-06-27T16:35:04Z
@@ -18,9 +18,13 @@ This is the Phase 1 deep-dive (one spec per phase; see the
 - **Part A — Foundations (Approved).** The non-demoable substrate: contracts, the capability-based
   `SandboxProvider` SPI, registry, `sandboxProviderInstances` settings field, test-only stub, and
   the container-feasibility spike. Part A freezes the SPI before the driver ships.
-- **Part B — Container driver + demo (in progress).** The `packages/sandbox-docker` driver, the
-  Settings → Environments UI, Connect auto-registration on provision, and the Phase 1 demo
-  (AC-1.13) proven by walkthrough then encoded as `@environments-deploy` e2e.
+- **Part B — Container driver + demo (Drafted; blocked on Part A + open questions).** The
+  `packages/sandbox-docker` driver, generalized secret redaction, `sandbox.*` RPCs, server
+  provision + Connect auto-registration, the Settings → Environments UI, and the Phase 1 demo
+  (AC-1.13) proven by walkthrough then encoded as `@environments-deploy` e2e. The deep-dive
+  below is complete; three open questions (driver kind slug, image-pull behavior, per-deployment
+  tunnel) are flagged for resolution before implementation. Part B cannot start until Part A is
+  merged and the AC-1.7 spike finding is recorded.
 
 Phase 1 is complete only when its demo (AC-1.13) passes. Part A and Part B ship together as one
 phase; Part A is an internal checkpoint (SPI freeze), not a standalone deliverable.
@@ -449,12 +453,280 @@ _To be completed when `scripts/sandbox-spike/container-reachability.ts` runs (AC
 
 ---
 
-## Part B — Container driver + demo (in progress)
+## Part B — Container driver + demo
 
-_In progress — detailed architecture, implementation plan, and AC-1.8 … AC-1.13 land here. Until
-this section is filled in, treat the roadmap's Phase 1 requirements and AC-1.8 … AC-1.13 as the
-authoritative Part B scope. Part B covers: the `packages/sandbox-docker` driver
-(`validate`/`provision`/`exec`/`reachability`/`dispose`/`describe`), the Settings → Environments
-UI (list/add/edit/remove + Test connection + minimal Start session), Connect auto-registration on
-provision (reusing the existing "publish a local server" relay path for non-loopback clients),
-and the Phase 1 demo (AC-1.13) proven by walkthrough then encoded as `@environments-deploy` e2e._
+\_Drafted. Builds on Part A's frozen SPI. Restates AC-1.8 … AC-1.13 from the roadmap
+for self-containment; the roadmap remains authoritative on conflicts. Blocked on Part A landing
+
+- the AC-1.7 spike finding + the three open questions below.\_
+
+### Sequencing constraint
+
+**Part B is blocked on Part A landing first.** Part A ships the SPI + registry +
+`sandboxProviderInstances` settings field + the container-feasibility spike. Part B's driver
+implements the frozen SPI; its UI writes the new settings field; its transport choice is gated
+by the spike findings (AC-1.7). No Part B code is written until Part A is merged and the spike
+has run (or recorded its "blocked" finding, in which case Part B is blocked too).
+
+### Locked decisions (Part B)
+
+1. **Transport: raw Docker Engine HTTP API over the Unix socket, zero npm deps.**
+   `packages/sandbox-docker` reuses the same transport Part A's spike pins
+   (`scripts/sandbox-spike/container-reachability.ts`): `http.request({ socketPath })` against
+   `/var/run/docker.sock` (or `$DOCKER_HOST`), no `dockerode`. This keeps Phase 1 dependency-free
+   and consistent with the spike. If the spike (AC-1.7) refutes raw-socket viability for a
+   required primitive (e.g. streaming exec logs), Part B falls back to shelling out to the
+   `docker`/`orb` CLI (AgentBox's proven path) — a runtime binary dependency, still no npm dep.
+   That fallback is a spec amendment, recorded against the spike finding. No typed client
+   (`dockerode`) in Phase 1.
+2. **Per-deployment Connect link, not shared with the desktop.** Each container runs its own
+   `katacode serve` with its own `EnvironmentId` and its own keypair
+   (`getOrCreateEnvironmentKeyPairFromSecretStore`). The relay link proof is bound to an
+   `environmentId`, so each deployment mints its own link. The container's `reachability()`
+   returns a loopback `AdvertisedEndpoint`; auto-registration constructs a
+   `RelayManagedEndpoint` with `RelayManagedEndpointOrigin({ localHttpHost: "127.0.0.1",
+localHttpPort: <published-port> })` and goes through the existing link-proof path so other
+   paired clients reach it via the relay. Honors roadmap key decision 4 (every deployment
+   auto-registers with Connect on provision).
+3. **Driver config form reuses `ProviderSettingsForm` + `makeProviderSettingsSchema`.** The
+   container driver's config (image, optional resource limits, optional extra env) is a
+   `Schema.Struct` annotated with `providerSettingsForm` controls, rendered by the existing
+   `ProviderSettingsForm` — no new form primitive.
+4. **Settings UI mirrors the provider-instance list, surfaced under the existing
+   Connections/Environments panel.** Deployment targets are a new kind of entry in
+   Settings → Environments (roadmap key decision 1), implemented as an `AddProviderInstanceDialog`-shaped
+   "Add deployment target" dialog + a `ProviderInstanceCard`-shaped card, writing to
+   `sandboxProviderInstances` via `useUpdateSettings` (whole-map patch, matching
+   `providerInstances`). No new top-level settings section.
+5. **Minimal "Start session" affordance on the deployment card, superseded by the composer in
+   Phase 4.** Exists only so the Phase 1 demo (agent turn completes container-side, AC-1.10) is
+   reachable without the composer "Run on" picker. Removed/absorbed when Phase 4 lands.
+6. **Phase 1 container driver does not implement snapshots.** `describe().supportsSnapshot ===
+false`; `createSnapshot`/`deleteSnapshot`/`snapshotExists` absent. Snapshots are Phase 5.
+   `describe().supportsRenewTimeout === false` for Phase 1 as well.
+
+### Architecture (Part B)
+
+```mermaid
+flowchart TB
+  UI["Settings → Environments: deployment target card"]
+  RPC["sandbox.* RPCs (rpc.ts / ws.ts)"]
+  REG["SandboxProviderRegistry (Part A)"]
+  DRV["packages/sandbox-docker driver"]
+  DOCKER["Docker/OrbStack Engine API over Unix socket"]
+  BOX["container: katacode serve + KATACODE_* env + bootstrap token"]
+  REACH["reachability(): loopback AdvertisedEndpoint (localhost:published-port)"]
+  LINK["Connect link-proof + RelayManagedEndpoint (origin 127.0.0.1:published-port)"]
+  UI --> RPC --> REG --> DRV --> DOCKER --> BOX
+  BOX --> REACH
+  BOX --> LINK
+  REACH --> CLIENT["deploying desktop (loopback)"]
+  LINK --> RELAY["Connect relay → other paired clients"]
+```
+
+#### `packages/sandbox-docker` (the driver)
+
+Implements the frozen `SandboxProviderDriver` SPI from Part A against a local Docker/OrbStack
+runtime, over the raw Engine HTTP API (decision B1).
+
+- `kind` — `SandboxProviderDriverKind.make("docker")` (or `"orbstack"` — see open question below).
+- `validate(config)` — reach the daemon (`GET /_ping` on the socket), confirm the configured
+  image is present (`GET /images/{id}/json`, pulling on first use is a Phase 1 decision). Returns
+  success/failure with a specific reason; powers "Test connection" (AC-1.9).
+- `provision(req)` — `POST /containers/create` with `KATACODE_*` env + the bootstrap token, port
+  mapping `HostPort: 0` for the katacode port (Docker assigns an ephemeral host port),
+  `POST /containers/{id}/start`, then poll `GET /containers/{id}/json` + the readiness URL
+  (mirrors `waitForHttpReady` in `DesktopBackendManager.ts`) until `katacode serve` is ready.
+  Returns a handle carrying `containerId`, the published host port, the in-container
+  `EnvironmentId` (read from the server descriptor), and the bootstrap token.
+- `exec(handle, cmd, opts?)` — `POST /containers/{id}/exec` + `POST /exec/{execId}/start` (HTTP
+  hijacked stream). Phase 1 uses exec for `install`-free smoke flows; full env-config `install`
+  is Phase 2.
+- `reachability(handle, port)` — `createAdvertisedEndpoint` (from
+  `packages/shared/src/advertisedEndpoint.ts`) with `reachability: "loopback"`, a new sandbox
+  `AdvertisedEndpointProvider` (`kind: "manual"`, or a new core provider id),
+  `httpBaseUrl: http://localhost:<published-port>`. This is the endpoint the deploying desktop
+  connects to directly.
+- `dispose(handle)` — `DELETE /containers/{id}?force=true` + remove the Connect link (see below).
+- `describe()` — `{ kind, reachabilityKind: "loopback", supportsSnapshot: false,
+supportsRenewTimeout: false, baseImages?: [<configured image>] }`.
+
+The `KATACODE_*` env + bootstrap token passed into the container mirror
+`DesktopBackendConfiguration.resolveBackendStartConfig` / `DesktopBackendBootstrap`
+(`packages/contracts/src/desktopBootstrap.ts`): `KATACODE_PORT`, `KATACODE_MODE=desktop`,
+`KATACODE_NO_BROWSER`, `KATACODE_HOST`, and `desktopBootstrapToken` as the non-loopback auth
+credential. The in-container `katacode serve` starts with this bootstrap payload, so it is a
+Kata server like any other.
+
+#### Connect auto-registration glue (server-side, in `apps/server`)
+
+A new server-side service (e.g. `apps/server/src/sandbox/` or `apps/server/src/environments/`)
+owns provision orchestration and the Connect registration final step. On a successful
+`provision()`, before returning "ready", it:
+
+1. Reads the in-container server descriptor to get the container's `EnvironmentId`.
+2. `getOrCreateEnvironmentKeyPairFromSecretStore` for that `environmentId`
+   (`apps/server/src/cloud/environmentKeys.ts`).
+3. Constructs `RelayManagedEndpointOrigin({ localHttpHost: "127.0.0.1", localHttpPort:
+<published-port> })` + a `RelayManagedEndpoint` and runs the link-proof path
+   (`apps/server/src/cloud/http.ts` `reconcileDesiredCloudLink`) so the relay fronts the
+   loopback origin for other paired clients.
+4. (Optional in Phase 1) `CloudManagedEndpointRuntime.applyConfig` with a tunnel config if a
+   public tunnel is wanted; the loopback-only path is the Phase 1 default (other clients go via
+   the relay's managed endpoint, not a per-container tunnel).
+
+`apps/server/src/cloud/` itself is not modified (out of scope per Part A); Part B calls its
+existing entry points. `dispose()` removes the link (the relay's unlink path).
+
+#### RPC surface (added to `packages/contracts/src/rpc.ts` + `apps/server/src/ws.ts`)
+
+Following the established `Ws…Rpc = Rpc.make(WS_METHODS.x, { payload, success, error, stream? })`
+pattern, registered in `WsRpcGroup` with an auth scope entry:
+
+- `sandbox.listInstances` (read) → the materialized `SandboxProviderRegistry.list()`
+  (available + unavailable, for UI diagnostics).
+- `sandbox.upsertInstance` / `sandbox.removeInstance` (operate) → whole-map patch to
+  `sandboxProviderInstances` (mirrors `providerInstances` patching; credentials via the
+  `ServerSecretStore` redaction path, generalized to also walk `sandboxProviderInstances` —
+  see "Secret-redaction generalization" below).
+- `sandbox.testConnection` (operate, **streaming**) → `validate(config)` + a minimal
+  `provision`+`dispose` round-trip, streaming progress events (follows
+  `cloudInstallRelayClient`'s `Stream.callback` pattern). Powers AC-1.9.
+- `sandbox.startSession` (operate) → `provision(req)` + Connect registration; returns the
+  `ExecutionEnvironmentDescriptor` + loopback `AdvertisedEndpoint` for the client to bind a
+  thread to. Powers AC-1.10.
+- `sandbox.disposeSession` (operate) → `dispose(handle)` + Connect unlink.
+
+#### Settings UI (in `apps/web/src/components/settings/`)
+
+- An "Add deployment target" dialog mirroring `AddProviderInstanceDialog.tsx`: pick driver
+  (Phase 1: only `docker`; the open-slug design means unknown drivers parse and show
+  "unavailable"), fill label + auto-derived `SandboxProviderInstanceId`, render the driver config
+  via `ProviderSettingsForm`.
+- A deployment-target card mirroring `ProviderInstanceCard.tsx`: display name, driver config,
+  env vars (`ProviderEnvironmentSection`), and the Part B controls: **Test connection**
+  (streams `sandbox.testConnection` progress), **Start session** (the minimal affordance,
+  decision B5), **Dispose**.
+- Surfaced under the existing `ConnectionsSettings.tsx` (Environments panel) as a new entry
+  kind alongside the URL/pairing entries.
+- Writes go through `useUpdateSettings` against `sandboxProviderInstances`.
+
+#### Secret-redaction generalization (the one Part A explicitly deferred)
+
+Part A fixed the contract shape (`environment` reuses `ProviderInstanceEnvironment`) but left
+`materializeProviderEnvironmentSecrets` / `persistProviderEnvironmentSecrets` hardcoded to
+`settings.providerInstances`. Part B generalizes them to also walk `sandboxProviderInstances` —
+extracted to a shared helper over both maps, no duplication (AGENTS.md maintainability). This is
+in-scope for Part B because the UI writes sandbox instance env vars and they must round-trip
+through the redaction path (AC-1.8: no plaintext in settings).
+
+### Implementation plan (Part B)
+
+1. **Land Part A first** (separate work): `packages/contracts/src/sandboxProviderInstance.ts`,
+   `packages/sandbox-contracts`, `packages/sandbox` (SPI + registry + stub),
+   `sandboxProviderInstances` settings field, and run the spike (AC-1.7). Part B starts only
+   after the SPI is frozen and the spike finding is recorded.
+2. **`packages/sandbox-docker` driver** — implement `validate`/`provision`/`exec`/`reachability`/
+   `dispose`/`describe` over the raw Engine API; unit tests against the registry's stub-shaped
+   contract + a Docker-available integration test guarded by daemon presence. _(AC-1.9, AC-1.10,
+   AC-1.12)_
+3. **Generalize secret redaction** to walk both `providerInstances` and `sandboxProviderInstances`
+   via a shared helper. _(AC-1.8)_
+4. **RPCs** — add `sandbox.*` to `rpc.ts` + `WsRpcGroup` + auth scopes; handlers in
+   `apps/server/src/ws.ts` delegating to the new sandbox service module; `testConnection`
+   streaming. _(AC-1.9, AC-1.10)_
+5. **Server provision orchestration + Connect registration** — the sandbox service module's
+   `startSession`/`disposeSession` wiring the driver to `environmentKeys` +
+   `reconcileDesiredCloudLink` + `CloudManagedEndpointRuntime`. _(AC-1.11)_
+6. **Settings UI** — "Add deployment target" dialog + card + Test connection + Start session +
+   Dispose, under `ConnectionsSettings`. _(AC-1.8, AC-1.10)_
+7. **Demo walkthrough → e2e** — `playwright-cli` walkthrough of the full flow, then encode as
+   `e2e/tests/environments-deploy/container-deploy.spec.ts` tagged `@environments-deploy`
+   (add the tag to `e2e/src/config/tags.ts`). _(AC-1.13)_
+8. **Gate** — `vp check`, `vp run typecheck`, `vp run test`, `vp run e2e --project
+desktop-dev --grep @environments-deploy`. _(AC-1.1 gate still applies)_
+
+### Acceptance criteria (Part B — restated from the roadmap)
+
+8. **AC-1.8** A user can add a local container deployment target in Settings → Environments and
+   any credentials persist via the reused `ServerSecretStore` path (no plaintext in settings).
+9. **AC-1.9** "Test connection" provisions a minimal container and disposes it, returning a
+   visible success; invalid config returns a visible, specific failure.
+10. **AC-1.10** Starting a session in a container boots `katacode serve` inside it and the
+    deploying desktop reaches it over `localhost` (loopback); an agent turn completes
+    container-side.
+11. **AC-1.11** The container deployment **auto-registers with Connect** on provision and a
+    second paired client (e.g. mobile or hosted web) can reach it via the relay with no manual
+    setup.
+12. **AC-1.12** Disposing the container releases it and the deployment disappears from the
+    Connect pool; a container with its own published ports does not collide with a second
+    concurrent container (isolation verified).
+13. **AC-1.13 (Demo & e2e)** The Part B demo flow (AC-1.8 … AC-1.12) is proven by a
+    `playwright-cli`/`agent-browser` walkthrough against the running desktop app, then encoded
+    as a Playwright Electron e2e test under `e2e/tests/` tagged `@environments-deploy`, passing
+    via `vp run e2e --project desktop-dev --grep @environments-deploy`. The single-client flow
+    (add target → test connection → start session → agent turn completes → dispose) is fully
+    e2e-automated; the "second paired client reaches it via Connect" slice (AC-1.11) has no
+    existing two-client harness and falls back to a recorded manual UAT per the roadmap standing
+    rule, with the live walkthrough as evidence.
+
+### Demo & e2e plan
+
+- **New tag:** add `environmentsDeploy: "@environments-deploy"` to `e2e/src/config/tags.ts`.
+- **New flow helpers** in `e2e/src/flows/settings.ts`: `openEnvironmentsSettings(page)`,
+  `addDeploymentTarget(page, { label, image })`, `runTestConnection(page)` (assert streaming
+  progress + success), `startContainerSession(page)`, `disposeContainerSession(page)`.
+- **New spec** `e2e/tests/environments-deploy/container-deploy.spec.ts`, composing
+  `authenticatedAppWindow` + the new flows. The agent-turn slice reuses `agentChat.ts`
+  (`selectComposerModel` + `sendAgentInstruction` + `expectAssistantReply`) bound to the
+  container `EnvironmentId`.
+- **Prereqs (fail loud):** the test requires a reachable Docker/OrbStack daemon; assert it up
+  front (mirror `assertAgentPrerequisites`) and fail with a clear message if absent — do not
+  silently skip.
+- **Two-client slice:** manual UAT (a second paired client, e.g. mobile or a second desktop
+  profile, confirms the deployment appears in its Connect pool and reaches it). Record a
+  walkthrough as evidence in the PR.
+
+### Risks and mitigations (Part B)
+
+- **Raw-socket transport insufficiency.** The Engine API's hijacked exec stream and attach
+  endpoints are more awkward over raw `http` than via a typed client. Mitigation: the AC-1.7
+  spike is the gate; if a primitive is infeasible raw, fall back to the `docker` CLI (decision
+  B1) via a spec amendment. No `dockerode` in Phase 1.
+- **Connect link per deployment churn.** Minting a keypair + link per container is heavier than
+  reusing the desktop's. Mitigation: the relay proof is bound to `environmentId` by design, so
+  per-deployment is correct, not a shortcut; keys are cheap (ed25519 in `ServerSecretStore`).
+- **Two-client e2e gap.** No existing harness drives two paired clients. Mitigation: encode the
+  single-client flow as e2e (the bulk of the demo) and record the two-client reachability as
+  manual UAT per the standing rule; a two-client harness is a follow-up, not a Phase 1 blocker.
+- **Port isolation.** Two concurrent containers must not collide. Mitigation: `HostPort: 0` lets
+  Docker assign ephemeral host ports; `reachability()` resolves the published port per handle;
+  AC-1.12 verifies two concurrent containers.
+- **`docker` vs `orbstack` driver kind.** OrbStack exposes a Docker-compatible API but users may
+  think of it as a distinct runtime. Open question (below): one `docker` kind that works against
+  either via `$DOCKER_HOST`, or two kinds. Lean: one `docker` kind for Phase 1 (OrbStack is
+  Docker-API-compatible); revisit if the spike shows a divergence.
+
+### Open questions (Part B, to resolve before Part B implementation)
+
+- **Driver kind slug:** `docker` (works against Docker Desktop or OrbStack via `$DOCKER_HOST`) or
+  separate `docker` + `orbstack` kinds? Lean: one `docker` kind for Phase 1.
+- **Image pull on first provision:** pull automatically if the configured image is absent, or
+  fail `validate` with a specific "image not present" reason and let the user pull? Lean: fail
+  loud with a specific reason (roadmap fail-loud constraint); a "pull image" affordance is a
+  small Phase 1 addition if the walkthrough shows it's needed.
+- **Tunnel for non-deploying clients in Phase 1:** loopback-only + relay managed endpoint (no
+  per-container `cloudflared` tunnel) is the default; is that sufficient for AC-1.11, or does the
+  relay need a tunnel per deployment? Lean: relay managed endpoint suffices (it already fronts
+  loopback origins); confirm against `ManagedEndpointRuntime` during implementation.
+
+### Part B build handoff
+
+- **Scope:** `packages/sandbox-docker` driver, generalized secret redaction, `sandbox.*` RPCs +
+  handlers, server provision/Connect orchestration, Settings → Environments deployment-target
+  UI (dialog + card + Test connection + Start session + Dispose), and the `@environments-deploy`
+  e2e test. No composer (Phase 4), no env-config `install` execution (Phase 2), no snapshots
+  (Phase 5), no cloud driver (Phase 3).
+- **Blocked on:** Part A merged + AC-1.7 spike finding recorded.
+- **Required verification:** AC-1.8 … AC-1.13 + CI parity + `vp run e2e --project desktop-dev
+--grep @environments-deploy` (single-client) + manual UAT (two-client reachability).
