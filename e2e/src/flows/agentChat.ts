@@ -156,3 +156,48 @@ export async function expectAssistantReply(
 export function normalizeAssistantText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
+
+export type RuntimeModeOption = "Supervised" | "Auto-accept edits" | "Full access";
+
+/** Select a runtime mode in the composer (AC 9). The combobox exposes
+ *  `Supervised` (approval-required), `Auto-accept edits`, and `Full access`. */
+export async function selectRuntimeMode(page: Page, label: RuntimeModeOption): Promise<void> {
+  await dismissBlockingToasts(page);
+  await page.getByRole("combobox", { name: "Runtime mode" }).click();
+  await page.getByRole("option", { name: label, exact: false }).click();
+}
+
+/** Click the composer Stop generation button to interrupt an in-flight turn
+ *  (AC 5). Resolves once the Send button is visible again. */
+export async function interruptAgentTurn(page: Page): Promise<void> {
+  const stopButton = page.getByRole("button", { name: "Stop generation" });
+  await stopButton.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
+  await stopButton.click();
+  await expect(page.getByRole("button", { name: "Send message" })).toBeVisible({
+    timeout: E2E_TIMEOUTS.assertionMs,
+  });
+}
+
+/** Assert a runtime warning with `text` surfaced in the thread timeline (AC 9).
+ *  Warnings render as `data-timeline-row-kind="work"` rows whose text includes
+ *  the warning message. */
+export async function expectTimelineWarning(page: Page, text: string): Promise<void> {
+  await expect
+    .poll(
+      async () => page.locator('[data-timeline-row-kind="work"]').filter({ hasText: text }).count(),
+      { timeout: E2E_TIMEOUTS.agentReplyMs },
+    )
+    .toBeGreaterThanOrEqual(1);
+}
+
+/** Assert a tool-call work row rendered in the timeline (AC 5 tool lifecycle).
+ *  Tool calls surface as `data-timeline-row-kind="work"` rows with an
+ *  `aria-label` derived from the tool name + args. The work group may collapse
+ *  previous tool calls, so assert the group exists and is non-empty. */
+export async function expectToolCallWorkRow(page: Page): Promise<void> {
+  await expect
+    .poll(async () => page.locator('[data-timeline-row-kind="work"]').count(), {
+      timeout: E2E_TIMEOUTS.agentReplyMs,
+    })
+    .toBeGreaterThanOrEqual(1);
+}

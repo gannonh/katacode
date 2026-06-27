@@ -60,6 +60,13 @@ Release launches use isolated `KATACODE_HOME` and `KATACODE_PORT` only. The harn
 
 From the repo root:
 
+> **Stop `pnpm run dev` / `dev:desktop` before running E2E.** The harness
+> spawns its own isolated dev stack (dev-runner + Vite + Playwright-launched
+> Electron). A separately-running dev server collides on ports and shared
+> resources and causes every E2E test to fail with pairing/auth or model-picker
+> errors that look unrelated to the real cause. If the full suite fails,
+> `pkill -f dev-runner` / `pkill -f vite+` and re-run.
+
 ```bash
 # List tests
 vp run e2e --list

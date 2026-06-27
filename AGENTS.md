@@ -56,6 +56,8 @@ pnpm run dev:desktop      # Electron desktop
 
 Default dev ports: web `5733`, server `13773`. Offset with `KATACODE_DEV_INSTANCE` or `KATACODE_PORT_OFFSET`.
 
+**E2E:** stop `pnpm run dev` / `dev:desktop` before `vp run e2e` — the harness spawns its own isolated stack and a running dev server makes every E2E test fail. Rebuild the desktop bundle (`vp run --filter @kata-sh/code-desktop --filter @kata-sh/code-cli build`) after server/provider changes so the Electron `dist-electron/main.cjs` the harness launches includes them.
+
 ## Project Snapshot
 
 Kata Code is a hard fork of [T3 Code](https://github.com/pingdotgg/t3code) — a minimal
