@@ -566,6 +566,14 @@ export function makePiAdapter(
             detail: "Pi thread rollback is not yet wired in this build.",
           }),
         ),
+      compactThread: () =>
+        Effect.fail(
+          new ProviderAdapterRequestError({
+            provider: PROVIDER,
+            method: "thread/compact",
+            detail: "Pi thread compaction is not yet wired in this build.",
+          }),
+        ),
       stopAll,
       streamEvents: Stream.fromPubSub(runtimeEventPubSub),
     } satisfies ProviderAdapterShape<ProviderAdapterError>;

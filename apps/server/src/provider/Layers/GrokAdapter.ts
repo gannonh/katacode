@@ -957,6 +957,15 @@ export function makeGrokAdapter(grokSettings: GrokSettings, options?: GrokAdapte
         });
       });
 
+    const compactThread: GrokAdapterShape["compactThread"] = () =>
+      Effect.fail(
+        new ProviderAdapterRequestError({
+          provider: PROVIDER,
+          method: "thread/compact",
+          detail: "Grok ACP sessions do not support provider-side compaction yet.",
+        }),
+      );
+
     const stopSession: GrokAdapterShape["stopSession"] = (threadId) =>
       withThreadLock(
         threadId,
@@ -995,6 +1004,7 @@ export function makeGrokAdapter(grokSettings: GrokSettings, options?: GrokAdapte
       interruptTurn,
       readThread,
       rollbackThread,
+      compactThread,
       respondToRequest,
       respondToUserInput,
       stopSession,

@@ -196,6 +196,10 @@ function makeFakeCodexAdapter(provider: ProviderDriverKind = CODEX_DRIVER) {
       Effect.succeed({ threadId, turns: [] }),
   );
 
+  const compactThread = vi.fn(
+    (threadId: ThreadId): Effect.Effect<void, ProviderAdapterError> => Effect.void,
+  );
+
   const stopAll = vi.fn(
     (): Effect.Effect<void, ProviderAdapterError> =>
       Effect.sync(() => {
@@ -218,6 +222,7 @@ function makeFakeCodexAdapter(provider: ProviderDriverKind = CODEX_DRIVER) {
     hasSession,
     readThread,
     rollbackThread,
+    compactThread,
     stopAll,
     get streamEvents() {
       return Stream.fromPubSub(runtimeEventPubSub);
@@ -253,6 +258,7 @@ function makeFakeCodexAdapter(provider: ProviderDriverKind = CODEX_DRIVER) {
     hasSession,
     readThread,
     rollbackThread,
+    compactThread,
     stopAll,
   };
 }
@@ -903,6 +909,60 @@ routing.layer("ProviderServiceLive routing", (it) => {
       assert.equal(routing.codex.rollbackThread.mock.calls.length, 1);
       const rollbackCall = routing.codex.rollbackThread.mock.calls[0];
       assert.equal(rollbackCall?.[1], 1);
+    }),
+  );
+
+  it.effect("routes compactConversation to the bound adapter and returns void", () =>
+    Effect.gen(function* () {
+      const provider = yield* ProviderService;
+
+      const session = yield* provider.startSession(asThreadId("thread-compact"), {
+        provider: ProviderDriverKind.make("codex"),
+        providerInstanceId: codexInstanceId,
+        threadId: asThreadId("thread-compact"),
+        cwd: "/tmp/project-compact",
+        runtimeMode: "full-access",
+      });
+
+      routing.codex.compactThread.mockClear();
+
+      yield* provider.compactConversation({ threadId: session.threadId });
+
+      assert.equal(routing.codex.compactThread.mock.calls.length, 1);
+      assert.deepEqual(routing.codex.compactThread.mock.calls[0], [session.threadId]);
+    }),
+  );
+
+  it.effect("surfaces a typed adapter error when compactThread fails", () =>
+    Effect.gen(function* () {
+      const provider = yield* ProviderService;
+
+      const session = yield* provider.startSession(asThreadId("thread-compact-fail"), {
+        provider: ProviderDriverKind.make("codex"),
+        providerInstanceId: codexInstanceId,
+        threadId: asThreadId("thread-compact-fail"),
+        cwd: "/tmp/project-compact-fail",
+        runtimeMode: "full-access",
+      });
+
+      routing.codex.compactThread.mockClear();
+      routing.codex.compactThread.mockImplementationOnce(() =>
+        Effect.fail(
+          new ProviderAdapterRequestError({
+            provider: String(CODEX_DRIVER),
+            method: "thread/compact",
+            detail: "compaction is not supported by this provider yet.",
+          }),
+        ),
+      );
+
+      const failure = yield* Effect.flip(
+        provider.compactConversation({ threadId: session.threadId }),
+      );
+
+      assert.instanceOf(failure, ProviderAdapterRequestError);
+      assert.equal(failure.method, "thread/compact");
+      assert.equal(routing.codex.compactThread.mock.calls.length, 1);
     }),
   );
 

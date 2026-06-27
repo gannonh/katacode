@@ -12,6 +12,7 @@
  * @module ProviderService
  */
 import type {
+  ProviderCompactThreadInput,
   ProviderInterruptTurnInput,
   ProviderInstanceId,
   ProviderRespondToRequestInput,
@@ -104,6 +105,13 @@ export interface ProviderServiceShape {
     readonly threadId: ThreadId;
     readonly numTurns: number;
   }) => Effect.Effect<void, ProviderServiceError>;
+
+  /**
+   * Compact a provider conversation's thread history.
+   */
+  readonly compactConversation: (
+    input: ProviderCompactThreadInput,
+  ) => Effect.Effect<void, ProviderServiceError>;
 
   /**
    * Canonical provider runtime event stream.

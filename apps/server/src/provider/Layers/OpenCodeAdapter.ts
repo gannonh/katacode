@@ -1434,6 +1434,15 @@ export function makeOpenCodeAdapter(
       },
     );
 
+    const compactThread: OpenCodeAdapterShape["compactThread"] = () =>
+      Effect.fail(
+        new ProviderAdapterRequestError({
+          provider: PROVIDER,
+          method: "thread/compact",
+          detail: "OpenCode sessions do not support provider-side compaction yet.",
+        }),
+      );
+
     const stopAll: OpenCodeAdapterShape["stopAll"] = () =>
       Effect.gen(function* () {
         const contexts = [...sessions.values()];
@@ -1464,6 +1473,7 @@ export function makeOpenCodeAdapter(
       hasSession,
       readThread,
       rollbackThread,
+      compactThread,
       stopAll,
       get streamEvents() {
         return Stream.fromQueue(runtimeEvents);

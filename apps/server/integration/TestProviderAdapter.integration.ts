@@ -16,6 +16,7 @@ import * as Queue from "effect/Queue";
 import * as Stream from "effect/Stream";
 
 import {
+  ProviderAdapterRequestError,
   ProviderAdapterSessionNotFoundError,
   ProviderAdapterValidationError,
   type ProviderAdapterError,
@@ -503,6 +504,14 @@ export const makeTestProviderAdapterHarness = (options?: MakeTestProviderAdapter
       hasSession,
       readThread,
       rollbackThread,
+      compactThread: (): Effect.Effect<void, ProviderAdapterError> =>
+        Effect.fail(
+          new ProviderAdapterRequestError({
+            provider,
+            method: "thread/compact",
+            detail: "Compaction is not supported by this test adapter.",
+          }),
+        ),
       stopAll,
       streamEvents: Stream.fromQueue(runtimeEvents),
     };
