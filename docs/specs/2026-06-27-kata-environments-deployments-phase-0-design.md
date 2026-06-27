@@ -1,35 +1,40 @@
 ---
 type: Spec
-title: "Kata Environments / Deployments Phase 0 — SandboxProvider foundations"
-description: "Detailed design for the SandboxProvider SPI, schema-only contracts, settings map, registry, test-only stub driver, and a local-container feasibility spike. No user-facing surface; no driver shipped."
+title: "Kata Environments / Deployments Phase 1 — Milestone A: SandboxProvider foundations"
+description: "Detailed design for the SandboxProvider SPI, schema-only contracts, settings map, registry, test-only stub driver, and a local-container feasibility spike. This is the Milestone A gate of Phase 1 (container driver + foundations); no user-facing surface, no driver shipped."
 status: Approved
 approved_at: 2026-06-27T20:55:20Z
-tags: [specs, phase-0, environments, deployments, sandbox, spi, contracts, docker]
+tags: [specs, phase-1-milestone-a, environments, deployments, sandbox, spi, contracts, docker]
 timestamp: 2026-06-27T16:35:04Z
 ---
 
-# Kata Environments / Deployments Phase 0 — SandboxProvider foundations
+<!-- Path-slug note: this file's path/tag retain the historical `phase-0` slug for link
+     stability. Phase 0 was merged into Phase 1 as Milestone A (see master roadmap). The
+     document content uses the Phase 1 Milestone A scheme throughout. -->
+
+# Kata Environments / Deployments Phase 1 — Milestone A: SandboxProvider foundations
 
 ## Status
 
-Approved
+Approved — Milestone A (the foundations gate) of [Phase 1](/specs/2026-06-27-kata-environments-deployments-design.md). Milestone A has no standalone demo; the user-facing Phase 1 demo is Milestone B (the container driver).
 
 ## Goal
 
-Establish the modular sandbox-provider substrate with no user-facing surface. Phase 0 ships the
-schema-only contracts, the capability-based `SandboxProvider` driver SPI, a registry that
-materializes instances from settings and downgrades unknown drivers gracefully, the
-`sandboxProviderInstances` settings field, a test-only stub driver, and a recorded local-
-container feasibility spike. No production driver is registered; the server boots unchanged.
+Establish the modular sandbox-provider substrate. Milestone A ships the schema-only contracts,
+the capability-based `SandboxProvider` driver SPI, a registry that materializes instances from
+settings and downgrades unknown drivers gracefully, the `sandboxProviderInstances` settings
+field, a test-only stub driver, and a recorded local-container feasibility spike. No production
+driver is registered and the server boots unchanged. This is the gate that freezes the SPI
+before the container driver (Milestone B) ships.
 
 This is the first per-phase spec under the
 [Kata Environments — deployments (BYOC) roadmap](/specs/2026-06-27-kata-environments-deployments-design.md).
-It implements roadmap Phase 0 and freezes the SPI shape every later phase depends on.
+It implements roadmap Phase 1 Milestone A and freezes the SPI shape every later phase depends on.
 
 ## Source of truth
 
 - Master roadmap: [2026-06-27-kata-environments-deployments-design.md](/specs/2026-06-27-kata-environments-deployments-design.md)
-  (Phase 0 requirements, AC-0.1…AC-0.7; capability-based SandboxProvider SPI; container-first).
+  (Phase 1 Milestone A requirements, AC-1.1…AC-1.7; capability-based SandboxProvider SPI; container-first).
 - Existing provider-instance pattern to mirror: `packages/contracts/src/providerInstance.ts`
   (`ProviderDriverKind` open slug, `ProviderInstanceId`, `ProviderInstanceConfig` envelope,
   `defaultInstanceIdForDriver`), `packages/contracts/src/settings.ts`
@@ -47,25 +52,42 @@ It implements roadmap Phase 0 and freezes the SPI shape every later phase depend
 
 ## Locked decisions (from roadmap + planning)
 
-1. **New packages, no server wiring.** Phase 0 adds `packages/sandbox-contracts` and
+1. **New packages, no server wiring.** Phase 1 Milestone A adds `packages/sandbox-contracts` and
    `packages/sandbox`, plus `sandboxProviderInstances` in `ServerSettings`. No
    `environments.deploy.*`/`sandbox.*` RPCs, no registry wiring into running server layers. The
-   server boots unchanged (AC-0.4).
+   server boots unchanged (AC-1.4).
 2. **Distinct from `apps/server/src/cloud/`.** That directory is **Kata Code Connect** (relay
-   CLI state, endpoints, environment keys) — a different concern. Phase 0 does not touch it.
+   CLI state, endpoints, environment keys) — a different concern. Phase 1 Milestone A does not touch it.
    The new packages are `@kata-sh/code-sandbox-contracts` and `@kata-sh/code-sandbox`.
 3. **Capability-based SPI.** Required primitives + optional capabilities; registry checks
    presence and degrades gracefully. Frozen in this spec (see SPI section).
-4. **Secret-storage bar reuses existing infra.** Sandbox credentials and env secrets use the
+4. **Cycle-free package layout — settings-referenced contracts live in `packages/contracts`.**
+   `packages/contracts/src/settings.ts` must reference `SandboxProviderInstanceId`,
+   `SandboxProviderInstanceConfig`, and `SandboxProviderDriverKind` for the
+   `sandboxProviderInstances` field. To keep `packages/contracts` a dependency leaf and avoid a
+   `contracts` ⇄ `sandbox-contracts` cycle, those schemas are **defined in `packages/contracts`**
+   in a new `sandboxProviderInstance.ts` module beside `providerInstance.ts`:
+   `SandboxProviderDriverKind` (open slug), `SandboxProviderInstanceId`,
+   `SandboxProviderInstanceConfig` (envelope), `SandboxProviderInstanceConfigMap`, and
+   `defaultInstanceIdForSandboxDriver`. `packages/sandbox-contracts` **re-exports** all of them
+   from `@kata-sh/code-contracts` so every later phase keeps a single import surface
+   (`@kata-sh/code-sandbox-contracts`), and additionally owns the sandbox-only schemas with no
+   settings dependency: `EnvironmentConfig`, `SandboxSessionState`, `SandboxReachabilityKind`.
+   The dependency edge is one-directional (`sandbox-contracts` → `contracts`).
+   `ProviderInstanceEnvironment` is reused (not redefined) for the `environment` field,
+   single-sourcing the redaction contract. Distinct brand strings
+   (`"SandboxProviderDriverKind"`, `"SandboxProviderInstanceId"`) keep the type systems separate.
+
+5. **Secret-storage bar reuses existing infra.** Sandbox credentials and env secrets use the
    same `sensitive` + `valueRedacted` envelope and `ServerSecretStore` out-of-band file path as
    `providerInstances`. No plaintext in settings JSON. The existing
    `materializeProviderEnvironmentSecrets` / `persistProviderEnvironmentSecrets` helpers are
    hardcoded to iterate `settings.providerInstances`; a later phase generalizes them to also
-   walk `sandboxProviderInstances` (extract to a shared helper — no duplication). Phase 0 only
+   walk `sandboxProviderInstances` (extract to a shared helper — no duplication). Phase 1 Milestone A only
    fixes the contract shape so that generalization is mechanical and ships no writer for the
    field, so "no plaintext in settings" is a contract decision here, not yet an enforced/tested
    invariant.
-5. **Container spike is a throwaway script + recorded findings.** Lives under
+6. **Container spike is a throwaway script + recorded findings.** Lives under
    `scripts/sandbox-spike/`, not shipped as product code. Findings recorded in this spec. No
    credentials needed; runnable on the dev machine and in CI.
 
@@ -76,7 +98,7 @@ It implements roadmap Phase 0 and freezes the SPI shape every later phase depend
   field and decodes unknown driver kinds without loss (documented invariant in
   `providerInstance.ts`).
 - `AdvertisedEndpoint` + `AdvertisedEndpointReachability` (`loopback | lan | private-network |
-public`) already exist in `packages/contracts/src/remoteAccess.ts` — Phase 0's
+public`) already exist in `packages/contracts/src/remoteAccess.ts` — Phase 1 Milestone A's
   `SandboxReachabilityKind` maps onto these, not a new axis.
 - `ServerSecretStore` persists secrets as `<secretsDir>/<name>.bin` (dir `0o700`, files `0o600`,
   atomic temp-write+rename) and backs provider-instance sensitive env vars via redaction in
@@ -94,14 +116,18 @@ existing `AdvertisedEndpointReachability` model.
 
 ```mermaid
 flowchart TB
-  subgraph contracts["packages/sandbox-contracts (schema-only)"]
+  subgraph base["packages/contracts (settings-referenced)"]
     K["SandboxProviderDriverKind (open slug)"]
     I["SandboxProviderInstanceId"]
     E["SandboxProviderInstanceConfig (envelope)"]
+  end
+  subgraph contracts["packages/sandbox-contracts (schema-only)"]
+    RX["re-exports K / I / E from contracts"]
     EC["EnvironmentConfig (.kata/environment.json)"]
     S["SandboxSessionState"]
     R["SandboxReachabilityKind"]
   end
+  base --> contracts
   subgraph sandbox["packages/sandbox (runtime)"]
     SPI["SandboxProviderDriver SPI (required + optional)"]
     REG["SandboxProviderRegistry (materialize, downgrade unknown)"]
@@ -114,24 +140,38 @@ flowchart TB
   STUB -. implements .-> SPI
 ```
 
-### `packages/sandbox-contracts` (schema-only)
+### `packages/contracts/src/sandboxProviderInstance.ts` (settings-referenced contracts)
 
-Mirrors `providerInstance.ts` discipline: no runtime logic, open branded slugs, unknown drivers
-round-trip. Exports (each as a subpath export):
+Defined in `packages/contracts` (not `sandbox-contracts`) because `settings.ts` references them;
+placing them here keeps `packages/contracts` a dependency leaf. Mirrors `providerInstance.ts`
+discipline: no runtime logic, open branded slugs, unknown drivers round-trip.
 
 - `SandboxProviderDriverKind` — open branded slug (same slug rules as `ProviderDriverKind`:
-  starts with a letter, `[a-zA-Z0-9_-]`, 1..64 chars). Not a closed union; unknown kinds parse
-  successfully and the registry marks them unavailable.
-- `SandboxProviderInstanceId` — user-defined routing-key slug, branded separately (with a
-  distinct brand string, e.g. `"SandboxProviderInstanceId"`, not reusing the existing
-  `ProviderInstanceId` brand, so the type systems cannot be confused).
-- `defaultInstanceIdForDriver(kind)` — canonical back-compat instance id (mirrors the provider
-  helper).
+  starts with a letter, `[a-zA-Z0-9_-]`, 1..64 chars; distinct brand string
+  `"SandboxProviderDriverKind"`). Not a closed union; unknown kinds parse successfully and the
+  registry marks them unavailable.
+- `SandboxProviderInstanceId` — user-defined routing-key slug, branded separately (distinct brand
+  string `"SandboxProviderInstanceId"`, not reusing the existing `ProviderInstanceId` brand, so
+  the type systems cannot be confused).
+- `defaultInstanceIdForSandboxDriver(kind)` — canonical back-compat instance id (mirrors the
+  provider helper; renamed from the provider `defaultInstanceIdForDriver` so the two coexist).
 - `SandboxProviderInstanceConfig` — envelope: `{ driver, displayName?, enabled?, environment?,
 config? }` where `config` is `Schema.Unknown` (driver owns its schema) and `environment`
   reuses the **same** `ProviderInstanceEnvironment` shape (`name`, `value`, `sensitive`,
-  `valueRedacted?`) so the existing secret redaction path applies unchanged.
+  `valueRedacted?`) so the existing secret redaction path applies unchanged. Reused in-package
+  (no new dependency), single-sourcing the redaction contract.
 - `SandboxProviderInstanceConfigMap` — `Record<SandboxProviderInstanceId, SandboxProviderInstanceConfig>`.
+
+### `packages/sandbox-contracts` (schema-only)
+
+Re-exports the settings-referenced contracts above from `@kata-sh/code-contracts` so every later
+phase has a single sandbox import surface, and owns the sandbox-only schemas that `settings.ts`
+does not reference. Mirrors `providerInstance.ts` discipline: no runtime logic, unknown drivers
+round-trip. Exports (each as a subpath export):
+
+- **Re-exported from `@kata-sh/code-contracts`:** `SandboxProviderDriverKind`,
+  `SandboxProviderInstanceId`, `SandboxProviderInstanceConfig`, `SandboxProviderInstanceConfigMap`,
+  `defaultInstanceIdForSandboxDriver`.
 - `EnvironmentConfig` — schema for `.kata/environment.json`: `{ build?: { dockerfile, context? },
 snapshot?, install?, start?, terminals? }`. All fields optional; unknown fields tolerated
   (forward-compat). Schema only; no resolver logic here (resolver is Phase 2).
@@ -139,14 +179,16 @@ snapshot?, install?, start?, terminals? }`. All fields optional; unknown fields 
   `unknown` for forward-compat). Used by later phases; defined now so the contract is stable.
 - `SandboxReachabilityKind` — maps onto the existing `AdvertisedEndpointReachability`:
   `loopback` (local-container) | `public` (cloud tunnel) | `private-network` (future ssh/tailnet).
-  Phase 0 defines the literal; drivers map it to an `AdvertisedEndpoint` in later phases.
+  Phase 1 Milestone A defines the literal; drivers map it to an `AdvertisedEndpoint` in later phases.
 
 The `environment` field reuses the provider env shape deliberately: it lets a later phase
 generalize the existing `materializeProviderEnvironmentSecrets`-style logic to also walk the
 sandbox map (those helpers are currently hardcoded to `settings.providerInstances`). No second
-redaction implementation. **`packages/sandbox-contracts` depends on `@kata-sh/code-contracts`**
-to import `ProviderInstanceEnvironment` rather than redefine it — single-sources the redaction
-contract (declared in the scaffold step below).
+redaction implementation. Because the envelope is defined in `packages/contracts`
+(`sandboxProviderInstance.ts`), it imports `ProviderInstanceEnvironment` in-package with no new
+dependency. **`packages/sandbox-contracts` depends on `@kata-sh/code-contracts`** to re-export
+the settings-referenced contracts; the edge is one-directional (`sandbox-contracts` →
+`contracts`), so `packages/contracts` stays a dependency leaf and no cycle forms.
 
 ### `packages/sandbox` (runtime SPI + registry)
 
@@ -192,7 +234,7 @@ change required signatures without a spec amendment.
   `ProviderInstanceRegistry` and the contract invariant).
 - `get(instanceId)` returns the materialized instance or an unavailable marker.
 - `list()` returns all materialized instances (available + unavailable) for UI/diagnostics.
-- No process/resource lifecycle in Phase 0 (no real driver runs); the registry is pure
+- No process/resource lifecycle in Phase 1 Milestone A (no real driver runs); the registry is pure
   resolution over config + driver set.
 
 #### Stub driver (test-only)
@@ -214,17 +256,39 @@ sandboxProviderInstances: Schema.Record(SandboxProviderInstanceId, SandboxProvid
   .pipe(Schema.withDecodingDefault(Effect.succeed({})))
 ```
 
-Decoding an unknown driver kind in this map must succeed and round-trip the envelope verbatim
-(AC-0.2). No server-layer reads this field yet (AC-0.4). **Connect auto-registration is a
-Phase 1+ enforced constraint** (roadmap key decision 4; tested by AC-1.4 for containers and
-AC-3.4 for cloud), not a Phase 0 invariant — Phase 0 ships no driver and no provision path.
+`SandboxProviderInstanceId` and `SandboxProviderInstanceConfig` are imported from the new
+`./sandboxProviderInstance.ts` module (same package), so `settings.ts` gains no cross-package
+dependency.
 
-### Container feasibility spike (gates Phase 1 risk, not Phase 0 merge)
+Decoding an unknown driver kind in this map must succeed and round-trip the envelope verbatim
+(AC-1.2). No server-layer reads this field yet (AC-1.4). **Connect auto-registration is a
+Phase 1+ enforced constraint** (roadmap key decision 4; tested by AC-1.4 for containers and
+AC-3.4 for cloud), not a Phase 1 Milestone A invariant — Phase 1 Milestone A ships no driver and no provision path.
+
+### Container feasibility spike (gates Phase 1 risk, not Phase 1 Milestone A merge)
 
 A throwaway script `scripts/sandbox-spike/container-reachability.ts` (run locally; no
 credentials) that:
 
-1. Provisions a container via the local Docker/OrbStack API.
+**Transport (pinned).** The spike talks to the Docker/OrbStack daemon over the **raw Docker
+Engine HTTP API on the Unix socket** (`/var/run/docker.sock`, or `$DOCKER_HOST`) using Node's
+built-in `http`/`undici` over a socket path — **no Docker client npm dependency** (`dockerode`
+et al.). This keeps Phase 1 Milestone A dependency-free (no lockfile/`allowBuilds` churn) and adds the script
+to the existing `@kata-sh/code-scripts` package, which already compiles under `vp run typecheck`.
+The Engine API endpoints exercised (`POST /containers/create`, `POST /containers/{id}/start`,
+`GET /containers/{id}/json`, `DELETE /containers/{id}`) are cited in **Spike findings** as the
+verified runtime API surface. Phase 1's `packages/sandbox-docker` may later adopt a typed client;
+that is a Phase 1 decision, not a Phase 1 Milestone A dependency.
+
+**Lint directive required.** This repo enforces an `nodeBuiltinImport` lint rule: any module
+importing Node built-ins (`node:http`, `node:net`, etc.) must suppress it with
+`// @effect-diagnostics nodeBuiltinImport:off` (every existing script under `scripts/` does
+this — see `release-smoke.ts`, `resolve-connect-public-config.ts`). The spike must carry the
+same directive or `vp check` fails. The `ws`/`wss` client side needs no dependency: `@types/node`
+(v24) declares a global `WebSocket` (via `undici-types`), and `http.request({ socketPath })` is
+typed, so the host-side script typechecks with zero new imports beyond Node built-ins.
+
+1. Provisions a container via the local Docker/OrbStack Engine API.
 2. Starts a trivial listener (HTTP + WebSocket) on a port inside the container.
 3. Publishes/maps that port to `localhost` on the host.
 4. Opens a `ws`/`wss` connection to `localhost:<port>` and exchanges a message.
@@ -237,89 +301,98 @@ re-planned. Unlike a cloud spike, this needs no credentials and runs in CI.
 
 ## Acceptance criteria
 
-1. **AC-0.1** `packages/sandbox-contracts` and `packages/sandbox` build and pass
+1. **AC-1.1** `packages/sandbox-contracts` and `packages/sandbox` build and pass
    `vp run typecheck`; `vp check` is clean. Both are added to the workspace and resolve via
    subpath exports.
-2. **AC-0.2** A unit test decodes a `sandboxProviderInstances` map containing a
+2. **AC-1.2** A unit test decodes a `sandboxProviderInstances` map containing a
    **valid-but-unregistered** driver kind (a well-formed slug matching
    `/^[a-zA-Z][a-zA-Z0-9_-]*$/`, not one the registry knows) and asserts the envelope
    round-trips (encode∘decode is identity) with no data loss. This exercises registry-unknown
    decoding, not schema-rejection of a malformed slug (which fails decode by design).
-3. **AC-0.3** A unit test builds a `SandboxProviderRegistry` with the stub driver registered and
+3. **AC-1.3** A unit test builds a `SandboxProviderRegistry` with the stub driver registered and
    asserts: (a) a stub instance materializes as available; (b) an unknown-driver instance is
    unavailable with reason `unknown-driver` and does not throw; (c) a `disabled` instance is
    unavailable with reason `disabled`; (d) an instance whose `config` fails the stub's decode is
    unavailable with reason `invalid-config`.
-4. **AC-0.4** With `sandboxProviderInstances` present in `ServerSettings` (default `{}` and a
+4. **AC-1.4** With `sandboxProviderInstances` present in `ServerSettings` (default `{}` and a
    populated unknown-driver entry), the server boots unchanged: existing server/settings tests
    pass and no production sandbox driver is registered.
-5. **AC-0.5** `describe()` capability flags match method presence: a unit test asserts that for
+5. **AC-1.5** `describe()` capability flags match method presence: a unit test asserts that for
    the stub driver, `supportsSnapshot === (createSnapshot && deleteSnapshot && snapshotExists
 all present)` and likewise for `renewTimeout`, across at least one driver variant with the
    capability and one without. (A capability flag is true only when all of its methods are
    present.)
-6. **AC-0.6** SPI freeze (process + drift guard): `SandboxProvider` required members (`kind`,
+6. **AC-1.6** SPI freeze (process + drift guard): `SandboxProvider` required members (`kind`,
    `validate`, `provision`, `exec`, `reachability`, `dispose`, `describe`) exist with the
    documented shapes, covered by a type-level conformance test (the stub satisfies the
    interface) so an accidental change to a required signature breaks the build. The actual
    freeze is the process rule (no required-signature change without a spec amendment); this test
    is a drift guard, not a substitute.
-7. **AC-0.7** Container spike delivered: `scripts/sandbox-spike/container-reachability.ts`
-   exists and **typechecks under `vp run typecheck`** (so the Docker/OrbStack client dependency
-   is real and resolved and the script compiles). The **Spike findings** section records
-   pass/fail for provision, port publish to `localhost`, sustained `ws`/`wss`, and long-lived
-   process, with the verified runtime API cited. If Docker/OrbStack is unavailable in the run
+7. **AC-1.7** Container spike delivered: `scripts/sandbox-spike/container-reachability.ts`
+   exists and **typechecks under `vp run typecheck`** (it lives in `@kata-sh/code-scripts` and
+   talks to the Docker Engine API over the Unix socket via Node built-ins — no Docker client npm
+   dependency — so "typechecks" means its imports resolve and it compiles). The **Spike findings**
+   section records pass/fail for provision, port publish to `localhost`, sustained `ws`/`wss`, and
+   long-lived process, with the verified Docker Engine API endpoints cited. If Docker/OrbStack is unavailable in the run
    environment, a "blocked: needs local Docker" finding satisfies this AC (the script still
-   must typecheck); Phase 1 is then blocked until the spike actually runs. No credentials
-   required; the script is runnable locally and in CI. A refutation blocks Phase 1 until
-   re-planned.
+   must typecheck); Milestone B is then blocked until the spike actually runs. No credentials
+   required; the script is runnable locally and in CI. A refutation blocks Milestone B until
+   re-planned. (This gates Milestone B's risk, not Milestone A's merge.)
 
-AC-0.1…AC-0.4 map to the roadmap's AC-0.1…AC-0.4. The roadmap's container spike is
-implemented here as AC-0.7 (the roadmap's AC-0.5/0.6/0.7 are reconciled to this spec's
-AC-0.5=capability-flags / AC-0.6=SPI-freeze / AC-0.7=spike-delivered split).
+> The master roadmap lists Phase 1 Milestone A's gate as AC-1.1 … AC-1.7 — identical numbering
+> to this spec, so there is no roadmap/spec AC reconciliation gap.
 
 ## Implementation plan
 
-1. **Scaffold `packages/sandbox-contracts`** — package.json (subpath exports, `effect` catalog,
-   `tsgo`/`vp test`, **dependency on `@kata-sh/code-contracts`**), `tsconfig`, and schema
-   modules: `driverKind.ts`, `instance.ts` (envelope + map + `defaultInstanceIdForDriver`),
-   `environmentConfig.ts`, `sessionState.ts`, `reachability.ts`, `index.ts`. **Import and reuse
-   `ProviderInstanceEnvironment` from `@kata-sh/code-contracts`** for `environment` — do not
-   redefine. _(AC-0.1, AC-0.2)_
-2. **Scaffold `packages/sandbox`** — package.json/tsconfig; `SandboxProviderDriver.ts` (SPI
+1. **Add `packages/contracts/src/sandboxProviderInstance.ts`** — the settings-referenced
+   contracts (`SandboxProviderDriverKind`, `SandboxProviderInstanceId`,
+   `SandboxProviderInstanceConfig`, `SandboxProviderInstanceConfigMap`,
+   `defaultInstanceIdForSandboxDriver`), reusing in-package `ProviderInstanceEnvironment` for
+   `environment`. Add a `./sandboxProviderInstance` subpath export to
+   `packages/contracts/package.json` and re-export from `src/index.ts`. Keeps `packages/contracts`
+   a dependency leaf. _(AC-1.1, AC-1.2)_
+2. **Scaffold `packages/sandbox-contracts`** — package.json (subpath exports, `effect` catalog,
+   `tsgo`/`vp test`, **dependency on `@kata-sh/code-contracts`**), `tsconfig`, and modules:
+   `instance.ts` (**re-exports** the settings-referenced contracts from `@kata-sh/code-contracts`),
+   `environmentConfig.ts`, `sessionState.ts`, `reachability.ts`, `index.ts`. The sandbox-only
+   schemas (`EnvironmentConfig`, `SandboxSessionState`, `SandboxReachabilityKind`) are defined
+   here. _(AC-1.1, AC-1.2)_
+3. **Scaffold `packages/sandbox`** — package.json/tsconfig; `SandboxProviderDriver.ts` (SPI
    types + `SandboxProviderError`), `SandboxProviderRegistry.ts`, `descriptor.ts`, a test-only
-   `testing/stubDriver.ts` (out of `exports`), `index.ts`. _(AC-0.3, AC-0.5, AC-0.6)_
-3. **Add `sandboxProviderInstances`** to `ServerSettings` and `ServerSettingsPatch`
-   (`packages/contracts/src/settings.ts`), with default `{}` and whole-map patch. _(AC-0.4)_
-4. **Tests** — contracts round-trip (incl. unknown driver), registry materialization
+   `testing/stubDriver.ts` (out of `exports`), `index.ts`. _(AC-1.3, AC-1.5, AC-1.6)_
+4. **Add `sandboxProviderInstances`** to `ServerSettings` and `ServerSettingsPatch`
+   (`packages/contracts/src/settings.ts`), importing the types from `./sandboxProviderInstance.ts`
+   (same package), with default `{}` and whole-map patch. _(AC-1.4)_
+5. **Tests** — contracts round-trip (incl. unknown driver), registry materialization
    (available/unknown/disabled/invalid-config), descriptor↔method-presence agreement, settings
-   decode with unknown sandbox driver, type-level SPI conformance. _(AC-0.2, AC-0.3, AC-0.4,
-   AC-0.5, AC-0.6)_
-5. **Container spike** — `scripts/sandbox-spike/container-reachability.ts`; run; record
-   findings. _(AC-0.7)_
-6. **Gate** — `vp check`, `vp run typecheck`, `vp run test`; record results. _(AC-0.1)_
+   decode with unknown sandbox driver, type-level SPI conformance. _(AC-1.2, AC-1.3, AC-1.4,
+   AC-1.5, AC-1.6)_
+6. **Container spike** — `scripts/sandbox-spike/container-reachability.ts`; run; record
+   findings. _(AC-1.7)_
+7. **Gate** — `vp check`, `vp run typecheck`, `vp run test`; record results. _(AC-1.1)_
 
-Steps 1–2 can proceed in parallel after the contract names are fixed; step 5 is independent of
-1–4 and can run anytime (no credentials).
+Steps 1–3 can proceed in order then 4 (settings depends on step 1); the SPI work in step 3 can
+proceed in parallel with steps 1–2 once the contract names are fixed; step 6 is independent of
+1–5 and can run anytime (no credentials).
 
 ## Out of scope
 
 - Any `environments.deploy.*`/`sandbox.*` RPC or server-layer registry wiring (Phase 1+).
 - The Docker/OrbStack driver implementation (`packages/sandbox-docker`) beyond the throwaway
   spike script (Phase 1).
-- The `.kata/environment.json` resolver and execution (Phase 2) — Phase 0 defines the schema
+- The `.kata/environment.json` resolver and execution (Phase 2) — Phase 1 Milestone A defines the schema
   only.
 - The Cloudflare driver (`packages/sandbox-cloudflare`) (Phase 3).
 - Any UI (Settings/composer) — Phase 1+.
 - Touching `apps/server/src/cloud/` (Kata Code Connect).
 - Generalizing the secret-redaction helpers to walk `sandboxProviderInstances` (a later phase;
-  Phase 0 only fixes the contract shape).
+  Phase 1 Milestone A only fixes the contract shape).
 
 ## Risks and mitigations
 
 - **SPI mis-design forces later churn.** Mitigation: validate the required/optional split
   against AgentBox's `CloudBackend` (and its `sandbox-docker` driver) before finalizing; lock
-  with a type-level conformance test (AC-0.6).
+  with a type-level conformance test (AC-1.6).
 - **Reachability/`AdvertisedEndpoint` mapping drift.** Mitigation: `SandboxReachabilityKind`
   maps onto the existing `AdvertisedEndpointReachability` literals rather than introducing a
   parallel axis; a test asserts the **forward** mapping is total (every `SandboxReachabilityKind`
@@ -329,13 +402,16 @@ Steps 1–2 can proceed in parallel after the contract names are fixed; step 5 i
   `ProviderInstanceEnvironment` schema rather than redefining it, so the secret path stays
   single-sourced.
 - **Spike can't run without Docker/OrbStack.** Mitigation: the spike is local and needs no
-  credentials; if Docker is unavailable in a given environment, AC-0.7 is satisfied by the
+  credentials; if Docker is unavailable in a given environment, AC-1.7 is satisfied by the
   committed + typechecking script and a "blocked: needs local Docker" finding, and Phase 1
-  cannot complete until the spike runs (it gates Phase 1 risk, not Phase 0 merge).
+  cannot complete until the spike runs (it gates Phase 1 risk, not Phase 1 Milestone A merge).
+- **Spike adding a heavyweight dependency.** Mitigation: the spike uses the raw Docker Engine
+  HTTP API over the Unix socket via Node built-ins — no `dockerode`/client package — so Phase 1 Milestone A
+  adds no lockfile or `allowBuilds` churn. A typed client is a Phase 1 (`sandbox-docker`) choice.
 
 ## Spike findings
 
-_To be completed when `scripts/sandbox-spike/container-reachability.ts` runs (AC-0.7)._
+_To be completed when `scripts/sandbox-spike/container-reachability.ts` runs (AC-1.7)._
 
 - Provision (local container): _pending_
 - Port publish to `localhost`: _pending_
@@ -351,7 +427,7 @@ _To be completed when `scripts/sandbox-spike/container-reachability.ts` runs (AC
   container-spike script + findings. No server wiring, no driver, no UI.
 - **Non-goals:** RPCs, registry wiring, Docker driver, Cloudflare driver, resolver, UI, Connect
   changes, secret-redaction generalization.
-- **Required verification:** AC-0.1…AC-0.7 + CI parity (`vp check`, `vp run typecheck`,
+- **Required verification:** AC-1.1…AC-1.7 + CI parity (`vp check`, `vp run typecheck`,
   `vp run test`).
-- **Blocking questions:** none — all Phase 0 decisions locked. The spike result feeds Phase 1
-  planning, not Phase 0 completion.
+- **Blocking questions:** none — all Phase 1 Milestone A decisions locked. The spike result feeds Phase 1
+  planning, not Phase 1 Milestone A completion.

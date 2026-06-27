@@ -171,14 +171,14 @@ flowchart TB
 
 ### Package layout (modular by design)
 
-| Package                       | Role                                                                                                                                                                                                                                            | Notes                                                                                             |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `packages/sandbox-contracts`  | Schema-only contracts: `SandboxProviderDriverKind` (open slug), `SandboxProviderInstanceId`, `SandboxProviderInstanceConfig` envelope, `EnvironmentConfig` (`.kata/environment.json` schema), `SandboxSessionState`, `SandboxReachabilityKind`. | Mirrors `packages/contracts` discipline; unknown drivers round-trip without loss.                 |
-| `packages/sandbox`            | Driver SPI, `SandboxProviderRegistry`, environment-config resolver, session lifecycle orchestration, snapshot cache policy, Connect registration glue. Provider-agnostic.                                                                       | Consumed by `apps/server` and (later) Kata Agent. Mirrors AgentBox's `sandbox-cloud` scaffolding. |
-| `packages/sandbox-docker`     | The local-container driver (Docker/OrbStack) implementing the SPI.                                                                                                                                                                              | First driver (Phase 1).                                                                           |
-| `packages/sandbox-cloudflare` | The Cloudflare Sandbox SDK driver (RPC transport, tunnels API).                                                                                                                                                                                 | First cloud driver (Phase 2).                                                                     |
-| `apps/server`                 | Wires the registry into server layers; exposes `sandbox.*`/`environments.deploy.*` RPCs; owns secret storage/injection, git branch sync, and Connect registration on provision.                                                                 | No driver-specific logic beyond registration.                                                     |
-| `apps/web`                    | Settings → Environments UI for deployment targets + env config; composer "Run on" control; deployment/session status.                                                                                                                           | Reuses provider-settings form rendering where possible.                                           |
+| Package                       | Role                                                                                                                                                                                                                                                                                                                 | Notes                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/sandbox-contracts`  | Schema-only contracts. **Re-exports** the settings-referenced contracts (`SandboxProviderDriverKind`, `SandboxProviderInstanceId`, `SandboxProviderInstanceConfig`) from `packages/contracts`, and **owns** `EnvironmentConfig` (`.kata/environment.json` schema), `SandboxSessionState`, `SandboxReachabilityKind`. | Mirrors `packages/contracts` discipline; unknown drivers round-trip without loss. Settings-referenced contracts live in `packages/contracts` (`sandboxProviderInstance.ts`) to keep it a dependency leaf (no `contracts` ⇄ `sandbox-contracts` cycle); the edge is one-directional `sandbox-contracts` → `contracts`. |
+| `packages/sandbox`            | Driver SPI, `SandboxProviderRegistry`, environment-config resolver, session lifecycle orchestration, snapshot cache policy, Connect registration glue. Provider-agnostic.                                                                                                                                            | Consumed by `apps/server` and (later) Kata Agent. Mirrors AgentBox's `sandbox-cloud` scaffolding.                                                                                                                                                                                                                     |
+| `packages/sandbox-docker`     | The local-container driver (Docker/OrbStack) implementing the SPI.                                                                                                                                                                                                                                                   | First driver (Phase 1).                                                                                                                                                                                                                                                                                               |
+| `packages/sandbox-cloudflare` | The Cloudflare Sandbox SDK driver (RPC transport, tunnels API).                                                                                                                                                                                                                                                      | First cloud driver (Phase 2).                                                                                                                                                                                                                                                                                         |
+| `apps/server`                 | Wires the registry into server layers; exposes `sandbox.*`/`environments.deploy.*` RPCs; owns secret storage/injection, git branch sync, and Connect registration on provision.                                                                                                                                      | No driver-specific logic beyond registration.                                                                                                                                                                                                                                                                         |
+| `apps/web`                    | Settings → Environments UI for deployment targets + env config; composer "Run on" control; deployment/session status.                                                                                                                                                                                                | Reuses provider-settings form rendering where possible.                                                                                                                                                                                                                                                               |
 
 The `SandboxProvider` driver SPI parallels `ProviderDriver`: a factory keyed by an open
 `SandboxProviderDriverKind` slug, configured by an envelope in a `sandboxProviderInstances`
@@ -203,7 +203,7 @@ methods are present.
 Optional: `createSnapshot`/`deleteSnapshot`/`snapshotExists` (snapshot lifecycle),
 `renewTimeout` (extend session), `signedPreviewUrl`, `networkPolicy`, `pause`/`resume`.
 
-Exact method signatures are frozen in Phase 0's per-phase spec before driver implementation
+Exact method signatures are frozen in Phase 1 Milestone A's spec before driver implementation
 begins.
 
 ### Environment configuration (`.kata/environment.json`)
@@ -227,47 +227,46 @@ and injected as env vars.
 
 ## Phases
 
-Phases 0–4 form the usable V1 spine (container + cloud + composer + move); 5–6 add Cursor-parity
-polish. Phases are ordered by dependency.
+Phases 1–4 form the usable V1 spine (container + cloud + composer + move); 5–6 add Cursor-parity
+polish. Phases are ordered by dependency. **Every phase ships a user-facing demo**, first proven
+by a live walkthrough (`playwright-cli` / `agent-browser` against the running app) and then
+encoded as a Playwright Electron e2e test tagged `@environments-deploy` (see Verification).
 
-### Phase 0 — SandboxProvider foundations (SPI + contracts)
+### Phase 1 — Container driver + foundations (local Docker/OrbStack)
 
-**Goal.** Establish the modular sandbox-provider substrate with no user-facing surface.
+**Goal.** Ship the first demoable surface: a user configures a local container deployment target
+in Settings → Environments, provisions it, and runs a Kata session inside an isolated container
+with its own ports — reached directly over loopback and auto-joined to the Connect pool. Also
+builds the modular `SandboxProvider` substrate every later driver plugs into.
 
-**Requirements.**
+**Two milestones.** Phase 1 ships in two internal milestones. **Milestone A** is the non-demoable
+gate that freezes the SPI; **Milestone B** is the user-facing demo. The phase is complete only
+when its demo (AC-1.13) passes — there is no standalone foundations phase.
 
-- `packages/sandbox-contracts` (schema-only) and `packages/sandbox` (SPI + registry) per the
-  layout above.
-- A `sandboxProviderInstances` map in `ServerSettings` (mirrors `providerInstances`), parsing
-  unknown drivers without loss.
-- A test-only stub driver (kept out of `package.json#exports`) implementing the full required
-  SPI + a configurable subset of optional capabilities.
-- **Freeze the driver SPI method signatures** before `sandbox-docker` implementation begins.
-- **Container feasibility spike (gates Phase 1's risk, not Phase 0 merge).** Verify against a
-  local Docker/OrbStack runtime: provision a container, start a listener, publish the port to
-  `localhost`, open a `wss`/`ws` connection, and confirm a `katacode serve`-equivalent process
-  runs cleanly. No credentials needed; runnable on the dev machine and in CI.
+- **Milestone A — Foundations (gate, no standalone demo).** The modular substrate:
+  `packages/sandbox-contracts` + `packages/sandbox` (SPI + registry + test-only stub), the
+  `sandboxProviderInstances` settings field, the frozen capability-based SPI, and the
+  container-feasibility spike. Detailed design lives in the Phase 1 Milestone A spec (AC-1.1 …
+  AC-1.7). The SPI is frozen here before any driver ships; the spike gates Milestone B's risk.
+- **Milestone B — Container driver (the phase demo).** Implement `packages/sandbox-docker`
+  (`validate`/`provision`/`exec`/`reachability`/`dispose`/`describe`) against a local
+  Docker/OrbStack runtime. Provision boots `katacode serve` in the container; reachability
+  advertises a `loopback` endpoint (`localhost:port`). **Auto-register with Connect** so paired
+  clients (mobile, hosted web, other desktops) reach it via the relay; the deploying desktop
+  reaches it over loopback. Settings → Environments UI lists deployment targets, supports
+  add/edit/remove, and stores credentials via the reused `ServerSecretStore` path. "Test
+  connection" provisions + disposes a minimal container. A minimal **"Start session"** affordance
+  on the deployment target opens a thread bound to the container (this is superseded by the
+  composer "Run on" picker in Phase 4; it exists only so Milestone B's agent-turn demo is
+  reachable without the composer).
 
-**Acceptance criteria.** AC-0.1 … AC-0.7 (see global list).
+**Demo & e2e (AC-1.13).** Add a container target → Test Connection (provision + dispose +
+success) → Start session → `katacode serve` boots container-side and is reachable over
+`localhost` → an agent turn completes container-side → a second paired client reaches it via
+Connect → dispose removes it from the pool, and two concurrent containers don't collide.
 
-### Phase 1 — Isolated container driver (local Docker/OrbStack)
-
-**Goal.** A user configures a local container deployment target in Settings → Environments and
-starts a session in an isolated container with its own ports.
-
-**Requirements.**
-
-- Implement `packages/sandbox-docker` `validate`/`provision`/`exec`/`reachability`/`dispose`/
-  `describe` against a local Docker/OrbStack runtime.
-- Provision boots `katacode serve` in the container; reachability advertises a `loopback`
-  endpoint (`localhost:port`).
-- **Auto-register the deployment with Connect** so paired clients (mobile, hosted web, other
-  desktops) reach it via the relay; the deploying desktop reaches it directly over loopback.
-- Settings → Environments UI lists deployment targets, supports add/edit/remove of a container
-  instance, stores any credentials via the reused `ServerSecretStore` path.
-- "Test connection" provisions a minimal container and disposes it, reporting success/failure.
-
-**Acceptance criteria.** AC-1.1 … AC-1.5
+**Acceptance criteria.** AC-1.1 … AC-1.13 (Milestone A gate AC-1.1 … AC-1.7; Milestone B
+AC-1.8 … AC-1.12; demo AC-1.13).
 
 ### Phase 2 — Manual environment configuration & execution
 
@@ -282,7 +281,7 @@ injected — manually authored.
 - Settings → Environments env editor (Update Script, network access, secrets), referencing comps
   `SCR-20260627-hqeu.png` / `hpyw.png`.
 
-**Acceptance criteria.** AC-2.1 … AC-2.5
+**Acceptance criteria.** AC-2.1 … AC-2.6 (incl. demo AC-2.6)
 
 ### Phase 3 — Cloud sandbox driver (Cloudflare, BYOC)
 
@@ -302,7 +301,7 @@ serve`. Access: `sandbox.tunnels.get(port)` (quick tunnel dev, named tunnel prod
 - Auto-register with Connect so all paired clients reach it.
 - Explicit failure surfaces for provision/boot/connect (no silent fallback to local).
 
-**Acceptance criteria.** AC-3.1 … AC-3.5
+**Acceptance criteria.** AC-3.1 … AC-3.6 (incl. demo AC-3.6)
 
 ### Phase 4 — Composer: start in any location & move between locations
 
@@ -321,7 +320,7 @@ with the environment provisioned automatically from its repo config.
 - Move-back: push from target, fetch locally, restore working branch.
 - Session status (provisioning/ready/error/disposed) surfaced in the UI.
 
-**Acceptance criteria.** AC-4.1 … AC-4.7
+**Acceptance criteria.** AC-4.1 … AC-4.8 (incl. demo AC-4.8)
 
 ### Phase 5 — Snapshot save & reuse
 
@@ -336,7 +335,7 @@ fallback.
 - Fallback to the base image when a snapshot is expired/invalid/inaccessible, with a visible
   warning (not a hard failure).
 
-**Acceptance criteria.** AC-5.1 … AC-5.4
+**Acceptance criteria.** AC-5.1 … AC-5.5 (incl. demo AC-5.5)
 
 ### Phase 6 — Agent-driven environment setup
 
@@ -352,104 +351,182 @@ fallback.
 - Setup runs/history viewable per comp `SCR-20260627-hqeu.png`; a failed setup surfaces logs and
   does not write a broken config.
 
-**Acceptance criteria.** AC-6.1 … AC-6.4
+**Acceptance criteria.** AC-6.1 … AC-6.5 (incl. demo AC-6.5)
 
 ## Acceptance criteria
 
 Each criterion is observable via a test, command, API response, or manual UAT step. Phase specs
 may add finer criteria but must not weaken these.
 
-**Phase 0 — Foundations**
+**Demo & e2e — standing rule (every phase).** Each phase ends in a user-facing demo, first
+proven by a live walkthrough (`playwright-cli open` / `agent-browser` against the running app,
+capturing snapshots per the AGENTS.md Feature Validation workflow and the `kata-code-e2e-testing`
+skill), then encoded as a Playwright Electron e2e test under `e2e/tests/` tagged
+`@environments-deploy`, passing via `vp run e2e --project desktop-dev --grep @environments-deploy`.
+A slice that cannot be fully automated because it needs real paid cloud infra (Phase 3's live
+tunnel) falls back to a recorded manual UAT with the live walkthrough as evidence; everything
+else is e2e-automated. A phase is not complete until its demo AC passes.
 
-1. **AC-0.1** `packages/sandbox-contracts` and `packages/sandbox` build and pass `vp run
+**Phase 1 — Container driver + foundations**
+
+_Milestone A — Foundations gate (no standalone demo; detailed in the Phase 1 Milestone A spec):_
+
+1. **AC-1.1** `packages/sandbox-contracts` and `packages/sandbox` build and pass `vp run
 typecheck`; `vp check` is clean. Both resolve via subpath exports.
-2. **AC-0.2** A unit test decodes a `sandboxProviderInstances` map containing a
+2. **AC-1.2** A unit test decodes a `sandboxProviderInstances` map containing a
    valid-but-unregistered driver kind (a well-formed slug) and asserts the envelope round-trips
    (encode∘decode is identity) with no data loss.
-3. **AC-0.3** A unit test builds a `SandboxProviderRegistry` with the stub driver and asserts:
+3. **AC-1.3** A unit test builds a `SandboxProviderRegistry` with the stub driver and asserts:
    (a) a stub instance materializes as available; (b) an unknown-driver instance is unavailable
    with reason `unknown-driver` and does not throw; (c) a `disabled` instance is unavailable
    with reason `disabled`; (d) an instance whose `config` fails the stub's decode is unavailable
    with reason `invalid-config`.
-4. **AC-0.4** With `sandboxProviderInstances` present in `ServerSettings` (default `{}` and a
+4. **AC-1.4** With `sandboxProviderInstances` present in `ServerSettings` (default `{}` and a
    populated unknown-driver entry), the server boots unchanged: existing settings tests pass and
    no production driver is registered.
-5. **AC-0.5** `describe()` capability flags match method presence: a unit test asserts
+5. **AC-1.5** `describe()` capability flags match method presence: a unit test asserts
    that for the stub driver, `supportsSnapshot === (createSnapshot && deleteSnapshot &&
 snapshotExists all present)` and likewise for `renewTimeout`, across at least one driver
    variant with the capability and one without. (A capability flag is true only when all of its
    methods are present.)
-6. **AC-0.6** SPI freeze (process + drift guard): `SandboxProvider` required members exist with
+6. **AC-1.6** SPI freeze (process + drift guard): `SandboxProvider` required members exist with
    the documented shapes, covered by a type-level conformance test (the stub satisfies the
    interface). The actual freeze is the process rule (no required-signature change without a spec
    amendment); this test is a drift guard.
-7. **AC-0.7** Container spike delivered: `scripts/sandbox-spike/container-reachability.ts`
-   exists and **typechecks under `vp run typecheck`**. The **Spike findings** section records
+7. **AC-1.7** Container spike delivered: `scripts/sandbox-spike/container-reachability.ts`
+   exists and **typechecks under `vp run typecheck`** (raw Docker Engine API over the Unix socket
+   via Node built-ins; no Docker client npm dependency). The **Spike findings** section records
    pass/fail (or a "blocked: needs local Docker" outcome) for provision, port publish to
-   `localhost`, sustained `ws`/`wss`, and long-lived process, with the verified Docker/OrbStack
-   runtime API cited. No credentials required; runnable locally and in CI. A refutation blocks
-   Phase 1 until re-planned. (This gates Phase 1 risk, not Phase 0 merge.)
+   `localhost`, sustained `ws`/`wss`, and long-lived process, with the verified Engine API cited.
+   No credentials required; runnable locally and in CI. A refutation blocks Milestone B until
+   re-planned. (This gates Milestone B's risk, not Milestone A's merge.)
 
-**Phase 1 — Isolated container driver** 8. **AC-1.1** A user can add a local container deployment target in Settings → Environments and
-any credentials persist via the reused `ServerSecretStore` path (no plaintext in settings). 9. **AC-1.2** "Test connection" provisions a minimal container and disposes it, returning a
-visible success; invalid config returns a visible, specific failure. 10. **AC-1.3** Starting a session in a container boots `katacode serve` inside it and the
-deploying desktop reaches it over `localhost` (loopback); an agent turn completes container-side. 11. **AC-1.4** The container deployment **auto-registers with Connect** on provision and a
-second paired client (e.g. mobile or hosted web) can reach it via the relay with no manual
-setup. 12. **AC-1.5** Disposing the container releases it and the deployment disappears from the
-Connect pool; a container with its own published ports does not collide with a second
-concurrent container (isolation verified).
+_Milestone B — Container driver:_
 
-**Phase 2 — Manual environment config** 13. **AC-2.1** Given a repo with `.kata/environment.json`, the resolver selects it over a saved
-env and over the provider default (unit test covering all three orderings and the
-`RepositoryIdentity`-keyed saved env). 14. **AC-2.2** Running setup in a booted sandbox invokes `install`; re-invoking it unchanged
-succeeds and a non-zero exit surfaces as an explicit error. User-script idempotency is the
-user's responsibility. 15. **AC-2.3** When `start`/`terminals` are configured, the corresponding processes appear in
-the sandbox process list; when the sets are empty, the launcher reports the empty set and no
-such process appears. 16. **AC-2.4** Kata-stored secrets are injected as env vars visible to `install`/`start`; secret
-values are not written to the repo and are redacted in logs. 17. **AC-2.5** The saved-environment editor persists edits and reflects them on next boot, per
-comps `SCR-20260627-hqeu.png` / `hpyw.png`.
+8. **AC-1.8** A user can add a local container deployment target in Settings → Environments and
+   any credentials persist via the reused `ServerSecretStore` path (no plaintext in settings).
+9. **AC-1.9** "Test connection" provisions a minimal container and disposes it, returning a
+   visible success; invalid config returns a visible, specific failure.
+10. **AC-1.10** Starting a session in a container boots `katacode serve` inside it and the
+    deploying desktop reaches it over `localhost` (loopback); an agent turn completes
+    container-side.
+11. **AC-1.11** The container deployment **auto-registers with Connect** on provision and a
+    second paired client (e.g. mobile or hosted web) can reach it via the relay with no manual
+    setup.
+12. **AC-1.12** Disposing the container releases it and the deployment disappears from the
+    Connect pool; a container with its own published ports does not collide with a second
+    concurrent container (isolation verified).
+13. **AC-1.13 (Demo & e2e)** The Milestone B demo flow (AC-1.8 … AC-1.12) is proven by a
+    `playwright-cli`/`agent-browser` walkthrough against the running desktop app, then encoded
+    as a Playwright Electron e2e test under `e2e/tests/` tagged `@environments-deploy`, passing
+    via `vp run e2e --project desktop-dev --grep @environments-deploy`.
 
-**Phase 3 — Cloud sandbox driver (Cloudflare)** 18. **AC-3.1** Launching the Cloudflare driver boots `katacode serve` inside the sandbox and the
-server becomes reachable via a tunnel URL (integration/UAT). 19. **AC-3.2** The client connects over `wss` (quick tunnel dev, named tunnel production) using
-the required Kata auth token; an unauthenticated connection is rejected. 20. **AC-3.3** The cloud deployment appears as an `ExecutionEnvironment` and a coding agent turn
-completes cloud-side (manual UAT; e2e where feasible). 21. **AC-3.4** The cloud deployment **auto-registers with Connect** and a paired client other
-than the deploying one reaches it via the relay. 22. **AC-3.5** Provision/boot/connect failures surface explicit errors; the client does not
-silently fall back to a local environment.
+**Phase 2 — Manual environment config**
 
-**Phase 4 — Composer start/move** 23. **AC-4.1** The composer "Run on" control offers This Mac / Worktree / Container / Cloud
-(configured targets) per comp `SCR-20260627-hpes.png`. 24. **AC-4.2** "Start in <location>" provisions a sandbox from the resolved repo environment
-config and opens a thread bound to that environment. 25. **AC-4.3** "Move to <location>" with a dirty working tree commits WIP to `kata/env/<id>`,
-pushes, and clones in the target; the target checkout contains the WIP commit. If the repo
-has no writable push remote, the move is blocked with an explicit error before any teardown. 26. **AC-4.4** "Move back" pushes from the target and fetches locally so the local branch
-contains target-side commits. 27. **AC-4.5** A move **starts a new session** in the target and surfaces a warning that the
-prior session's in-flight state does not carry over (V1 move semantics). 28. **AC-4.6** Session status (provisioning/ready/error/disposed) is visible and updates on
-state change. 29. **AC-4.7** Disposal/idle-timeout with un-pushed target-side WIP either auto-commits and
-pushes to `kata/env/<id>` before teardown, or surfaces an explicit blocking warning before
-release. WIP is never discarded silently.
+13. **AC-2.1** Given a repo with `.kata/environment.json`, the resolver selects it over a saved
+    env and over the provider default (unit test covering all three orderings and the
+    `RepositoryIdentity`-keyed saved env).
+14. **AC-2.2** Running setup in a booted sandbox invokes `install`; re-invoking it unchanged
+    succeeds and a non-zero exit surfaces as an explicit error. User-script idempotency is the
+    user's responsibility.
+15. **AC-2.3** When `start`/`terminals` are configured, the corresponding processes appear in
+    the sandbox process list; when the sets are empty, the launcher reports the empty set and no
+    such process appears.
+16. **AC-2.4** Kata-stored secrets are injected as env vars visible to `install`/`start`; secret
+    values are not written to the repo and are redacted in logs.
+17. **AC-2.5** The saved-environment editor persists edits and reflects them on next boot, per
+    comps `SCR-20260627-hqeu.png` / `hpyw.png`.
+18. **AC-2.6 (Demo & e2e)** Configure a repo's `.kata/environment.json` + saved-env editor →
+    boot a sandbox → assert `install` runs, `start`/`terminals` processes appear, and secrets are
+    injected but redacted in logs. Proven by a `playwright-cli` walkthrough, then an e2e test
+    tagged `@environments-deploy`.
 
-**Phase 5 — Snapshots** 30. **AC-5.1** A snapshot is captured after a successful `install` (driver permitting) and its
-id is persisted with the saved environment. 31. **AC-5.2** A subsequent session boots from the snapshot at least 50% faster than the first
-cold boot for the same repo; both timings recorded in UAT. (Target revisable in the Phase 5
-spec against measured baselines.) 32. **AC-5.3** Booting from the snapshot still re-invokes `install` unchanged to repair drift,
-surfacing a non-zero exit as an explicit error. 33. **AC-5.4** An expired/invalid/inaccessible snapshot falls back to the base image with a
-visible warning and a successful boot (not a hard failure).
+**Phase 3 — Cloud sandbox driver (Cloudflare)**
 
-**Phase 6 — Agent-driven setup** 34. **AC-6.1** "Start Setup Agent" boots a base sandbox and runs an agent session whose progress
-is visible in a shared terminal. 35. **AC-6.2** On a successful setup, the agent writes/updates `.kata/environment.json` and
-proposes a commit containing it. 36. **AC-6.3** A snapshot is saved at the end of a successful agent-driven setup and is reused
-on the next boot (ties to AC-5.2). 37. **AC-6.4** Setup runs/history are viewable per comp `SCR-20260627-hqeu.png`; a failed setup
-surfaces logs and does not write a broken config.
+19. **AC-3.1** Launching the Cloudflare driver boots `katacode serve` inside the sandbox and the
+    server becomes reachable via a tunnel URL (integration/UAT).
+20. **AC-3.2** The client connects over `wss` (quick tunnel dev, named tunnel production) using
+    the required Kata auth token; an unauthenticated connection is rejected.
+21. **AC-3.3** The cloud deployment appears as an `ExecutionEnvironment` and a coding agent turn
+    completes cloud-side (manual UAT; e2e where feasible).
+22. **AC-3.4** The cloud deployment **auto-registers with Connect** and a paired client other
+    than the deploying one reaches it via the relay.
+23. **AC-3.5** Provision/boot/connect failures surface explicit errors; the client does not
+    silently fall back to a local environment.
+24. **AC-3.6 (Demo & e2e)** Configure a Cloudflare target (BYOC creds) → start a session → boots
+    in cloud, reachable via tunnel over `wss`, agent turn completes cloud-side, Connect-visible.
+    Settings/config validation is e2e-automated (tagged `@environments-deploy`); the live-tunnel
+    - cloud agent-turn slice uses a recorded manual UAT (needs the user's paid Cloudflare
+      infra), per the standing rule.
+
+**Phase 4 — Composer start/move**
+
+25. **AC-4.1** The composer "Run on" control offers This Mac / Worktree / Container / Cloud
+    (configured targets) per comp `SCR-20260627-hpes.png`.
+26. **AC-4.2** "Start in <location>" provisions a sandbox from the resolved repo environment
+    config and opens a thread bound to that environment.
+27. **AC-4.3** "Move to <location>" with a dirty working tree commits WIP to `kata/env/<id>`,
+    pushes, and clones in the target; the target checkout contains the WIP commit. If the repo
+    has no writable push remote, the move is blocked with an explicit error before any teardown.
+28. **AC-4.4** "Move back" pushes from the target and fetches locally so the local branch
+    contains target-side commits.
+29. **AC-4.5** A move **starts a new session** in the target and surfaces a warning that the
+    prior session's in-flight state does not carry over (V1 move semantics).
+30. **AC-4.6** Session status (provisioning/ready/error/disposed) is visible and updates on
+    state change.
+31. **AC-4.7** Disposal/idle-timeout with un-pushed target-side WIP either auto-commits and
+    pushes to `kata/env/<id>` before teardown, or surfaces an explicit blocking warning before
+    release. WIP is never discarded silently.
+32. **AC-4.8 (Demo & e2e)** The headline demo: "Run on" picker → Start in a container/cloud →
+    Move to another location (fresh session + warning) → Move back; session status updates
+    throughout. Proven by a `playwright-cli` walkthrough, then an e2e test tagged
+    `@environments-deploy`.
+
+**Phase 5 — Snapshots**
+
+33. **AC-5.1** A snapshot is captured after a successful `install` (driver permitting) and its
+    id is persisted with the saved environment.
+34. **AC-5.2** A subsequent session reaches **ready** (boot + `install` repair-drift) in less
+    wall-clock time than the first cold session for the same repo; both timings recorded in the
+    demo. Measured as **time-to-ready, not cold-boot time**: for disk-image drivers (container,
+    Hetzner/DO) the snapshot boot is faster; for Cloudflare it is a directory restore, so the
+    win is skipping `install` re-execution, not a faster container start. (Target revisable in
+    the Phase 5 spec against measured baselines.)
+35. **AC-5.3** Booting from the snapshot still re-invokes `install` unchanged to repair drift,
+    surfacing a non-zero exit as an explicit error.
+36. **AC-5.4** An expired/invalid/inaccessible snapshot falls back to the base image with a
+    visible warning and a successful boot (not a hard failure).
+37. **AC-5.5 (Demo & e2e)** After a successful `install`, a snapshot is captured and its id
+    persisted; the next session boots faster (time-to-ready, AC-5.2); an expired/invalid
+    snapshot falls back to base with a visible warning. Proven by a `playwright-cli` walkthrough,
+    then an e2e test tagged `@environments-deploy`.
+
+**Phase 6 — Agent-driven setup**
+
+38. **AC-6.1** "Start Setup Agent" boots a base sandbox and runs an agent session whose progress
+    is visible in a shared terminal.
+39. **AC-6.2** On a successful setup, the agent writes/updates `.kata/environment.json` and
+    proposes a commit containing it.
+40. **AC-6.3** A snapshot is saved at the end of a successful agent-driven setup and is reused
+    on the next boot (ties to AC-5.2).
+41. **AC-6.4** Setup runs/history are viewable per comp `SCR-20260627-hqeu.png`; a failed setup
+    surfaces logs and does not write a broken config.
+42. **AC-6.5 (Demo & e2e)** "Start Setup Agent" → agent installs deps in a shared terminal,
+    verifies build/tests → on success writes `.kata/environment.json` (proposes a commit) and a
+    snapshot; a failed setup surfaces logs and writes no config. Proven by a `playwright-cli`
+    walkthrough, then an e2e test tagged `@environments-deploy`.
 
 ## Sequencing
 
-- **Hard order:** 0 → 1 → 2 → 4. Each depends on the prior. (Phase 2's env config is exercised
-  by the composer in 4.)
-- **3 (cloud)** depends on 0 and 2 and a Cloudflare tunnels spike; it can proceed in parallel
-  with 1 once the SPI is frozen, but lands after 1.
+- **Hard order:** 1 → 2 → 4. Each depends on the prior. (Phase 2's env config is exercised
+  by the composer in 4.) Phase 1 is the merged foundations+container-driver phase (Milestone A
+  freezes the SPI, Milestone B ships the first demo).
+- **3 (cloud)** depends on 1 and 2 and a Cloudflare tunnels spike; it can proceed in parallel
+  with the container driver once the SPI is frozen, but lands after 1.
 - **5** depends on 2 (needs `install`) and is best validated after 1 or 3.
 - **6** depends on 2, a running driver, and 5.
-- Parallelizable: contracts/SPI work (Phase 0) can proceed alongside driver scaffolding once the
-  SPI is frozen.
+- Parallelizable: once the SPI is frozen (Phase 1 Milestone A), driver scaffolding can proceed
+  alongside later work.
 
 ## Constraints
 
@@ -505,14 +582,14 @@ surfaces logs and does not write a broken config.
   API that superseded the deprecated `exposePort()`. Mitigation: a tunnels spike gates Phase 3;
   the Connect relay is the re-plan fallback.
 - **SPI churn.** Freezing the SPI too late forces rework in `sandbox-docker`. Mitigation: lock
-  the SPI in Phase 0's per-phase spec before driver implementation; validate the shape against
+  the SPI in Phase 1 Milestone A's spec before driver implementation; validate the shape against
   AgentBox's `CloudBackend`.
 
 ## Prior art / references
 
 - **AgentBox** (`madarco/agentbox`, MIT; local checkout `/Volumes/EVO/repos/agentbox`). A working
   multi-provider agent-sandbox tool with **local Docker as a first-class sibling** of Vercel,
-  Hetzner, Daytona, and E2B behind one `CloudBackend` SPI. Most relevant before Phase 0:
+  Hetzner, Daytona, and E2B behind one `CloudBackend` SPI. Most relevant before Phase 1 Milestone A:
   - `packages/core/src/cloud-backend.ts` — the SPI (required + optional capabilities).
   - `packages/sandbox-cloud/src/cloud-provider.ts` — `createCloudProvider(backend)` scaffolding
     (workspace/git seeding, snapshot/checkpoint restore with stale-snapshot fallback, credential
@@ -524,17 +601,27 @@ surfaces logs and does not write a broken config.
 
 ## Verification (roadmap-level)
 
-- Per-phase specs carry detailed test plans. At minimum each phase satisfies its ACs via: unit
+- **Demo-first, then e2e (every phase).** Each phase ends in a user-facing demo, proven by a
+  live walkthrough (`playwright-cli open` / `agent-browser` against the running app, capturing
+  snapshots per the AGENTS.md Feature Validation workflow and the `kata-code-e2e-testing` skill),
+  then encoded as a Playwright Electron e2e test under `e2e/tests/` tagged `@environments-deploy`,
+  passing via `vp run e2e --project desktop-dev --grep @environments-deploy`. This is the standing
+  rule codified as each phase's demo AC (AC-1.13, AC-2.6, AC-3.6, AC-4.8, AC-5.5, AC-6.5).
+- **Where full automation isn't possible** (Phase 3's live Cloudflare tunnel + cloud agent turn,
+  which need the user's paid infra), the demo is a recorded manual UAT with the live walkthrough
+  as evidence; the settings/config-validation slice stays e2e-automated.
+- Per-phase specs carry detailed test plans. At minimum each phase satisfies its ACs via unit
   tests (contracts/resolver/registry), integration/UAT against a real container (Phase 1, no
-  credentials) and a real Cloudflare sandbox (Phase 3, user credentials), and Playwright
-  Electron e2e for composer/settings flows where feasible (`vp run e2e`), tagged with a new
-  `@environments-deploy` feature tag.
+  credentials) and a real Cloudflare sandbox (Phase 3, user credentials), plus the per-phase e2e
+  test above.
 - CI parity gates (`vp check`, `vp run typecheck`, `vp run test`, `vp run release:smoke`) pass
   for every phase before completion (per AGENTS.md).
 
 ## Key files (anticipated, not exhaustive)
 
-- New: `packages/sandbox-contracts/src/*`, `packages/sandbox/src/*`,
+- New: `packages/contracts/src/sandboxProviderInstance.ts` (settings-referenced sandbox
+  contracts — kept in `contracts` to avoid a `contracts` ⇄ `sandbox-contracts` cycle),
+  `packages/sandbox-contracts/src/*`, `packages/sandbox/src/*`,
   `packages/sandbox-docker/src/*`, `packages/sandbox-cloudflare/src/*`.
 - Edit: `packages/contracts/src/settings.ts` (`sandboxProviderInstances`),
   `apps/server/src/serverLayers.ts` (registry wiring), `apps/server/src/wsServer.ts` /
@@ -547,15 +634,17 @@ surfaces logs and does not write a broken config.
 
 ## Build handoff
 
-- **Approved scope:** seven phases above; **BYOC, free and open source**; container driver first
-  (Docker/OrbStack), Cloudflare cloud driver second; one capability-based SandboxProvider SPI
-  (AgentBox-shaped, local + cloud under one SPI); ephemeral + snapshot; repo-file-first env
+- **Approved scope:** six phases (Phase 1 merges the former foundations phase into the
+  container-driver phase as two milestones); **BYOC, free and open source**; container driver
+  first (Docker/OrbStack), Cloudflare cloud driver second; one capability-based SandboxProvider
+  SPI (AgentBox-shaped, local + cloud under one SPI); ephemeral + snapshot; repo-file-first env
   config; full Kata server in sandbox reached via Connect (loopback for container, tunnel for
   cloud) + Kata token; injected secrets; git branch-sync move with **fresh-session-on-move +
-  warning** in V1; every deployment auto-registers with Connect.
+  warning** in V1; every deployment auto-registers with Connect; **every phase ships a
+  user-facing demo proven by walkthrough then encoded as `@environments-deploy` e2e.**
 - **Non-goals:** managed Kata Cloud product, other cloud drivers, live session migration,
   persistent disk, multi-repo, OAuth forwarding, billing.
 - **Required verification:** each phase's ACs + CI parity gates; `@environments-deploy` e2e tag.
-- **Blocking questions for Phase 0 spec:** final SPI method signatures; exact
-  `.kata/environment.json` schema fields; secret-storage generalization (reuse
-  `ServerSecretStore` + provider-instance redaction); container-spike result (AC-0.5/0.7).
+- **Blocking questions for the Phase 1 Milestone A spec:** final SPI method signatures;
+  exact `.kata/environment.json` schema fields; secret-storage generalization (reuse
+  `ServerSecretStore` + provider-instance redaction); container-spike result (AC-1.7).
