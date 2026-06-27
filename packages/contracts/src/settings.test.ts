@@ -148,6 +148,16 @@ describe("ServerSettings.providers.pi", () => {
     expect(decoded.providers.pi?.agentDir).toBe("~/.pi-work");
     expect(decoded.providers.pi?.projectTrustPolicy).toBe("always");
   });
+
+  it("decodes partial pi provider patches preserving optional-key behavior", () => {
+    expect(
+      decodeServerSettingsPatch({
+        providers: { pi: { agentDir: "~/.pi-work" } },
+      }),
+    ).toEqual({
+      providers: { pi: { agentDir: "~/.pi-work" } },
+    });
+  });
 });
 
 describe("ServerSettingsPatch string normalization", () => {

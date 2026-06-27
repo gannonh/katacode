@@ -90,6 +90,7 @@ export interface PiDiscoveryInput {
   readonly binaryPath: string;
   readonly customModels: ReadonlyArray<string>;
   readonly cwd: string;
+  readonly projectTrustPolicy: "never" | "always";
   readonly environment?: NodeJS.ProcessEnv;
 }
 
@@ -278,7 +279,12 @@ export const discoverPiProvider = Effect.fn("discoverPiProvider")(function* (
       cwd: input.cwd,
       agentDir: input.agentDir || getAgentDir(),
     });
-    await loader.reload();
+    // Respect the configured project trust policy: "never" (default) keeps
+    // project-local skills/prompt commands out of the provider snapshot;
+    // "always" loads them. Without this the SDK defaults to trusted=true.
+    await loader.reload({
+      resolveProjectTrust: () => Promise.resolve(input.projectTrustPolicy === "always"),
+    });
 
     const skillsResult = loader.getSkills();
     const promptsResult = loader.getPrompts();
@@ -298,11 +304,20 @@ export const discoverPiProvider = Effect.fn("discoverPiProvider")(function* (
   };
 });
 
-const emptyPiModelsFromSettings = (piSettings: PiSettings): ReadonlyArray<ServerProviderModel> =>
-  piSettings.customModels.map((candidate) => {
+const emptyPiModelsFromSettings = (piSettings: PiSettings): ReadonlyArray<ServerProviderModel> => {
+  // Mirror mapPiModels' trim/dedupe so pending/error/disabled snapshots don't
+  // surface blank or duplicate custom entries that disappear once discovery
+  // succeeds.
+  const seen = new Set<string>();
+  const entries: ServerProviderModel[] = [];
+  for (const candidate of piSettings.customModels) {
     const slug = candidate.trim();
-    return { slug, name: slug, isCustom: true, capabilities: null };
-  });
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    entries.push({ slug, name: slug, isCustom: true, capabilities: null });
+  }
+  return entries;
+};
 
 export const makePendingPiProvider = (piSettings: PiSettings): Effect.Effect<ServerProviderDraft> =>
   Effect.gen(function* () {
@@ -381,6 +396,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
     binaryPath: piSettings.binaryPath,
     customModels: piSettings.customModels,
     cwd: process.cwd(),
+    projectTrustPolicy: piSettings.projectTrustPolicy,
     environment,
   }).pipe(Effect.timeoutOption(Duration.millis(AUTH_PROBE_TIMEOUT_MS)), Effect.result);
 

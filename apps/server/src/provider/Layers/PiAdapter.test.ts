@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Schema from "effect/Schema";
 import {
   PiSettings,
@@ -271,6 +272,12 @@ describe("makePiAdapter (vertical slice)", () => {
       // after session.exited.
       yield* adapter.stopSession(threadId);
 
+      // Wait for the aborted prompt/turn fiber to settle before asserting so
+      // a late turn.aborted or turn.completed published on the next tick
+      // cannot slip through undetected. Use a real-time delay (not
+      // Effect.sleep, which runs on the test clock and never advances).
+      yield* Effect.tryPromise(() => new Promise<void>((resolve) => setTimeout(resolve, 10)));
+
       // session.exited is published synchronously within stopSession.
       const types = recorder.events.map((event) => event.type);
       expect(types).toContain("session.exited");
@@ -316,6 +323,84 @@ describe("makePiAdapter (vertical slice)", () => {
       const turn = yield* adapter.sendTurn({ threadId, input: "hello again" });
       expect(turn.threadId).toBe(threadId);
       yield* Effect.tryPromise(() => second.hooks.promptStarted);
+    }),
+  );
+
+  it.effect("rejects a second concurrent turn while one is active", () =>
+    Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session, hooks } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+
+      const threadId = ThreadId.make("pi-thread-concurrent");
+      yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+      yield* adapter.sendTurn({ threadId, input: "first" });
+      yield* Effect.tryPromise(() => hooks.promptStarted);
+
+      // A second turn before the first settles must be rejected without
+      // dispatching another prompt — `activeTurnId` alone gates concurrency.
+      const result = yield* Effect.exit(adapter.sendTurn({ threadId, input: "second" }));
+      expect(Exit.isFailure(result)).toBe(true);
+    }),
+  );
+
+  it.effect("allows a new turn after the previous turn settles", () =>
+    Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session, hooks } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+
+      const threadId = ThreadId.make("pi-thread-settle-then-resume");
+      yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+      yield* adapter.sendTurn({ threadId, input: "first" });
+      yield* Effect.tryPromise(() => hooks.promptStarted);
+      hooks.resolvePrompt();
+      yield* Effect.tryPromise(() => recorder.waitFor((event) => event.type === "turn.completed"));
+
+      // activeTurnId is cleared on settlement, so a follow-up turn is accepted.
+      const second = yield* adapter.sendTurn({ threadId, input: "second" });
+      expect(second.threadId).toBe(threadId);
+    }),
+  );
+
+  it.effect("fails readThread with an unsupported-operation error", () =>
+    Effect.gen(function* () {
+      const recorder = makeEventRecorder();
+      const { session } = makeFakeSession();
+      const adapter = yield* makePiAdapter(decodePiSettings({}), {
+        instanceId: ProviderInstanceId.make("pi"),
+        availableModels: [SAMPLE_MODEL],
+        createSession: (() => Promise.resolve({ session })) as never,
+        onEvent: recorder.onEvent,
+      });
+
+      const threadId = ThreadId.make("pi-thread-read");
+      yield* adapter.startSession({
+        threadId,
+        runtimeMode: "full-access",
+        modelSelection: MODEL_SELECTION,
+      });
+
+      const result = yield* Effect.exit(adapter.readThread(threadId));
+      expect(Exit.isFailure(result)).toBe(true);
     }),
   );
 });

@@ -108,6 +108,22 @@ describe("makePendingPiProvider", () => {
       expect(snapshot.auth.status).toBe("unknown");
     }),
   );
+
+  it.effect("trims, dedupes, and skips blank custom models in the pending snapshot", () =>
+    Effect.gen(function* () {
+      const settings = decodePiSettings({
+        customModels: [
+          "  anthropic/claude-opus-4-6  ",
+          "",
+          "  anthropic/claude-opus-4-6  ",
+          "custom/local",
+        ],
+      });
+      const snapshot = yield* makePendingPiProvider(settings);
+      const slugs = snapshot.models.map((model) => model.slug);
+      expect(slugs).toEqual(["anthropic/claude-opus-4-6", "custom/local"]);
+    }),
+  );
 });
 
 it.layer(NodeServices.layer)("checkPiProviderStatus", (it) => {

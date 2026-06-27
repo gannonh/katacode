@@ -15,6 +15,7 @@ import { randomUUID } from "node:crypto";
 import {
   type AgentSessionEvent,
   createAgentSession,
+  DefaultResourceLoader,
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import {
@@ -35,6 +36,7 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import type * as Fiber from "effect/Fiber";
 import * as PubSub from "effect/PubSub";
+import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 
 import {
@@ -99,7 +101,7 @@ type TurnOutcome =
 export function makePiAdapter(
   piSettings: PiSettings,
   options?: PiAdapterLiveOptions,
-): Effect.Effect<ProviderAdapterShape<ProviderAdapterError>, never, never> {
+): Effect.Effect<ProviderAdapterShape<ProviderAdapterError>, never, Scope.Scope> {
   return Effect.gen(function* () {
     const boundInstanceId = options?.instanceId ?? ProviderInstanceId.make("pi");
     const sessions = new Map<ThreadId, PiSessionContext>();
@@ -312,6 +314,19 @@ export function makePiAdapter(
         const created = yield* Effect.tryPromise({
           try: async () => {
             const factory = options?.createSession ?? createAgentSession;
+            // Build the resource loader ourselves so project trust follows
+            // `piSettings.projectTrustPolicy`: "never" (default) keeps
+            // project-local .pi/.agents/skills resources out of the session,
+            // "always" loads them. Without this, the SDK defaults to
+            // projectTrusted=true and bypasses the configured policy.
+            const resourceLoader = new DefaultResourceLoader({
+              cwd,
+              agentDir,
+            });
+            await resourceLoader.reload({
+              resolveProjectTrust: () =>
+                Promise.resolve(piSettings.projectTrustPolicy === "always"),
+            });
             return factory({
               cwd,
               ...(agentDir ? { agentDir } : {}),
@@ -319,6 +334,7 @@ export function makePiAdapter(
               ...(thinkingLevel ? { thinkingLevel: thinkingLevel as never } : {}),
               authStorage,
               modelRegistry,
+              resourceLoader,
               sessionManager: SessionManager.inMemory(cwd),
               tools: ["read", "bash", "edit", "write", "grep", "find", "ls"],
             });
@@ -375,7 +391,11 @@ export function makePiAdapter(
     const sendTurn = (input: ProviderSendTurnInput) =>
       Effect.gen(function* () {
         const ctx = yield* requireSession(input.threadId);
-        if (ctx.activeTurnId && ctx.sdk.isStreaming) {
+        // `activeTurnId` is the sole concurrent-turn gate. It is set
+        // synchronously below and cleared in the turn runner when the prompt
+        // settles, so a second sendTurn arriving before the SDK flips
+        // `isStreaming` cannot start a overlapping prompt on the same session.
+        if (ctx.activeTurnId) {
           return yield* new ProviderAdapterValidationError({
             provider: PROVIDER,
             operation: "sendTurn",
@@ -420,6 +440,8 @@ export function makePiAdapter(
           Effect.matchEffect({
             onFailure: (cause) => {
               if (ctx.stopped) return Effect.void;
+              ctx.activeTurnId = undefined;
+              ctx.turnFiber = undefined;
               const classification = classifyPiTurnFailure(cause);
               return classification.kind === "interrupted"
                 ? settleTurn(input.threadId, turnId, {
@@ -433,6 +455,8 @@ export function makePiAdapter(
             },
             onSuccess: () => {
               if (ctx.stopped) return Effect.void;
+              ctx.activeTurnId = undefined;
+              ctx.turnFiber = undefined;
               return settleTurn(input.threadId, turnId, { state: "completed" });
             },
           }),
@@ -471,6 +495,26 @@ export function makePiAdapter(
         );
       });
 
+    const stopAll = () =>
+      Effect.gen(function* () {
+        const threadIds = Array.from(sessions.keys());
+        yield* Effect.forEach(threadIds, (threadId) => stopSession(threadId), { discard: true });
+      });
+
+    // Tear down SDK sessions and the runtime event PubSub when the adapter's
+    // scope closes (instance removal/rebuild or registry shutdown). Without
+    // this finalizer, old Pi SDK sessions survive rebuilds and
+    // `ProviderService` subscription fibers keep waiting because
+    // `streamEvents` never terminates.
+    yield* Effect.addFinalizer(() =>
+      stopAll().pipe(
+        Effect.catchCause((cause) =>
+          Effect.logError("Failed to shut down Pi adapter sessions.", { cause }),
+        ),
+        Effect.tap(() => PubSub.shutdown(runtimeEventPubSub)),
+      ),
+    );
+
     return {
       provider: PROVIDER,
       capabilities: { sessionModelSwitch: "unsupported" },
@@ -499,10 +543,11 @@ export function makePiAdapter(
       readThread: (threadId: ThreadId) =>
         Effect.gen(function* () {
           yield* requireSession(threadId);
-          // Vertical slice: thread history is not yet tracked. Tool lifecycle
-          // and full readThread support are layered on after the driver is
-          // wired end-to-end.
-          return { threadId, turns: [] };
+          return yield* new ProviderAdapterRequestError({
+            provider: PROVIDER,
+            method: "readThread",
+            detail: "Pi thread history is not yet wired in this build.",
+          });
         }),
       rollbackThread: () =>
         Effect.fail(
@@ -512,11 +557,7 @@ export function makePiAdapter(
             detail: "Pi thread rollback is not yet wired in this build.",
           }),
         ),
-      stopAll: () =>
-        Effect.gen(function* () {
-          const threadIds = Array.from(sessions.keys());
-          yield* Effect.forEach(threadIds, (threadId) => stopSession(threadId), { discard: true });
-        }),
+      stopAll,
       streamEvents: Stream.fromPubSub(runtimeEventPubSub),
     } satisfies ProviderAdapterShape<ProviderAdapterError>;
   });
