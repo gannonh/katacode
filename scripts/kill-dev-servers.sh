@@ -39,10 +39,15 @@ fi
 
 # Clear Electron dev session/cache so the renderer does not restore a stale
 # URL from a previous port. The app regenerates these on next launch.
+# The user-data path below is macOS-only; skip on other platforms where
+# Electron stores user data elsewhere (~/.config on Linux, %APPDATA% on
+# Windows) instead of silently no-op'ing.
 electron_user_data="${HOME}/Library/Application Support/katacode-dev"
-for subdir in "Session Storage" "Code Cache" "Cache" "GPUCache" "Service Worker"; do
-  if [[ -d "${electron_user_data}/${subdir}" ]]; then
-    rm -rf "${electron_user_data}/${subdir}"
-    echo "cleared Electron dev ${subdir}"
-  fi
-done
+if [[ "$(uname)" == "Darwin" ]]; then
+  for subdir in "Session Storage" "Code Cache" "Cache" "GPUCache" "Service Worker"; do
+    if [[ -d "${electron_user_data}/${subdir}" ]]; then
+      rm -rf "${electron_user_data}/${subdir}"
+      echo "cleared Electron dev ${subdir}"
+    fi
+  done
+fi

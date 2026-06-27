@@ -6,8 +6,6 @@ packages:
   - packages/*
   - scripts
 
-dangerouslyAllowAllBuilds: true
-
 catalog:
   "@effect/atom-react": 4.0.0-beta.78
   "@effect/openapi-generator": 4.0.0-beta.78
