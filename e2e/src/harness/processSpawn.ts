@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { appendProcessLog } from "./artifacts.ts";
 import type { E2ERunContext } from "./isolatedRun.ts";
+import { trackSpawnedStack, untrackSpawnedStack } from "./spawnRegistry.ts";
 
 export interface LoggedChildProcess {
   readonly process: ChildProcess;
@@ -31,10 +32,26 @@ export function spawnWithArtifactLogs(
     cwd: input.cwd,
     env: input.env,
     stdio: ["ignore", stdoutFd, stderrFd],
+    // Own process group so the whole tree (dev-runner -> Vite -> esbuild
+    // workers) can be killed together via the negative PID. Without this only
+    // the direct child is signalled and its descendants orphan as leaked
+    // listeners that accumulate across runs.
+    detached: true,
   });
 
   closeSync(stdoutFd);
   closeSync(stderrFd);
+
+  // Register the PID so a global teardown / signal handler can reap the group
+  // even when Playwright skips fixture teardown (aborted run, crash, Ctrl-C).
+  if (child.pid !== undefined) {
+    trackSpawnedStack(child.pid);
+    child.once("exit", () => {
+      if (child.pid !== undefined) {
+        untrackSpawnedStack(child.pid);
+      }
+    });
+  }
 
   child.on("error", (error) => {
     void appendProcessLog(
@@ -47,10 +64,20 @@ export function spawnWithArtifactLogs(
   return { process: child };
 }
 
+/** Signal an entire process group by negative PID, ignoring "no such process". */
+function killProcessGroup(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(-pid, signal);
+  } catch {
+    // Group already gone, or never created (spawn failed) — nothing to reap.
+  }
+}
+
 export async function terminateChildProcess(child: ChildProcess): Promise<void> {
   if (child.exitCode !== null) {
     return;
   }
+  const pid = child.pid;
 
   await new Promise<void>((resolve) => {
     child.once("exit", () => resolve());
@@ -59,10 +86,19 @@ export async function terminateChildProcess(child: ChildProcess): Promise<void> 
       return;
     }
 
-    child.kill("SIGTERM");
+    // Kill the whole group so Vite + esbuild descendants die with dev-runner.
+    if (pid !== undefined) {
+      killProcessGroup(pid, "SIGTERM");
+    } else {
+      child.kill("SIGTERM");
+    }
     setTimeout(() => {
-      if (child.exitCode === null && !child.killed) {
-        child.kill("SIGKILL");
+      if (child.exitCode === null) {
+        if (pid !== undefined) {
+          killProcessGroup(pid, "SIGKILL");
+        } else if (!child.killed) {
+          child.kill("SIGKILL");
+        }
       }
     }, 5_000).unref();
   });
