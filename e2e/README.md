@@ -50,11 +50,25 @@ Release launches use isolated `KATACODE_HOME` and `KATACODE_PORT` only. The harn
 
 ### Runner controls
 
-| Variable               | Default | Purpose                                                                                                                   |
-| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `KATACODE_E2E_WORKERS` | `1`     | Parallel workers. Authenticated mutable tests default to one worker because only one Google test user is available in V1. |
-| `KATACODE_E2E_VIDEO`   | off     | Set to `1` to retain failure video artifacts                                                                              |
-| `KATACODE_PORT_OFFSET` | auto    | Optional fixed port offset for isolated dev stacks                                                                        |
+| Variable               | Default | Purpose                                                                                                                                                                                                                                                      |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `KATACODE_E2E_WORKERS` | `1`     | Playwright workers. `1` (default, recommended) runs one session per spec file serially. `>1` runs files in parallel; each worker gets isolated ports, a per-worker dev app bundle id, a per-worker `.electron-runtime`, and a bypassed single-instance lock. |
+| `KATACODE_E2E_VIDEO`   | off     | Set to `1` to retain failure video artifacts                                                                                                                                                                                                                 |
+| `KATACODE_PORT_OFFSET` | auto    | Optional fixed port offset for isolated dev stacks                                                                                                                                                                                                           |
+
+### Session model
+
+Each spec file shares **one session** (one Electron app, one Vite dev stack,
+one isolated `KATACODE_HOME`, one Clerk sign-in) across all of its tests. The
+first test in a file pays the startup cost; subsequent tests reuse the session
+and run in seconds. Tests run serially within a file (`fullyParallel: false`)
+and each file is isolated from the others. Multi-test files reset to the
+threads home between tests via `resetAppToHome`.
+
+If a provider turn fails (out of credits, auth error, rate limit, model
+unavailable), the agent-chat flows fail fast on the thread error banner with
+the real server-side message and a hint to change `KATACODE_E2E_PI_MODEL` (or
+the deterministic-chat model) in `.env`, instead of polling to a timeout.
 
 ## Commands
 
