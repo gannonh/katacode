@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronDownIcon, PlusIcon } from "lucide-react";
+import { ChevronDownIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   SandboxProviderDriverKind,
   SandboxProviderInstanceId,
+  type ProviderInstanceEnvironmentVariable,
   type SandboxInstanceSummary,
   type SandboxProviderInstanceConfig,
   type SandboxProviderInstanceConfigMap,
@@ -25,12 +26,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
 import { Collapsible, CollapsibleContent } from "../ui/collapsible";
+import { DraftInput } from "../ui/draft-input";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { ProviderEnvironmentSection } from "./ProviderInstanceCard";
 import { SettingsSection } from "./settingsLayout";
 
 const DOCKER_KIND = SandboxProviderDriverKind.make("docker");
@@ -211,6 +215,15 @@ export function SandboxDeploymentSettings() {
     [instanceMap, updateSettings],
   );
 
+  const updateInstance = useCallback(
+    (instanceId: string, next: SandboxProviderInstanceConfig) => {
+      updateSettings({
+        sandboxProviderInstances: { ...instanceMap, [instanceId]: next },
+      });
+    },
+    [instanceMap, updateSettings],
+  );
+
   const instanceEntries = Object.entries(instanceMap);
 
   return (
@@ -266,99 +279,349 @@ export function SandboxDeploymentSettings() {
           const instanceBusy = busy[id];
           const isOpen = expanded[id] ?? false;
           const displayName = config.displayName ?? id;
+          const enabled = config.enabled ?? true;
           return (
-            <div key={id} className="border-t border-border/60 first:border-t-0">
-              <div className="px-4 py-3.5 sm:px-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
-                        {displayName}
-                      </h3>
-                      <Badge variant="secondary">{config.driver}</Badge>
-                      {available ? (
-                        <Badge variant="default">available</Badge>
-                      ) : reason ? (
-                        <Badge variant="destructive">{reason}</Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-muted-foreground/80">
-                      {session
-                        ? `Session ready: ${session.httpBaseUrl} (env ${session.environmentId})`
-                        : "Provision an isolated container reached over localhost."}
-                    </p>
-                  </div>
-                  <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:justify-end">
-                    {session ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={instanceBusy !== undefined}
-                        onClick={() => void handleDispose(id)}
-                      >
-                        {instanceBusy === "dispose" ? "Disposing…" : "Dispose"}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        disabled={instanceBusy !== undefined || !available}
-                        onClick={() => void handleStart(id)}
-                      >
-                        {instanceBusy === "start" ? "Starting…" : "Start session"}
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setExpanded((prev) => ({ ...prev, [id]: !isOpen }))}
-                      aria-label={`Toggle ${displayName} details`}
-                    >
-                      <ChevronDownIcon
-                        className={cn("size-3.5 transition-transform", isOpen && "rotate-180")}
-                      />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <Collapsible
-                open={isOpen}
-                onOpenChange={(open) => setExpanded((prev) => ({ ...prev, [id]: open }))}
-              >
-                <CollapsibleContent>
-                  <div className="space-y-3 border-t border-border/60 px-4 py-3 sm:px-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={instanceBusy !== undefined || !available}
-                        onClick={() => void handleTest(id)}
-                      >
-                        {instanceBusy === "test" ? "Testing…" : "Test connection"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-muted-foreground hover:text-foreground"
-                        disabled={instanceBusy !== undefined}
-                        onClick={() => handleRemove(id)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    {progress.length > 0 || instanceBusy === "test" ? (
-                      <pre className="text-xs whitespace-pre-wrap text-muted-foreground">
-                        {progress.join("\n")}
-                      </pre>
-                    ) : null}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
+            <DeploymentTargetCard
+              key={id}
+              instanceId={id}
+              instance={config}
+              displayName={displayName}
+              enabled={enabled}
+              available={available}
+              reason={reason}
+              session={session}
+              progress={progress}
+              instanceBusy={instanceBusy}
+              isExpanded={isOpen}
+              onExpandedChange={(open) => setExpanded((prev) => ({ ...prev, [id]: open }))}
+              onUpdate={(next) => updateInstance(id, next)}
+              onDelete={() => handleRemove(id)}
+              onTest={() => void handleTest(id)}
+              onStart={() => void handleStart(id)}
+              onDispose={() => void handleDispose(id)}
+            />
           );
         })
       )}
     </SettingsSection>
+  );
+}
+
+interface DeploymentTargetCardProps {
+  readonly instanceId: string;
+  readonly instance: SandboxProviderInstanceConfig;
+  readonly displayName: string;
+  readonly enabled: boolean;
+  readonly available: boolean;
+  readonly reason: string | undefined;
+  readonly session: { environmentId: string; httpBaseUrl: string } | undefined;
+  readonly progress: string[];
+  readonly instanceBusy: "test" | "start" | "dispose" | undefined;
+  readonly isExpanded: boolean;
+  readonly onExpandedChange: (open: boolean) => void;
+  readonly onUpdate: (next: SandboxProviderInstanceConfig) => void;
+  readonly onDelete: () => void;
+  readonly onTest: () => void;
+  readonly onStart: () => void;
+  readonly onDispose: () => void;
+}
+
+/**
+ * A single deployment-target row, mirroring `ProviderInstanceCard.tsx`:
+ * title + driver/status badges + delete + chevron + enabled switch in the row,
+ * and a `Collapsible` with display name, docker config fields, env vars, and
+ * the Part B controls (Test connection / Start session / Dispose) + progress.
+ */
+function DeploymentTargetCard({
+  instanceId,
+  instance,
+  displayName,
+  enabled,
+  available,
+  reason,
+  session,
+  progress,
+  instanceBusy,
+  isExpanded,
+  onExpandedChange,
+  onUpdate,
+  onDelete,
+  onTest,
+  onStart,
+  onDispose,
+}: DeploymentTargetCardProps) {
+  const updateDisplayName = (value: string) => {
+    const trimmed = value.trim();
+    const { displayName: _omit, ...rest } = instance;
+    onUpdate(
+      trimmed.length > 0
+        ? ({ ...rest, displayName: trimmed } as SandboxProviderInstanceConfig)
+        : (rest as SandboxProviderInstanceConfig),
+    );
+  };
+
+  const updateEnabled = (value: boolean) => {
+    onUpdate({ ...instance, enabled: value });
+  };
+
+  const updateConfig = (nextConfig: Record<string, unknown> | undefined) => {
+    const { config: _omit, ...rest } = instance;
+    onUpdate(
+      nextConfig !== undefined
+        ? ({ ...rest, config: nextConfig } as SandboxProviderInstanceConfig)
+        : (rest as SandboxProviderInstanceConfig),
+    );
+  };
+
+  const updateEnvironment = (environment: ReadonlyArray<ProviderInstanceEnvironmentVariable>) => {
+    const cleaned = environment.filter((variable) => variable.name.trim().length > 0);
+    const { environment: _omit, ...rest } = instance;
+    onUpdate(
+      cleaned.length > 0
+        ? ({ ...rest, environment: cleaned } as SandboxProviderInstanceConfig)
+        : (rest as SandboxProviderInstanceConfig),
+    );
+  };
+
+  return (
+    <div className="border-t border-border/60 first:border-t-0">
+      <div className="px-4 py-3.5 sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                {displayName}
+              </h3>
+              <code className="truncate rounded bg-muted/60 px-1 py-0.5 text-[10px] text-muted-foreground">
+                {instanceId}
+              </code>
+              <Badge variant="secondary">{instance.driver}</Badge>
+              {available ? (
+                <Badge variant="default">available</Badge>
+              ) : reason ? (
+                <Badge variant="destructive">{reason}</Badge>
+              ) : null}
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
+                      className="size-5 rounded-sm p-0 text-muted-foreground hover:text-destructive"
+                      onClick={onDelete}
+                      aria-label={`Delete deployment target ${instanceId}`}
+                    >
+                      <Trash2Icon className="size-3" />
+                    </Button>
+                  }
+                />
+                <TooltipPopup side="top">Delete deployment target</TooltipPopup>
+              </Tooltip>
+            </div>
+            <p className="text-xs text-muted-foreground/80">
+              {session
+                ? `Session ready: ${session.httpBaseUrl} (env ${session.environmentId})`
+                : "Provision an isolated container reached over localhost."}
+            </p>
+          </div>
+          <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => onExpandedChange(!isExpanded)}
+              aria-label={`Toggle ${displayName} details`}
+            >
+              <ChevronDownIcon
+                className={cn("size-3.5 transition-transform", isExpanded && "rotate-180")}
+              />
+            </Button>
+            <Switch
+              checked={enabled}
+              onCheckedChange={(checked) => updateEnabled(Boolean(checked))}
+              aria-label={`Enable ${displayName}`}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Collapsible open={isExpanded} onOpenChange={onExpandedChange}>
+        <CollapsibleContent>
+          <div className="space-y-0">
+            <div className="border-t border-border/60 px-4 py-3 sm:px-5">
+              <label htmlFor={`sandbox-instance-${instanceId}-display-name`} className="block">
+                <span className="text-xs font-medium text-foreground">Display name</span>
+                <DraftInput
+                  id={`sandbox-instance-${instanceId}-display-name`}
+                  className="mt-1.5"
+                  value={instance.displayName ?? ""}
+                  onCommit={updateDisplayName}
+                  placeholder="Instance label"
+                  spellCheck={false}
+                />
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Optional label shown in the deployment list.
+                </span>
+              </label>
+            </div>
+
+            <DockerConfigFields
+              config={instance.config}
+              idPrefix={`sandbox-instance-${instanceId}`}
+              onChange={updateConfig}
+            />
+
+            <div className="border-t border-border/60 px-4 py-3 sm:px-5">
+              <ProviderEnvironmentSection
+                environment={instance.environment ?? []}
+                onChange={updateEnvironment}
+              />
+            </div>
+
+            <div className="space-y-3 border-t border-border/60 px-4 py-3 sm:px-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={instanceBusy !== undefined || !available}
+                  onClick={onTest}
+                >
+                  {instanceBusy === "test" ? "Testing…" : "Test connection"}
+                </Button>
+                {session ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={instanceBusy !== undefined}
+                    onClick={onDispose}
+                  >
+                    {instanceBusy === "dispose" ? "Disposing…" : "Dispose"}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    disabled={instanceBusy !== undefined || !available}
+                    onClick={onStart}
+                  >
+                    {instanceBusy === "start" ? "Starting…" : "Start session"}
+                  </Button>
+                )}
+              </div>
+              {progress.length > 0 || instanceBusy === "test" ? (
+                <pre className="text-xs whitespace-pre-wrap text-muted-foreground">
+                  {progress.join("\n")}
+                </pre>
+              ) : null}
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
+}
+
+interface DockerConfigFieldsProps {
+  readonly config: unknown;
+  readonly idPrefix: string;
+  readonly onChange: (nextConfig: Record<string, unknown> | undefined) => void;
+}
+
+function readConfigString(config: unknown, key: string): string {
+  if (config === null || typeof config !== "object") return "";
+  const value = (config as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+}
+
+function readConfigNumber(config: unknown, key: string): string {
+  if (config === null || typeof config !== "object") return "";
+  const value = (config as Record<string, unknown>)[key];
+  return typeof value === "number" ? String(value) : "";
+}
+
+function setConfigField(
+  config: unknown,
+  key: string,
+  value: string,
+  clearWhenEmpty: "omit" | "persist" = "omit",
+): Record<string, unknown> | undefined {
+  const base: Record<string, unknown> =
+    config !== null && typeof config === "object" ? { ...(config as Record<string, unknown>) } : {};
+  const trimmed = value.trim();
+  if (clearWhenEmpty === "omit" && trimmed.length === 0) {
+    delete base[key];
+  } else {
+    base[key] = value;
+  }
+  return Object.keys(base).length > 0 ? base : undefined;
+}
+
+/**
+ * Inline editor for the docker driver config (image, command, port), mirroring
+ * `ProviderSettingsForm`'s card variant layout. The web app cannot import the
+ * server-only `@kata-sh/code-sandbox-docker` `DockerSandboxConfig` schema, so
+ * this renders the known fields directly against the opaque `config` blob.
+ */
+function DockerConfigFields({ config, idPrefix, onChange }: DockerConfigFieldsProps) {
+  const fields: ReadonlyArray<{
+    key: string;
+    label: string;
+    description: string;
+    placeholder: string;
+    kind: "text" | "port";
+  }> = [
+    {
+      key: "image",
+      label: "Image",
+      description: "Container image (must contain your start command's runtime).",
+      placeholder: "node:22-alpine",
+      kind: "text",
+    },
+    {
+      key: "command",
+      label: "Start command",
+      description:
+        "Command to launch the Kata server inside the container, e.g. `katacode serve --port 13773`.",
+      placeholder: "katacode serve --port 13773",
+      kind: "text",
+    },
+    {
+      key: "port",
+      label: "Container port",
+      description: "In-container port the Kata server listens on.",
+      placeholder: "13773",
+      kind: "port",
+    },
+  ];
+  return (
+    <>
+      {fields.map((field) => (
+        <div key={field.key} className="border-t border-border/60 px-4 py-3 sm:px-5">
+          <label htmlFor={`${idPrefix}-${field.key}`} className="block">
+            <span className="text-xs font-medium text-foreground">{field.label}</span>
+            <DraftInput
+              id={`${idPrefix}-${field.key}`}
+              className="mt-1.5"
+              value={
+                field.kind === "port"
+                  ? readConfigNumber(config, field.key)
+                  : readConfigString(config, field.key)
+              }
+              onCommit={(next) =>
+                onChange(
+                  field.kind === "port"
+                    ? setConfigField(config, field.key, next, "persist")
+                    : setConfigField(config, field.key, next),
+                )
+              }
+              placeholder={field.placeholder}
+              spellCheck={false}
+              inputMode={field.kind === "port" ? "numeric" : undefined}
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">{field.description}</span>
+          </label>
+        </div>
+      ))}
+    </>
   );
 }
 

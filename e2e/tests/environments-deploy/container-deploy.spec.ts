@@ -35,10 +35,19 @@ test.describe(`Environments/deployments container target ${E2E_TAGS.environments
     await expect(dialog).toBeHidden();
 
     // The target card materializes; listInstances reports it available.
-    const card = page.locator("li", { hasText: "E2E Smoke" });
+    // The card is the border-t div inside the Deployment targets section.
+    const section = page
+      .getByRole("heading", { name: "Deployment targets", level: 2 })
+      .locator("xpath=ancestor::section[1]");
+    const card = section.locator("div.border-t").filter({
+      has: page.getByRole("heading", { name: "E2E Smoke", level: 3 }),
+    });
     await expect(card).toBeVisible({ timeout: E2E_TIMEOUTS.authMs });
-    await expect(card.getByText("docker")).toBeVisible();
+    await expect(card.getByText("docker", { exact: true })).toBeVisible();
     await expect(card.getByText("available")).toBeVisible({ timeout: E2E_TIMEOUTS.authMs });
+
+    // Expand the card to reach the config + Test connection controls.
+    await card.getByRole("button", { name: /Toggle .* details/ }).click();
 
     // Test connection: validate -> provision -> dispose -> done, all ok.
     await card.getByRole("button", { name: "Test connection" }).click();
@@ -48,9 +57,9 @@ test.describe(`Environments/deployments container target ${E2E_TAGS.environments
     await expect(progress).toContainText("dispose: ok", { timeout: E2E_TIMEOUTS.agentReplyMs });
     await expect(progress).toContainText("done: ok", { timeout: E2E_TIMEOUTS.agentReplyMs });
 
-    // Clean up the target.
+    // Clean up the target via the trash button on the card row.
     await dismissBlockingToasts(page);
-    await card.getByRole("button", { name: "Remove" }).click();
+    await card.getByRole("button", { name: /Delete deployment target/ }).click();
     await expect(card).toBeHidden({ timeout: E2E_TIMEOUTS.assertionMs });
   });
 });
