@@ -1,5 +1,10 @@
 # Specs log
 
+## 2026-06-28 (Pi coding agent provider — spec closed as Verified)
+
+- Marked the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) `status: Verified` (frontmatter + `## Status`) and removed the inline "Resume here — what's next" roadmap block added the prior day. The spec is now a closed record; the Build completion report and Finalize outcome remain as evidence.
+- [docs/specs/index.md](/specs/index.md) is the roadmap source of truth and new-session entry point. The Pi Completed row states Verified and redirects deferred follow-ups to the [deferred-work registry](/specs/deferred-work.md) instead of carrying a "next" tail. Compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) and strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)) remain captured in the registry with tracking-issue links.
+
 ## 2026-06-27 (Pi coding agent provider — roadmap + issue capture)
 
 - Spec is complete; pointed all roadmap surfaces at a single "what's next" entry. Spec [Known follow-ups](/specs/2026-06-25-pi-coding-agent-support-design.md#known-follow-ups) and [specs roadmap](/specs/index.md) Pi row now link the [Pi roadmap section](/providers/pi.md#roadmap--whats-next-for-pi) and the two tracking issues: compaction UI [#16](https://github.com/gannonh/kata-code/issues/16), strict-review polish [#14](https://github.com/gannonh/kata-code/issues/14).

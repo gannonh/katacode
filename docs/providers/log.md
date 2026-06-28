@@ -1,5 +1,9 @@
 # Providers log
 
+## 2026-06-28 (Pi provider — removed duplicate roadmap section)
+
+- Removed the "Roadmap — what's next for Pi" section from the [Pi provider guide](/providers/pi.md) that was added the prior day. [docs/specs/index.md](/specs/index.md) is now the single roadmap source of truth; deferred follow-ups (compaction UI [#16](https://github.com/gannonh/kata-code/issues/16), strict-review polish [#14](https://github.com/gannonh/kata-code/issues/14)) live in the [deferred-work registry](/specs/deferred-work.md), not the provider guide.
+
 ## 2026-06-27 (Pi provider — roadmap section)
 
 - Added a [Roadmap — what's next for Pi](/providers/pi.md#roadmap--whats-next-for-pi) section to the [Pi provider guide](/providers/pi.md): spec complete, next increments are compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) then strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)), in priority order with resume-cold context.

@@ -4,62 +4,19 @@ title: "Pi coding agent provider support"
 description: "Design for adding Pi as a first-party Kata Code provider using a Kata-native driver while using Synara as a reference implementation."
 tags: [providers, pi, agent-runtime, sdk]
 timestamp: 2026-06-25T00:00:00Z
-status: Implemented
+status: Verified
 ---
 
 # Pi coding agent provider support
 
 ## Status
 
-**Complete.** All 17 acceptance criteria implemented and verified on branch
-`feat/pi-phase2` (phase 1 vertical slice PR #15; phase 2 adapter parity). The
-sections below (Goal through Build handoff) are the original design and remain
-for reference; the [Build completion report](#build-completion-report) and
-[Finalize outcome](#finalize-outcome) are the evidentiary record. **If you are
-picking up this work, read the next section and stop there.**
-
-## Resume here — what's next
-
-The spec is done. Two post-spec increments remain, in priority order. Each is
-self-contained below; you do not need to read the rest of this file to start.
-
-### 1. Compaction UI — [#16](https://github.com/gannonh/kata-code/issues/16) (highest value)
-
-**Why:** Pi conversation compaction is fully wired at the adapter and service
-layers but no user can reach it. It is the only built-but-unreachable Pi
-capability.
-
-**Already in place (do not rebuild):**
-
-- `ProviderAdapterShape.compactThread` → Pi `session.compact()` (`apps/server/src/provider/Layers/PiAdapter.ts`).
-- `ProviderService.compactConversation` live routing (`apps/server/src/provider/Layers/ProviderService.ts`), mirroring `rollbackConversation`'s internal-caller pattern.
-- Adapter emits canonical `thread.state.changed` (`active` → `compacted`) lifecycle events that ingestion already renders.
-
-**Build:** add a `thread.compact` orchestration command + reactor that calls
-`providerService.compactConversation`, plus a web/desktop affordance to trigger
-it. Mirror the existing `thread.checkpoint.revert` → `rollbackConversation`
-precedent (command + `CheckpointsReactor`-style reactor + UI control).
-
-**Done when:** a user-initiated compaction runs end to end, the `compacted`
-state renders in the timeline, E2E covers the path, and the
-[deferred-work entry](/specs/deferred-work.md) plus issue #16 are closed.
-
-### 2. Strict-review polish (L1–L8) — [#14](https://github.com/gannonh/kata-code/issues/14)
-
-Eight low-severity cleanup items from the strict quality review (timeout-branch
-test gap, cross-provider disabled-snapshot helper dedup, `mapPiModels` bespoke
-dedup, `DateTime.nowUnsafe()` testability, `piTurnFailure` case-sensitivity,
-unused `TextGenerationProvider` type, no-producer `"pi.sdk.event"` literal,
-`ThreadErrorBanner` PR-scope split). Cosmetic and non-blocking; the full item
-list and acceptance live in issue #14. Address before Pi leaves early-access or
-during the next provider-layer refactor.
-
-### Explicitly out of scope (no follow-up planned)
-
-Full custom TUI-component rendering in the web UI, general provider plugin
-loading, remote/hosted Pi execution, mobile-specific Pi UX, and replacing the
-Kata `approval-required` runtime mode with Pi permission gates remain
-[explicitly deferred](#explicitly-deferred-work) with no scheduled work.
+Verified — all 17 acceptance criteria implemented and verified on `feat/pi-phase2`.
+Evidence: [Build completion report](#build-completion-report) and
+[Finalize outcome](#finalize-outcome). This spec is a closed record; for the
+project roadmap and any deferred follow-ups see the
+[specs roadmap](/specs/index.md) and the
+[deferred-work registry](/specs/deferred-work.md).
 
 ## Goal
 
@@ -526,8 +483,9 @@ Build should implement a Kata-native `PiDriver` and use Synara only as reference
 
 ### Known follow-ups
 
-The spec is complete; these are post-spec increments tracked as GitHub issues
-(see the [Pi roadmap](/providers/pi.md#roadmap--whats-next-for-pi)):
+The spec is complete; these are post-spec increments tracked in the
+[deferred-work registry](/specs/deferred-work.md) (see the
+[specs roadmap](/specs/index.md) for the project-wide view):
 
 - **Compaction UI — [#16](https://github.com/gannonh/kata-code/issues/16):** the `compactConversation` service method and adapter are wired but no `thread.compact` transport/UI surface invokes it yet (mirrors the `rollbackConversation` precedent). Highest-value next increment.
 - **Strict quality review follow-ups — [#14](https://github.com/gannonh/kata-code/issues/14):** eight low-severity items remain in the deferred-work registry; revisit before Pi leaves early-access.
@@ -560,7 +518,7 @@ The spec is complete; these are post-spec increments tracked as GitHub issues
 
 ### Known follow-ups (unchanged)
 
-See [Resume here — what's next](#resume-here--whats-next) at the top of this spec
-for the prioritized pickup plan: compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16))
-then strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)).
-Full entries: [deferred-work registry](/specs/deferred-work.md).
+Post-spec follow-ups are tracked in the [deferred-work registry](/specs/deferred-work.md):
+compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) and
+strict-quality-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)).
+Neither was an acceptance criterion of this spec.

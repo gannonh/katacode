@@ -1,5 +1,9 @@
 # OKF bundle log
 
+## 2026-06-28 (Pi provider — spec closed, roadmap consolidated to index)
+
+Corrected the prior pass's roadmap duplication. Marked the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) `status: Verified` and removed its inline "Resume here — what's next" block so the spec reads as a closed record (evidence stays in the Build completion report and Finalize outcome). Removed the duplicate [Roadmap — what's next for Pi](/providers/pi.md) section from the provider guide. Established [docs/specs/index.md](/specs/index.md) as the single roadmap source of truth and new-session entry point: the Pi Completed row now states Verified and points deferred follow-ups at the [deferred-work registry](/specs/deferred-work.md), where compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) and strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)) remain captured with tracking-issue links. Validation: `vp run check:okf` pass.
+
 ## 2026-06-27 (Pi provider — roadmap consolidation + issue capture)
 
 Made "what's next for Pi" answerable from one place. Added a [Roadmap — what's next for Pi](/providers/pi.md#roadmap--whats-next-for-pi) section to the provider guide: spec complete (17/17 ACs verified), next increments in priority order are compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) then strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)). Filed the previously-unfiled compaction deferral as GitHub issue #16 (created the `deferred` label) and added a branch-correction comment to #14 (carried into `feat/pi-phase2`). Wired tracking-issue links into both [deferred-work](/specs/deferred-work.md) entries, the spec [Known follow-ups](/specs/2026-06-25-pi-coding-agent-support-design.md#known-follow-ups), and the [specs roadmap](/specs/index.md) Pi row. Validation: `vp run check:okf` pass.
