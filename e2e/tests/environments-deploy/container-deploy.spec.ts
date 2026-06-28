@@ -43,8 +43,10 @@ async function probeContainerHealth(hostPort: number): Promise<number> {
   });
 }
 
+const REAL_IMAGE_E2E_TIMEOUT_MS = Math.max(E2E_TIMEOUTS.agentTestMs, 240_000);
+
 test.describe(`Environments/deployments container target ${E2E_TAGS.environmentsDeploy}`, () => {
-  test.describe.configure({ timeout: E2E_TIMEOUTS.agentTestMs });
+  test.describe.configure({ timeout: REAL_IMAGE_E2E_TIMEOUT_MS });
 
   test("add deployment target, test connection + start session boot the real katacode image", async ({
     appWindow,
