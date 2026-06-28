@@ -14,7 +14,7 @@ export const DockerSandboxConfig = makeProviderSettingsSchema({
     Schema.annotateKey({
       title: "Image",
       description: "Container image (must contain your start command's runtime).",
-      providerSettingsForm: { placeholder: "node:22-alpine", clearWhenEmpty: "omit" },
+      providerSettingsForm: { placeholder: "katacode:local", clearWhenEmpty: "omit" },
     }),
   ),
   command: Schema.String.pipe(
@@ -40,8 +40,7 @@ export const DockerSandboxConfig = makeProviderSettingsSchema({
 export type DockerSandboxConfig = typeof DockerSandboxConfig.Type;
 
 export const DEFAULT_DOCKER_CONFIG: DockerSandboxConfig = {
-  image: "node:22-alpine",
-  command:
-    "node -e \"require('http').createServer((q,s)=>{s.end('katacode-serve-stub')}).listen(13773)\"",
+  image: "katacode:local",
+  command: "katacode serve --port 13773",
   port: 13773,
 };

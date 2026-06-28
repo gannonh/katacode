@@ -92,14 +92,23 @@ function buildContainerEnv(
 }
 
 function waitForReady(hostPort: number): Effect.Effect<void, SandboxProviderError> {
-  const healthUrl = `http://localhost:${hostPort}${HEALTHZ_PATH}`;
+  // Use 127.0.0.1 (not localhost) so the probe bypasses any localhost
+  // proxy/IPv6 resolution quirks in the host process, and cap each probe at
+  // 3s so a hung fetch cannot stall the whole readiness window.
+  const healthUrl = `http://127.0.0.1:${hostPort}${HEALTHZ_PATH}`;
   const probe = Effect.tryPromise({
-    try: () => fetch(healthUrl),
+    try: () =>
+      fetch(healthUrl, {
+        signal: AbortSignal.timeout(3000),
+      }),
     catch: () =>
       new SandboxProviderError({ reason: "unreachable", message: "healthz fetch failed" }),
   });
   return Effect.gen(function* () {
-    for (let i = 0; i < 60; i++) {
+    // The real `katacode serve` image runs migrations + startup before
+    // answering, so allow up to 60s (240 × 250ms) rather than the 15s that
+    // sufficed for the lightweight node http stub.
+    for (let i = 0; i < 240; i++) {
       const ok = yield* Effect.matchEffect(probe, {
         onFailure: () => Effect.succeed(false),
         onSuccess: (res) => Effect.succeed(res.status === 200),
@@ -153,6 +162,10 @@ export const DockerSandboxProvider: SandboxProvider = {
       // @effect-diagnostics-next-line effect(preferSchemaOverJson):off - ad-hoc Docker Engine create body, not a typed codec.
       const createBody = JSON.stringify({
         Image: resolved.image,
+        // Override any image ENTRYPOINT so `Cmd: ["sh", "-c", command]` runs the
+        // shell command directly (the katacode image's entrypoint is
+        // `node bin.mjs`; without this, `sh -c ...` would be appended to it).
+        Entrypoint: [],
         Cmd: ["sh", "-c", resolved.command],
         Env: env.map((e) => `${e.name}=${e.value}`),
         HostConfig: { PortBindings: { [containerPort]: [{ HostPort: "0" }] }, AutoRemove: true },

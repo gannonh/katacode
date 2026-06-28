@@ -51,7 +51,8 @@
     "e2e:codegen": "playwright codegen http://localhost:5733 --config e2e/playwright.codegen.config.ts",
     "e2e:web": "playwright test --config e2e/playwright.codegen.config.ts",
     "check:okf": "node scripts/check-okf.mjs",
-    "worktree:setup": "bash scripts/worktree-setup.sh"
+    "worktree:setup": "bash scripts/worktree-setup.sh",
+    "build:docker-image": "docker build -t katacode:local ."
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx": "7.28.6",

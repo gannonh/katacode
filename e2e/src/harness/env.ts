@@ -157,3 +157,43 @@ export async function assertDockerDaemonReachable(): Promise<void> {
     req.end();
   });
 }
+
+/**
+ * Fail loud if the `katacode:local` container image is absent. The
+ * `@environments-deploy` flow provisions the real Kata server image (built by
+ * `pnpm run build:docker-image`); a missing image makes the driver pull or fail
+ * with a confusing reason. Assert it up front so the failure names the fix.
+ */
+export async function assertKatacodeImageBuilt(image = "katacode:local"): Promise<void> {
+  const socketPath = process.env.DOCKER_HOST?.replace(/^unix:\/\//, "") ?? "/var/run/docker.sock";
+  await new Promise<void>((resolve, reject) => {
+    const req = request(
+      {
+        socketPath,
+        path: `/images/${encodeURIComponent(image)}/json`,
+        method: "GET",
+        timeout: 3_000,
+      },
+      (res) => {
+        res.resume();
+        res.on("end", () =>
+          res.statusCode === 200
+            ? resolve()
+            : reject(
+                new Error(
+                  `Container image ${image} is not built (inspect returned ${res.statusCode ?? 0}). Run \`pnpm run build:docker-image\` first.`,
+                ),
+              ),
+        );
+      },
+    );
+    req.on("error", (error) =>
+      reject(new Error(`Docker image inspect failed for ${image}: ${error.message}.`)),
+    );
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error(`Docker image inspect timed out for ${image}.`));
+    });
+    req.end();
+  });
+}

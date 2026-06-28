@@ -7,7 +7,9 @@ import { DockerSandboxProvider, dockerConfigDecoder } from "../src/index.ts";
 /**
  * Live smoke for DockerSandboxProvider: validate → provision → reachability →
  * dispose, proving the driver actually boots a container and resolves a loopback
- * endpoint. Not a unit test (touches a real daemon); run manually.
+ * endpoint. Not a unit test (touches a real daemon); run manually. Uses a
+ * lightweight node http stub (not the real `katacode:local` image) so it
+ * exercises driver mechanics without requiring `pnpm run build:docker-image`.
  */
 const config = dockerConfigDecoder({
   image: "node:22-alpine",

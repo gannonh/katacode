@@ -34,7 +34,11 @@ import {
 } from "@kata-sh/code-contracts/sandboxRpc";
 import { SandboxProviderRegistry } from "@kata-sh/code-sandbox/registry";
 import { SandboxProviderError, type SandboxHandle } from "@kata-sh/code-sandbox/driver";
-import { DockerSandboxProvider, dockerConfigDecoder } from "@kata-sh/code-sandbox-docker";
+import {
+  DEFAULT_DOCKER_CONFIG,
+  DockerSandboxProvider,
+  dockerConfigDecoder,
+} from "@kata-sh/code-sandbox-docker";
 import { reconcileDesiredCloudLink } from "../cloud/http.ts";
 
 /** A sandbox `AdvertisedEndpointProvider` (manual kind; container-sourced). */
@@ -163,7 +167,9 @@ export const SandboxServiceLive = {
           ...(v._tag === "Left" ? { detail: v.left.message } : {}),
         });
         if (v._tag === "Left") return events;
-        const image = String((inst.config as { image?: string } | null)?.image ?? "node:22-alpine");
+        const image = String(
+          (inst.config as { image?: string } | null)?.image ?? DEFAULT_DOCKER_CONFIG.image,
+        );
         const p = yield* either(
           inst.driver.provision({
             instanceId: instanceId as string,
@@ -208,7 +214,9 @@ export const SandboxServiceLive = {
       // Per-session Kata WebSocket auth token (required for non-loopback clients).
       // @effect-diagnostics-next-line effect(globalDateInEffect):off - random token, not a clock read.
       const bootstrapToken = NodeCrypto.randomBytes(24).toString("hex");
-      const image = String((inst.config as { image?: string } | null)?.image ?? "node:22-alpine");
+      const image = String(
+        (inst.config as { image?: string } | null)?.image ?? DEFAULT_DOCKER_CONFIG.image,
+      );
       const handle = yield* inst.driver
         .provision({
           instanceId: instanceId as string,

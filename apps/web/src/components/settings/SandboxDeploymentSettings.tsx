@@ -573,7 +573,7 @@ function DockerConfigFields({ config, idPrefix, onChange }: DockerConfigFieldsPr
       key: "image",
       label: "Image",
       description: "Container image (must contain your start command's runtime).",
-      placeholder: "node:22-alpine",
+      placeholder: "katacode:local",
       kind: "text",
     },
     {
@@ -631,14 +631,13 @@ interface AddDeploymentTargetDialogBodyProps {
 }
 
 function AddDeploymentTargetDialogBody({ existingIds, onAdd }: AddDeploymentTargetDialogBodyProps) {
-  // Defaults match the driver's DEFAULT_DOCKER_CONFIG: a node http stub that
-  // responds 200 on /healthz, so Add -> Test connection works out of the box.
-  // Swap image + command for a real `katacode` image once one is published.
+  // Defaults match the driver's DEFAULT_DOCKER_CONFIG: the `katacode:local`
+  // image built by `pnpm run build:docker-image`, started with
+  // `katacode serve --port 13773`. Add -> Test connection provisions the real
+  // server out of the box (requires the image to be built; the e2e asserts it).
   const [label, setLabel] = useState("");
-  const [image, setImage] = useState("node:22-alpine");
-  const [command, setCommand] = useState(
-    "node -e \"require('http').createServer((q,s)=>{s.end('katacode-serve-stub')}).listen(13773)\"",
-  );
+  const [image, setImage] = useState("katacode:local");
+  const [command, setCommand] = useState("katacode serve --port 13773");
   const [port, setPort] = useState("13773");
   const [error, setError] = useState<string | null>(null);
 
@@ -708,9 +707,10 @@ function AddDeploymentTargetDialogBody({ existingIds, onAdd }: AddDeploymentTarg
             onChange={(e) => setCommand(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            Launches the Kata server inside the container. The default is a stub that answers{" "}
-            <code>/healthz</code>; use <code>katacode serve --port 13773</code> with a real{" "}
-            <code>katacode</code> image.
+            Launches the Kata server inside the container. Defaults to
+            <code>katacode serve --port 13773</code> against the
+            <code>katacode:local</code> image (built by
+            <code>pnpm run build:docker-image</code>).
           </p>
         </div>
         <div className="flex flex-col gap-1">
