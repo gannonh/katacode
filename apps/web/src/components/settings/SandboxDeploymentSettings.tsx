@@ -281,7 +281,7 @@ export function SandboxDeploymentSettings() {
                     </Button>
                   </div>
                 </div>
-                {progress.length > 0 ? (
+                {progress.length > 0 || instanceBusy === "test" ? (
                   <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
                     {progress.join("\n")}
                   </pre>

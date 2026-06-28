@@ -5,6 +5,7 @@ export const E2E_TAGS = {
   settings: "@settings",
   agent: "@agent",
   pi: "@pi",
+  environmentsDeploy: "@environments-deploy",
 } as const;
 
 export type E2ETag = (typeof E2E_TAGS)[keyof typeof E2E_TAGS];

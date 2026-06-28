@@ -85,6 +85,12 @@ vi.mock("@kata-sh/code-client-runtime", async (importOriginal) => {
       getRelayClientStatus: vi.fn(),
       installRelayClient: vi.fn(),
     },
+    sandbox: {
+      listInstances: vi.fn(),
+      testConnection: vi.fn(),
+      startSession: vi.fn(),
+      disposeSession: vi.fn(),
+    },
     orchestration: {
       dispatchCommand: vi.fn(),
       getTurnDiff: vi.fn(),
