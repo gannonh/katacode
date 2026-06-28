@@ -97,6 +97,11 @@ async function startDevStackInner(
     await terminateChildProcess(child);
   });
 
+  // Vite is about to bind the ports; release the placeholder sockets so the
+  // bind succeeds. Releasing after spawn keeps the claim held through the
+  // fork/exec gap, closing the TOCTOU window.
+  await context.releasePortClaim();
+
   logHarnessPhase("Waiting for Vite dev server...");
   await waitForWebDevServer(context.webPort, E2E_TIMEOUTS.devStackMs, signal);
   logHarnessPhase("Vite dev server is ready.");

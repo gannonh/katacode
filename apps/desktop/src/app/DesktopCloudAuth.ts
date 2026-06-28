@@ -291,7 +291,13 @@ const make = Effect.gen(function* () {
       }
 
       const hasInstanceLock = yield* electronApp.requestSingleInstanceLock;
-      if (!hasInstanceLock) {
+      // E2E runs parallel workers as independent Electron instances against
+      // isolated homes; the single-instance lock would make every worker past
+      // the first quit immediately. KATACODE_DESKTOP_DISABLE_SINGLE_INSTANCE_LOCK
+      // opts out so workers can run concurrently.
+      const disableSingleInstanceLock =
+        process.env.KATACODE_DESKTOP_DISABLE_SINGLE_INSTANCE_LOCK?.trim() === "1";
+      if (!hasInstanceLock && !disableSingleInstanceLock) {
         return yield* electronApp.quit;
       }
 

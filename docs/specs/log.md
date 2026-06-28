@@ -1,5 +1,37 @@
 # Specs log
 
+## 2026-06-28 (Pi coding agent provider — spec closed as Verified)
+
+- Marked the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) `status: Verified` (frontmatter + `## Status`) and removed the inline "Resume here — what's next" roadmap block added the prior day. The spec is now a closed record; the Build completion report and Finalize outcome remain as evidence.
+- [docs/specs/index.md](/specs/index.md) is the roadmap source of truth and new-session entry point. The Pi Completed row states Verified and redirects deferred follow-ups to the [deferred-work registry](/specs/deferred-work.md) instead of carrying a "next" tail. Compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) and strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)) remain captured in the registry with tracking-issue links.
+
+## 2026-06-27 (Pi coding agent provider — roadmap + issue capture)
+
+- Spec is complete; pointed all roadmap surfaces at a single "what's next" entry. Spec [Known follow-ups](/specs/2026-06-25-pi-coding-agent-support-design.md#known-follow-ups) and [specs roadmap](/specs/index.md) Pi row now link the [Pi roadmap section](/providers/pi.md#roadmap--whats-next-for-pi) and the two tracking issues: compaction UI [#16](https://github.com/gannonh/kata-code/issues/16), strict-review polish [#14](https://github.com/gannonh/kata-code/issues/14).
+- Added `Tracking issue` fields to the [deferred-work](/specs/deferred-work.md) compaction and strict-review entries. Filed #16 for the compaction UI deferral (previously registry-only).
+
+## 2026-06-27 (Pi coding agent provider — AC 15 reclassification)
+
+- Reclassified **AC 15** from "Outstanding" to **Implemented and verified** across the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) (acceptance-criteria status, build/finalize outcomes), [specs roadmap](/specs/index.md), [deferred-work registry](/specs/deferred-work.md), and [Pi provider guide](/providers/pi.md). Evidence: the credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`, gated by `KATACODE_E2E_ENABLE_PI`/`KATACODE_E2E_PI_AGENT_DIR`/`KATACODE_E2E_PI_MODEL`) configures Pi in settings, selects a runtime-discovered model, streams a response, and exercises interrupt/stop; the [`e2e/verify-evidence/README.md`](../../e2e/verify-evidence/README.md) screenshots map those surfaces to AC 15. The prior "AC 15 outstanding" classification was stale and self-contradictory.
+- Removed the "Pi provider manual-authenticated validation (AC 15)" deferred entry; recorded it as closed/resolved. Kept the compaction transport + UI and strict-quality-review (issue #14) deferred entries intact.
+
+## 2026-06-27 (Pi coding agent provider — Finalize outcome)
+
+- Recorded [Finalize outcome](/specs/2026-06-25-pi-coding-agent-support-design.md#finalize-outcome) on `feat/pi-phase2` (build head `3fbeb0209`, final head `f8c2b5f5f`): simplify and strict-quality-review passes, credentialed `@pi` E2E + manual walkthrough evidence, runtime-warning amber UX, E2E harness improvements (`fileSession.ts`, `e2e:clean`, `kill-dev-ports`), `piRuntimeWarning` extraction.
+- Moved Pi from Active to Completed on [specs roadmap](/specs/index.md); added links to finalize outcome, [Pi provider guide](/providers/pi.md), and [verification evidence](../../e2e/verify-evidence/README.md).
+- Superseded stale slice "Remaining acceptance work" in the Pi spec [Build progress](/specs/2026-06-25-pi-coding-agent-support-design.md#build-progress) with a pointer to the build and finalize reports.
+- Updated [deferred-work](/specs/deferred-work.md#pi-provider-strict-quality-review-follow-ups) strict-review notes for the finalize pass.
+
+## 2026-06-27 (Pi coding agent provider — Build complete, status → Implemented)
+
+- Completed the Pi provider Build (`feat/pi-phase2`, base `7bfe7d769`, head `3fbeb0209`): implemented AC 5 (tool lifecycle, image attachments, resume cursor, readThread, rollback), AC 6 (`compactThread` + `thread.state.changed` compaction lifecycle), AC 8 (extension UI bridge), AC 9 (runtime-mode warnings), AC 10 (project-trust surfacing), AC 11/12 (PiTextGeneration parity), AC 13 (instance isolation), AC 14 (existing-provider regression), AC 17 (`vp check`/`typecheck`/`test`/`release:smoke` all green).
+- Added a provider compact contract: `ProviderCompactThreadInput` ([provider.ts](../../packages/contracts/src/provider.ts)), required `ProviderAdapterShape.compactThread`, `ProviderServiceShape.compactConversation` + live routing, and typed `thread/compact` stubs in Codex/Claude/Cursor/Grok/OpenCode/Pi adapters.
+- Flipped the [Pi design spec](/specs/2026-06-25-pi-coding-agent-support-design.md) frontmatter and body status Approved → Implemented; appended a [Build completion report](/specs/2026-06-25-pi-coding-agent-support-design.md#build-completion-report) with task-by-task evidence, exact verification results, approved deviations, and known follow-ups.
+- Updated the [specs roadmap](/specs/index.md) Pi entry from "In progress" to "Implemented".
+- Closed the [Pi provider full adapter parity](/specs/deferred-work.md#pi-provider-full-adapter-parity) deferred-work entry; added [Pi provider manual-authenticated validation (AC 15)](/specs/deferred-work.md#pi-provider-manual-authenticated-validation-ac-15) and [Pi compaction transport + UI surface](/specs/deferred-work.md#pi-compaction-transport-and-ui-surface).
+- Approved deviation R1: `compactConversation` mirrors `rollbackConversation`'s internal-caller transport pattern (no direct rpc.ts/ws.ts entry); a `thread.compact` orchestration command + reactor is deferred to a future UI task.
+- Outstanding: AC 15 manual Pi-authenticated validation requires a maintainer-authenticated Pi environment; the credentialed `@pi` E2E smoke remains green.
+
 ## 2026-06-26 (E2E — web test authentication and Pi provider locator fix)
 
 - Fixed Pi provider E2E test: updated radio locator from `name: "Pi", exact: true` to `name: "Pi Early Access"` to match the accessible name (badge included).

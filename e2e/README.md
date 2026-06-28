@@ -50,15 +50,53 @@ Release launches use isolated `KATACODE_HOME` and `KATACODE_PORT` only. The harn
 
 ### Runner controls
 
-| Variable               | Default | Purpose                                                                                                                   |
-| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `KATACODE_E2E_WORKERS` | `1`     | Parallel workers. Authenticated mutable tests default to one worker because only one Google test user is available in V1. |
-| `KATACODE_E2E_VIDEO`   | off     | Set to `1` to retain failure video artifacts                                                                              |
-| `KATACODE_PORT_OFFSET` | auto    | Optional fixed port offset for isolated dev stacks                                                                        |
+| Variable               | Default | Purpose                                                                                                                                                                                                                                                      |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `KATACODE_E2E_WORKERS` | `1`     | Playwright workers. `1` (default, recommended) runs one session per spec file serially. `>1` runs files in parallel; each worker gets isolated ports, a per-worker dev app bundle id, a per-worker `.electron-runtime`, and a bypassed single-instance lock. |
+| `KATACODE_E2E_VIDEO`   | off     | Set to `1` to retain failure video artifacts                                                                                                                                                                                                                 |
+| `KATACODE_PORT_OFFSET` | auto    | Optional fixed port offset for isolated dev stacks                                                                                                                                                                                                           |
+
+### Session model
+
+Each spec file shares **one session** (one Electron app, one Vite dev stack,
+one isolated `KATACODE_HOME`, one Clerk sign-in) across all of its tests. The
+first test in a file pays the startup cost; subsequent tests reuse the session
+and run in seconds. Tests run serially within a file (`fullyParallel: false`)
+and each file is isolated from the others. Multi-test files reset to the
+threads home between tests via `resetAppToHome`.
+
+If a provider turn fails (out of credits, auth error, rate limit, model
+unavailable), the agent-chat flows fail fast on the thread error banner with
+the real server-side message and a hint to change `KATACODE_E2E_PI_MODEL` (or
+the deterministic-chat model) in `.env`, instead of polling to a timeout.
 
 ## Commands
 
 From the repo root:
+
+> **Stop `pnpm run dev` / `dev:desktop` before running E2E.** The harness
+> spawns its own isolated dev stack (dev-runner + Vite + Playwright-launched
+> Electron). A separately-running dev server collides on ports and shared
+> resources and causes every E2E test to fail with pairing/auth or model-picker
+> errors that look unrelated to the real cause. If the full suite fails,
+> run `pnpm run e2e:clean` and re-run.
+
+### Cleaning up leaked dev servers
+
+E2E dev stacks are reaped automatically on teardown (process-group kill) and on
+abort (signal handlers + global teardown). If an aborted run still leaves
+strays, two scripts clean them safely without touching unrelated node
+processes:
+
+```bash
+pnpm run e2e:clean         # reap leaked E2E dev stacks + dev Electron apps
+pnpm run kill-dev-ports    # kill Kata Code dev servers on the dev port ranges
+pnpm run kill-dev-ports -- --all   # also kill the default foreground dev server (5733/13773)
+```
+
+Both match the kata-code repo command signature and dev port ranges, so a
+foreground `pnpm run dev` (and unrelated system listeners) are spared unless you
+pass `--all`.
 
 ```bash
 # List tests

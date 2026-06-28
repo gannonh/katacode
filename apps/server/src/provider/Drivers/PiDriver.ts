@@ -75,7 +75,9 @@ export const PiDriver: ProviderDriver<PiSettings, PiDriverEnv> = {
         environment: processEnv,
         instanceId,
       });
-      const textGeneration = makePiTextGeneration();
+      const textGeneration = yield* makePiTextGeneration(effectiveConfig, {
+        environment: processEnv,
+      });
 
       const checkProvider = checkPiProviderStatus(effectiveConfig, undefined, processEnv).pipe(
         Effect.map(stampIdentity),

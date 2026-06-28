@@ -16,13 +16,21 @@ Tag selection differs by suite: desktop uses Playwright `--grep @tag`; mobile us
 
 Specs under [`e2e/tests/`](../../e2e/tests/). Runs in CI.
 
-| Test                                                                                   | Tag         | Covers                                                |
-| -------------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------- |
-| [`smoke/app-launch.spec.ts`](../../e2e/tests/smoke/app-launch.spec.ts)                 | `@smoke`    | Launches Electron past pairing, reaches the app shell |
-| [`agent/deterministic-chat.spec.ts`](../../e2e/tests/agent/deterministic-chat.spec.ts) | `@agent`    | Exact assistant reply from a real provider            |
-| [`settings/theme.spec.ts`](../../e2e/tests/settings/theme.spec.ts)                     | `@settings` | Dark theme persists after reload                      |
+| Test                                                                                   | Tag         | Covers                                                                               |
+| -------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
+| [`smoke/app-launch.spec.ts`](../../e2e/tests/smoke/app-launch.spec.ts)                 | `@smoke`    | Launches Electron past pairing, reaches the app shell                                |
+| [`agent/deterministic-chat.spec.ts`](../../e2e/tests/agent/deterministic-chat.spec.ts) | `@agent`    | Exact assistant reply from a real provider                                           |
+| [`agent/pi-smoke.spec.ts`](../../e2e/tests/agent/pi-smoke.spec.ts)                     | `@pi`       | Pi streaming, interrupt/stop, tool-call work row, runtime-mode warning (creds-gated) |
+| [`settings/theme.spec.ts`](../../e2e/tests/settings/theme.spec.ts)                     | `@settings` | Dark theme persists after reload                                                     |
+| [`settings/pi-provider.spec.ts`](../../e2e/tests/settings/pi-provider.spec.ts)         | `@settings` | Pi first in providers, add Pi instance, Pi rail in model picker                      |
 
 Harness and flows (shared building blocks, not tests): [`e2e/src/harness/`](../../e2e/src/harness/), [`e2e/src/flows/`](../../e2e/src/flows/).
+
+Each spec file shares one Electron session (one dev stack, one Clerk sign-in) across its tests; see [session model](../../e2e/README.md#session-model) in the operator README. Stop `pnpm run dev` / `dev:desktop` before E2E; use `pnpm run e2e:clean` if a run leaves leaked dev servers.
+
+### Pi E2E gates
+
+Credentialed `@pi` tests require `KATACODE_E2E_ENABLE_PI=1`, `KATACODE_E2E_PI_AGENT_DIR`, and `KATACODE_E2E_PI_MODEL`. Manual walkthrough evidence lives in [`e2e/verify-evidence/`](../../e2e/verify-evidence/README.md).
 
 ### Setup (first run)
 

@@ -32,21 +32,41 @@ Each entry should include:
 
 ### Pi provider full adapter parity
 
-- **Status:** deferred
+- **Status:** closed
 - **Area:** providers, pi, agent-runtime
 - **Source:** [Pi coding agent provider support](/specs/2026-06-25-pi-coding-agent-support-design.md)
 - **Rationale:** The approved build shipped a verified vertical slice (snapshot discovery, session start/send/stream/interrupt/stop, driver registration, gated `@pi` e2e). Full parity was sequenced after the slice to keep each capability independently verifiable.
 - **Revisit trigger:** Before marking the Pi spec complete or before Pi is promoted out of early-access status.
-- **Notes:** Remaining work maps to acceptance criteria 5,6,8,9,10,11: tool lifecycle events, image attachments, resume cursor, rollback, compaction contract (`compactThread`), extension UI bridge (`select`/`confirm`/`input`/`notify`/status/progress), runtime mode mapping, project trust controls, and real `PiTextGeneration` parity (currently a fail-loud placeholder).
+- **Notes:** Completed 2026-06-27 on `feat/pi-phase2`. AC 5 (tool lifecycle, image attachments, resume cursor, readThread, rollback), AC 6 (`compactThread` + canonical `thread.state.changed` compaction lifecycle), AC 8 (extension UI bridge), AC 9 (runtime mode warnings), AC 10 (project trust surfacing), AC 11/12 (real `PiTextGeneration` parity), AC 13 (instance isolation), AC 14 (existing-provider regression) all implemented and verified, including AC 15 (covered by the credentialed `@pi` E2E and `e2e/verify-evidence/` screenshots). See the [Build completion report](/specs/2026-06-25-pi-coding-agent-support-design.md#build-completion-report).
+
+### Pi provider validation (AC 15)
+
+- **Status:** closed
+- **Area:** providers, pi, testing, validation
+- **Source:** [Pi coding agent provider support](/specs/2026-06-25-pi-coding-agent-support-design.md#acceptance-criteria)
+- **Rationale:** AC 15 requires evidence that a Pi instance appears in settings, a runtime-discovered model can be selected, a Pi prompt streams, and interrupt/stop works.
+- **Revisit trigger:** None. Resolved 2026-06-27 on `feat/pi-phase2`.
+- **Notes:** Resolved. The credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`, gated by `KATACODE_E2E_ENABLE_PI`/`KATACODE_E2E_PI_AGENT_DIR`/`KATACODE_E2E_PI_MODEL`) configures Pi in settings, selects a runtime-discovered model, streams a response, and exercises interrupt/stop. The [`e2e/verify-evidence/README.md`](../../e2e/verify-evidence/README.md) screenshots map the settings, model-picker, streaming, and interrupt surfaces to AC 15. No manual maintainer step remains.
+
+### Pi compaction transport + UI surface
+
+- **Status:** deferred
+- **Tracking issue:** [#16](https://github.com/gannonh/kata-code/issues/16)
+- **Area:** providers, pi, orchestration, ui
+- **Source:** [Pi coding agent provider support](/specs/2026-06-25-pi-coding-agent-support-design.md#build-completion-report)
+- **Rationale:** `ProviderService.compactConversation` is wired (mirroring `rollbackConversation`'s internal-caller pattern) but no orchestration `thread.compact` command + reactor or web/desktop UI surface invokes it yet.
+- **Revisit trigger:** When compaction is exposed in the Kata UI (web/desktop), mirroring the `thread.checkpoint.revert` → `rollbackConversation` precedent.
+- **Notes:** Add a `thread.compact` orchestration command + `CheckpointsReactor`-style reactor that calls `providerService.compactConversation`. The adapter already emits the canonical `thread.state.changed`/`compacted` lifecycle events.
 
 ### Pi provider strict quality review follow-ups
 
 - **Status:** deferred
+- **Tracking issue:** [#14](https://github.com/gannonh/kata-code/issues/14)
 - **Area:** providers, pi, code-quality, testing
-- **Source:** [GitHub issue #14](https://github.com/gannonh/kata-code/issues/14), strict-quality-review of `feat/pi-coding-agent-support`
+- **Source:** [GitHub issue #14](https://github.com/gannonh/kata-code/issues/14), strict-quality-review carried into `feat/pi-phase2`
 - **Rationale:** Low-severity findings from the strict quality review. Blockers (duplicate `turn.completed`, orphaned items), high-priority issues (stop/restart asymmetry, unsupervised fiber, dead `projectTrustPolicy` config, `withInstanceIdentity` duplication), and medium-priority issues (`makeEvent` type safety, `resolveModel` test-override leak, dead `turns` state) were all fixed in the same pass. These remaining items are cosmetic, pre-existing cross-cutting patterns, or forward-looking contract surface.
 - **Revisit trigger:** Before Pi is promoted out of early-access, or during the next provider-layer refactor sprint.
-- **Notes:** Eight items: L1 PiProvider timeout-branch test, L2 disabled-branch `buildServerProvider` duplication across all providers, L3 `mapPiModels` bespoke dedup, L4 `DateTime.nowUnsafe()` testability, L5 `piTurnFailure` case-sensitivity, L6 unused `TextGenerationProvider` type, L7 `"pi.sdk.event"` literal with no producer, L8 `ThreadErrorBanner.tsx` PR scope.
+- **Notes:** Branch finalize pass (`f8c2b5f5f`) extracted `piRuntimeWarning` in `PiAdapter.ts` to dedupe `runtime.warning` scaffolding. Eight low-severity items remain: L1 PiProvider timeout-branch test, L2 disabled-branch `buildServerProvider` duplication across all providers, L3 `mapPiModels` bespoke dedup, L4 `DateTime.nowUnsafe()` testability, L5 `piTurnFailure` case-sensitivity, L6 unused `TextGenerationProvider` type, L7 `"pi.sdk.event"` literal with no producer, L8 `ThreadErrorBanner.tsx` PR scope.
 
 ### Production Relay Deploy
 

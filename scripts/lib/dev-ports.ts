@@ -90,21 +90,112 @@ export async function findAvailablePortOffset(startOffset: number): Promise<{
   readonly serverPort: number;
   readonly webPort: number;
 }> {
+  for await (const candidate of candidatePortPairs(startOffset)) {
+    if (
+      (await isPortAvailableOnAllHosts(candidate.serverPort)) &&
+      (await isPortAvailableOnAllHosts(candidate.webPort))
+    ) {
+      return candidate;
+    }
+  }
+
+  throw noAvailableDevPortsError(startOffset);
+}
+
+/**
+ * Claim a server/web port pair by opening listening sockets on every probe host
+ * and holding them open. The returned `release` closes the placeholders so the
+ * caller can immediately bind the ports (e.g. spawn Vite). Holding the sockets
+ * closes the TOCTOU window where two concurrent workers both observe the same
+ * free port and then race to bind it.
+ */
+export async function claimAvailablePortOffset(startOffset: number): Promise<{
+  readonly offset: number;
+  readonly serverPort: number;
+  readonly webPort: number;
+  readonly release: () => Promise<void>;
+}> {
+  for await (const candidate of candidatePortPairs(startOffset)) {
+    // Probe all hosts for availability (sequential, non-overlapping binds
+    // that close before the next host is checked).
+    if (
+      !(await isPortAvailableOnAllHosts(candidate.serverPort)) ||
+      !(await isPortAvailableOnAllHosts(candidate.webPort))
+    ) {
+      continue;
+    }
+    // Reserve with a non-overlapping single-host claim so the placeholder
+    // sockets don't conflict with each other on the same port.
+    const release = await tryClaimPortPair(candidate.serverPort, candidate.webPort);
+    if (release) {
+      return { ...candidate, release };
+    }
+  }
+
+  throw noAvailableDevPortsError(startOffset);
+}
+
+/** Iterate candidate server/web port pairs from `startOffset`, stopping once a
+ *  pair exceeds {@link MAX_PORT}. Shared by {@link findAvailablePortOffset}
+ *  (probe-and-release) and {@link claimAvailablePortOffset} (hold-the-socket) so
+ *  the scan range and bounds check stay identical. */
+async function* candidatePortPairs(startOffset: number): AsyncGenerator<{
+  readonly offset: number;
+  readonly serverPort: number;
+  readonly webPort: number;
+}> {
   for (let offset = startOffset; offset < 10_000; offset += 1) {
     const { serverPort, webPort } = portPairForOffset(offset);
     if (serverPort > MAX_PORT || webPort > MAX_PORT) {
       break;
     }
-
-    if (
-      (await isPortAvailableOnAllHosts(serverPort)) &&
-      (await isPortAvailableOnAllHosts(webPort))
-    ) {
-      return { offset, serverPort, webPort };
-    }
+    yield { offset, serverPort, webPort };
   }
+}
 
-  throw new Error(
+function noAvailableDevPortsError(startOffset: number): Error {
+  return new Error(
     `No available dev ports found from offset ${startOffset}. Tried server=${BASE_SERVER_PORT}+n web=${BASE_WEB_PORT}+n up to port ${MAX_PORT}. Free local ports or set KATACODE_PORT_OFFSET.`,
   );
+}
+
+async function tryClaimPortPair(
+  serverPort: number,
+  webPort: number,
+): Promise<(() => Promise<void>) | null> {
+  const servers: ReturnType<typeof createServer>[] = [];
+  const tryBind = (port: number, host: string) =>
+    new Promise<boolean>((resolve) => {
+      const server = createServer();
+      server.once("error", () => {
+        server.close(() => resolve(false));
+      });
+      server.listen(port, host, () => resolve(true));
+      servers.push(server);
+    });
+
+  // Reserve with a single non-overlapping bind per port. Binding both
+  // `127.0.0.1` and `0.0.0.0` (or `::1` and `::`) for the same port
+  // simultaneously fails on typical Linux/macOS stacks because the wildcard
+  // address overlaps the loopback address. The wildcard `0.0.0.0` covers all
+  // IPv4 addresses (including `127.0.0.1`), so holding it is sufficient to
+  // block other workers from claiming the same port. The all-host availability
+  // probe (`isPortAvailableOnAllHosts`) still checks every host sequentially
+  // before the claim is attempted via `findAvailablePortOffset`.
+  const claimHost = "0.0.0.0";
+  const results = await Promise.all([tryBind(serverPort, claimHost), tryBind(webPort, claimHost)]);
+
+  if (results.every(Boolean)) {
+    return async () => {
+      await Promise.all(
+        servers.map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
+      );
+    };
+  }
+
+  // Some hosts failed to bind: release whatever we held and signal failure.
+  await Promise.all(
+    servers.map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
+  );
+  return null;
 }

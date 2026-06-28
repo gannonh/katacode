@@ -18,7 +18,7 @@ interface WebFixture {
   webUrl: string;
 }
 
-function resolveRepoRoot(): string {
+export function resolveRepoRoot(): string {
   return join(dirname(new URL(import.meta.url).pathname), "..", "..", "..");
 }
 

@@ -16,6 +16,7 @@ const WEB_TEST_MATCH = /web\/.*\.spec\.ts/;
 export default defineConfig({
   testDir: "./tests",
   outputDir: `${e2eRoot}/test-results/playwright`,
+  globalTeardown: "./tests/setup/global-teardown.ts",
   fullyParallel: false,
   workers: readWorkerCount(),
   retries: 0,

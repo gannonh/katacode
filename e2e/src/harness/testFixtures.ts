@@ -1,83 +1,101 @@
 import { test as base, expect, type ElectronApplication, type Page } from "@playwright/test";
 
-import { waitForAppEnvironmentReady } from "../flows/pairing.ts";
-import { expectSignedInClerkState, signInWithClerkGoogleTestUser } from "../flows/auth.ts";
-import { launchApp, type LaunchedApp } from "./appLaunch.ts";
-import { logHarnessPhase } from "./log.ts";
-import { writeRunManifest } from "./artifacts.ts";
-import { assertMacOsHost } from "./env.ts";
 import {
-  cleanupRunState,
-  createIsolatedRun,
-  type E2ERunContext,
-  type LaunchTarget,
-} from "./isolatedRun.ts";
-
-const LAUNCH_TARGETS = new Set<LaunchTarget>(["dev", "release"]);
-
-function readLaunchTarget(testInfo: {
-  project: { name: string; metadata: unknown };
-}): LaunchTarget {
-  const metadata = testInfo.project.metadata;
-  if (
-    typeof metadata !== "object" ||
-    metadata === null ||
-    !("launchTarget" in metadata) ||
-    typeof metadata.launchTarget !== "string" ||
-    !LAUNCH_TARGETS.has(metadata.launchTarget as LaunchTarget)
-  ) {
-    throw new Error(
-      `E2E project "${testInfo.project.name}" must define metadata.launchTarget as "dev" or "release".`,
-    );
-  }
-
-  return metadata.launchTarget as LaunchTarget;
-}
+  acquireFileSession,
+  disposeAllSessions,
+  dropFileSessionRef,
+  resetAppToHome,
+  type E2ESession,
+} from "./fileSession.ts";
+import type { E2ERunContext } from "./isolatedRun.ts";
+import type { LaunchTarget } from "./isolatedRun.ts";
 
 export interface E2EFixtures {
   launchTarget: LaunchTarget;
+  /** Shared per-file session. Acquired once per test (ref++), released in
+   * teardown (ref--). The first test in a file boots it; the last disposes it. */
+  session: E2ESession;
   runContext: E2ERunContext;
-  launchedApp: LaunchedApp;
+  launchedApp: E2ESession["launchedApp"];
   electronApp: ElectronApplication;
   appWindow: Page;
   authenticatedAppWindow: Page;
 }
 
-export const test = base.extend<E2EFixtures>({
+/**
+ * Test-scoped fixtures backed by a per-file shared session (see
+ * {@link fileSession}). The first test in a file boots one Electron app, one
+ * Vite dev stack, one isolated home, and one Clerk sign-in; every subsequent
+ * test in that file reuses them. The session is torn down after the file's last
+ * test. With `fullyParallel: false`, tests run serially within a file, so the
+ * shared session is never contended and each file stays fully isolated from the
+ * others. This collapses the per-test startup cost (Vite + Electron + OAuth) to
+ * once per file.
+ *
+ * The session always boots through Clerk sign-in. Unauthed tests (e.g. smoke)
+ * share the same authed session; sign-in does not affect the app shell they
+ * assert against, so a file mixing authed and unauthed tests pays for one launch.
+ */
+export const test = base.extend<E2EFixtures, { workerSessionDisposer: void }>({
   // oxlint-disable-next-line eslint(no-empty-pattern) -- Playwright fixture with no upstream dependencies
   launchTarget: async ({}, use, testInfo) => {
-    await use(readLaunchTarget(testInfo));
+    const metadata = testInfo.project.metadata;
+    const target =
+      typeof metadata === "object" &&
+      metadata !== null &&
+      "launchTarget" in metadata &&
+      typeof metadata.launchTarget === "string"
+        ? (metadata.launchTarget as LaunchTarget)
+        : undefined;
+    if (target !== "dev" && target !== "release") {
+      throw new Error(
+        `E2E project "${testInfo.project.name}" must define metadata.launchTarget as "dev" or "release".`,
+      );
+    }
+    await use(target);
   },
-  runContext: async ({ launchTarget }, use, testInfo) => {
-    assertMacOsHost();
-    const context = await createIsolatedRun({
-      projectName: testInfo.project.name,
-      launchTarget,
-    });
-    await writeRunManifest(context);
-    await use(context);
-    await cleanupRunState(context);
+
+  // Single owner of the per-test acquire. The session is NOT disposed in this
+  // fixture's teardown — it persists across tests in the file so the next test
+  // reuses it (acquireFileSession returns the cached session and bumps the ref
+  // count). Disposal happens once, at worker end, via workerSessionDisposer.
+  session: async ({}, use, testInfo) => {
+    const acquired = await acquireFileSession(testInfo, { needsAuth: true });
+    await use(acquired);
+    // Drop this test's ref but keep the session alive for the file's other tests.
+    await dropFileSessionRef(testInfo.file);
   },
-  launchedApp: async ({ runContext }, use) => {
-    const launched = await launchApp(runContext);
-    await use(launched);
+
+  // Worker-scoped: runs once when the worker (and therefore all files it ran)
+  // finishes. Disposes every cached session so no Electron/Vite/home leaks past
+  // the run. With workers:1 this is the single end-of-run teardown.
+  workerSessionDisposer: [
+    async ({}, use) => {
+      await use(undefined);
+      await disposeAllSessions();
+    },
+    { scope: "worker", auto: true },
+  ],
+
+  runContext: async ({ session }, use) => {
+    await use(session.runContext);
   },
-  electronApp: async ({ launchedApp }, use) => {
-    await use(launchedApp.electronApp);
+
+  launchedApp: async ({ session }, use) => {
+    await use(session.launchedApp);
   },
-  appWindow: async ({ launchedApp, runContext }, use) => {
-    logHarnessPhase("Waiting for app environment (server port + app shell)...");
-    await waitForAppEnvironmentReady(launchedApp.window, runContext);
-    logHarnessPhase("App environment is ready.");
-    await use(launchedApp.window);
+
+  electronApp: async ({ session }, use) => {
+    await use(session.electronApp);
   },
-  authenticatedAppWindow: async ({ appWindow }, use) => {
-    logHarnessPhase("Signing in with Clerk Google test user...");
-    await signInWithClerkGoogleTestUser(appWindow);
-    await expectSignedInClerkState(appWindow);
-    logHarnessPhase("Authenticated app window is ready.");
-    await use(appWindow);
+
+  appWindow: async ({ session }, use) => {
+    await use(session.appWindow);
+  },
+
+  authenticatedAppWindow: async ({ session }, use) => {
+    await use(session.authenticatedAppWindow);
   },
 });
 
-export { expect };
+export { expect, resetAppToHome };

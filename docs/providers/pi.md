@@ -15,12 +15,14 @@ Pi is a first-party Kata Code provider backed by the in-process
 and update checks.
 
 > **Early access.** Session start, send, streaming assistant/reasoning output,
-> interrupt, and stop are supported. Tool lifecycle detail, image attachments,
-> resume cursor, rollback, compaction, the extension UI bridge, runtime-mode
-> enforcement, project-trust loading, and Pi-backed git text generation are
-> still in progress. See the
-> [design spec](/specs/2026-06-25-pi-coding-agent-support-design.md) and the
-> [deferred-work registry](/specs/deferred-work.md#pi-provider-full-adapter-parity).
+> tool lifecycle, image attachments, interrupt, stop, resume cursor,
+> rollback, compaction, the extension UI bridge, runtime-mode warnings,
+> project-trust surfacing, and Pi-backed git text generation are supported.
+> Pi's SDK exposes no enforceable approval/sandbox gate, so `auto-accept-edits`
+> and `approval-required` run as `full-access` with a visible runtime warning
+> (amber timeline alert, not destructive error styling).
+> See the [design spec](/specs/2026-06-25-pi-coding-agent-support-design.md) and
+> the [Build completion report](/specs/2026-06-25-pi-coding-agent-support-design.md#build-completion-report).
 
 ## Prerequisites
 
@@ -67,17 +69,26 @@ registry, auth storage, and event stream.
 
 ## Limitations
 
-- Project-trust loading (`projectTrustPolicy: "always"`) is not yet enforced
-  end to end.
-- Git text generation (commit messages, branch names, thread titles, PR
-  content) returns a typed error for Pi instances until parity lands.
-- Runtime modes (`auto-accept-edits`, `approval-required`) are not yet mapped
-  to Pi SDK options.
+- Pi's SDK has no enforceable approval/sandbox gate (`ToolExecutionMode` is
+  only `sequential`/`parallel`). `auto-accept-edits` and `approval-required`
+  run as `full-access` and emit a `runtime.warning` at session start so the
+  limitation is visible, not hidden. Warnings render as amber timeline alerts.
+- Compaction is wired through the adapter and `ProviderService.compactConversation`,
+  but no web/desktop UI surface invokes it yet (mirrors `rollbackConversation`).
+- Extension TUI-only APIs (`setWidget`/`setFooter`/`setHeader`/`custom`/
+  `pasteToEditor`/`setEditorComponent`/`addAutocompleteProvider`/`onTerminalInput`)
+  emit one `runtime.warning` per method per session and no-op; full custom TUI
+  component rendering in the web UI is explicitly deferred.
+
+Provider validation (AC 15) is covered by the credentialed `@pi` E2E
+(`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`)
+and the [`e2e/verify-evidence/`](../../e2e/verify-evidence/README.md) screenshots.
 
 ## Related
 
 - [Architecture — providers](/architecture/providers.md) — driver/instance model
 - [Pi provider design spec](/specs/2026-06-25-pi-coding-agent-support-design.md)
+- [Pi verification evidence](../../e2e/verify-evidence/README.md) — manual walkthrough screenshots and `@pi` E2E matrix
 
 ## History
 

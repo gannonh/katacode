@@ -86,6 +86,7 @@ function createProviderServiceHarness(
   const rollbackConversation = vi.fn(
     (_input: { readonly threadId: ThreadId; readonly numTurns: number }) => Effect.void,
   );
+  const compactConversation = vi.fn((_input: { readonly threadId: ThreadId }) => Effect.void);
 
   const unsupported = <A>() =>
     Effect.die(new Error("Unsupported provider call in test")) as Effect.Effect<A, never>;
@@ -124,6 +125,7 @@ function createProviderServiceHarness(
         },
       }),
     rollbackConversation,
+    compactConversation,
     get streamEvents() {
       return Stream.fromPubSub(runtimeEventPubSub);
     },
@@ -136,6 +138,7 @@ function createProviderServiceHarness(
   return {
     service,
     rollbackConversation,
+    compactConversation,
     emit,
   };
 }

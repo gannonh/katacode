@@ -39,6 +39,8 @@
     "sync:repos": "node scripts/sync-reference-repos.ts",
     "generate:brand-rasters": "node scripts/generate-prod-brand-rasters.mjs",
     "e2e": "playwright test --config e2e/playwright.config.ts --project desktop-dev",
+    "e2e:clean": "node scripts/e2e-clean.ts",
+    "kill-dev-ports": "node scripts/kill-dev-ports.ts",
     "e2e:headed": "playwright test --config e2e/playwright.config.ts --project desktop-dev --headed",
     "e2e:ui": "playwright test --config e2e/playwright.config.ts --project desktop-dev --ui",
     "e2e:release": "playwright test --config e2e/playwright.config.ts --project desktop-release",
