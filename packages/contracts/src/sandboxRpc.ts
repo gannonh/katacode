@@ -105,6 +105,7 @@ export class SandboxRpcError extends Schema.TaggedErrorClass<SandboxRpcError>()(
     "disabled",
     "invalid-config",
     "provision-failed",
+    "connect-failed",
     "not-running",
     "unreachable",
     "internal",
