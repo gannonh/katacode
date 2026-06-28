@@ -194,8 +194,32 @@ export const DockerSandboxProvider: SandboxProvider = {
         "inspect",
       );
       const info = parseJson(inspect.body) as {
-        NetworkSettings: { Ports: Record<string, ReadonlyArray<{ HostPort: string }> | undefined> };
+        State: {
+          Status: string;
+          ExitCode: number;
+          Error: string;
+        };
+        NetworkSettings: {
+          Ports: Record<string, ReadonlyArray<{ HostPort: string }> | undefined>;
+        };
       };
+      // A fast-failing command (e.g. missing binary) exits before we read the
+      // port binding; surface the real exit code + logs instead of the
+      // misleading "no published host port". AutoRemove may have already reaped
+      // the container, in which case inspect returned 404 above.
+      if (info.State.Status === "exited") {
+        const logs = yield* engine(
+          `/containers/${containerId}/logs?stdout=true&stderr=true`,
+          {},
+          "provision-failed",
+          "logs",
+        );
+        const tail = logs.body.slice(-512).trim();
+        return yield* new SandboxProviderError({
+          reason: "provision-failed",
+          message: `container exited (code ${info.State.ExitCode})${tail ? `: ${tail}` : ""}`,
+        });
+      }
       const binding = info.NetworkSettings.Ports[containerPort]?.[0];
       const hostPort = Number(binding?.HostPort);
       if (!Number.isFinite(hostPort) || hostPort === 0) {
