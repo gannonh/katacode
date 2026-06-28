@@ -79,8 +79,10 @@ registry, auth storage, and event stream.
   `pasteToEditor`/`setEditorComponent`/`addAutocompleteProvider`/`onTerminalInput`)
   emit one `runtime.warning` per method per session and no-op; full custom TUI
   component rendering in the web UI is explicitly deferred.
-- Manual Pi-authenticated validation (AC 15) requires a maintainer-authenticated
-  Pi environment; the credentialed `@pi` E2E smoke covers the gated path.
+
+Provider validation (AC 15) is covered by the credentialed `@pi` E2E
+(`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`)
+and the [`e2e/verify-evidence/`](../../e2e/verify-evidence/README.md) screenshots.
 
 ## Related
 

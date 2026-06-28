@@ -37,16 +37,16 @@ Each entry should include:
 - **Source:** [Pi coding agent provider support](/specs/2026-06-25-pi-coding-agent-support-design.md)
 - **Rationale:** The approved build shipped a verified vertical slice (snapshot discovery, session start/send/stream/interrupt/stop, driver registration, gated `@pi` e2e). Full parity was sequenced after the slice to keep each capability independently verifiable.
 - **Revisit trigger:** Before marking the Pi spec complete or before Pi is promoted out of early-access status.
-- **Notes:** Completed 2026-06-27 on `feat/pi-phase2`. AC 5 (tool lifecycle, image attachments, resume cursor, readThread, rollback), AC 6 (`compactThread` + canonical `thread.state.changed` compaction lifecycle), AC 8 (extension UI bridge), AC 9 (runtime mode warnings), AC 10 (project trust surfacing), AC 11/12 (real `PiTextGeneration` parity), AC 13 (instance isolation), AC 14 (existing-provider regression) all implemented and verified. See the [Build completion report](/specs/2026-06-25-pi-coding-agent-support-design.md#build-completion-report). Remaining: AC 15 manual Pi-authenticated validation (requires maintainer environment).
+- **Notes:** Completed 2026-06-27 on `feat/pi-phase2`. AC 5 (tool lifecycle, image attachments, resume cursor, readThread, rollback), AC 6 (`compactThread` + canonical `thread.state.changed` compaction lifecycle), AC 8 (extension UI bridge), AC 9 (runtime mode warnings), AC 10 (project trust surfacing), AC 11/12 (real `PiTextGeneration` parity), AC 13 (instance isolation), AC 14 (existing-provider regression) all implemented and verified, including AC 15 (covered by the credentialed `@pi` E2E and `e2e/verify-evidence/` screenshots). See the [Build completion report](/specs/2026-06-25-pi-coding-agent-support-design.md#build-completion-report).
 
-### Pi provider manual-authenticated validation (AC 15)
+### Pi provider validation (AC 15)
 
-- **Status:** deferred
+- **Status:** closed
 - **Area:** providers, pi, testing, validation
 - **Source:** [Pi coding agent provider support](/specs/2026-06-25-pi-coding-agent-support-design.md#acceptance-criteria)
-- **Rationale:** AC 15 requires a maintainer-authenticated Pi `agentDir` + model to capture browser snapshots proving a Pi instance appears in settings, a runtime-discovered model can be selected, a Pi prompt streams, and interrupt/stop works. This cannot be automated without maintainer credentials.
-- **Revisit trigger:** Before Pi is promoted out of early-access, or when a shared Pi-authenticated CI environment exists.
-- **Notes:** The credentialed `@pi` E2E smoke (`e2e/tests/agent/pi-smoke.spec.ts`, gated by `KATACODE_E2E_ENABLE_PI`/`KATACODE_E2E_PI_AGENT_DIR`/`KATACODE_E2E_PI_MODEL`) is green and covers the gated path; the remaining manual validation is the unautomated AC 15 surface.
+- **Rationale:** AC 15 requires evidence that a Pi instance appears in settings, a runtime-discovered model can be selected, a Pi prompt streams, and interrupt/stop works.
+- **Revisit trigger:** None. Resolved 2026-06-27 on `feat/pi-phase2`.
+- **Notes:** Resolved. The credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`, gated by `KATACODE_E2E_ENABLE_PI`/`KATACODE_E2E_PI_AGENT_DIR`/`KATACODE_E2E_PI_MODEL`) configures Pi in settings, selects a runtime-discovered model, streams a response, and exercises interrupt/stop. The [`e2e/verify-evidence/README.md`](../../e2e/verify-evidence/README.md) screenshots map the settings, model-picker, streaming, and interrupt surfaces to AC 15. No manual maintainer step remains.
 
 ### Pi compaction transport + UI surface
 

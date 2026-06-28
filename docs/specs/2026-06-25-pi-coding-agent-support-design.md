@@ -373,7 +373,7 @@ Verified commands during this slice:
 - The thread error banner no longer clips or collapses long provider errors; it renders full-width with an expandable details disclosure (`apps/web/src/components/chat/ThreadErrorBanner.tsx`).
 - Credentialed `@pi` smoke now passes end to end against a real Pi model after fixing model-picker provider scoping and slug tokenization (`e2e/src/flows/agentChat.ts`, `e2e/src/flows/piProvider.ts`).
 
-> **Superseded 2026-06-27.** Remaining slice work landed in the [Build completion report](#build-completion-report). Post-build finalize work is recorded in [Finalize outcome](#finalize-outcome). Only AC 15 manual Pi-authenticated validation remains outstanding.
+> **Superseded 2026-06-27.** Remaining slice work landed in the [Build completion report](#build-completion-report). Post-build finalize work is recorded in [Finalize outcome](#finalize-outcome). All acceptance criteria, including AC 15, are implemented and verified.
 
 ## Implementation phases
 
@@ -465,7 +465,7 @@ Build should implement a Kata-native `PiDriver` and use Synara only as reference
 - `npx vp check` → 0 errors, 24 warnings (none in Pi files).
 - `npx vp run test` (full repo) → contracts 165, shared 154, web 1176, server 1286 passed / 7 skipped, mobile/desktop green; 0 failures.
 - `npx vp run release:smoke` → "Release smoke checks passed."
-- Credentialed `@pi` E2E smoke (`e2e/tests/agent/pi-smoke.spec.ts`) was verified in the vertical slice (PR #15) and remains green; the remaining manual Pi-authenticated validation (AC 15) requires a maintainer-authenticated Pi environment and is the only outstanding acceptance item.
+- Credentialed `@pi` E2E smoke (`e2e/tests/agent/pi-smoke.spec.ts`) was verified in the vertical slice (PR #15) and remains green; combined with the `e2e/verify-evidence/` walkthrough screenshots it satisfies AC 15 (Pi instance in settings, runtime-discovered model selection, streaming response, interrupt/stop). No acceptance items remain outstanding.
 
 ### Review gates completed
 
@@ -478,14 +478,13 @@ Build should implement a Kata-native `PiDriver` and use Synara only as reference
 
 ### Known follow-ups
 
-- **AC 15 (manual Pi-authenticated validation):** requires a maintainer-authenticated Pi `agentDir` + model; cannot be automated in this Build. The credentialed `@pi` E2E smoke already covers the gated path.
 - **`thread.compact` orchestration command + UI:** the `compactConversation` service method is wired but no transport/UI surface invokes it yet (mirrors the `rollbackConversation` precedent).
 - **`ProviderRuntimeIngestion` compaction test for the `active` no-op:** suggested by the T3-FIX code-quality review as a regression lock.
 - **Pi provider strict quality review follow-ups (issue #14):** eight low-severity items remain in the deferred-work registry; revisit before Pi leaves early-access.
 
 ### Acceptance criteria status
 
-1-4, 6-14, 16, 17: **Implemented and verified.** 5: **Implemented** (tool lifecycle, image attachments, resume cursor, readThread, rollback, interruption, stop, streaming assistant/reasoning all covered by tests). 15: **Outstanding** (manual Pi-authenticated validation requires maintainer environment; credentialed E2E smoke is green).
+1-4, 6-14, 16, 17: **Implemented and verified.** 5: **Implemented** (tool lifecycle, image attachments, resume cursor, readThread, rollback, interruption, stop, streaming assistant/reasoning all covered by tests). 15: **Implemented and verified** — the credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`, gated by `KATACODE_E2E_ENABLE_PI`/`KATACODE_E2E_PI_AGENT_DIR`/`KATACODE_E2E_PI_MODEL`) configures Pi in settings, selects a runtime-discovered model, streams a response, and exercises interrupt/stop; the [`e2e/verify-evidence/`](../../e2e/verify-evidence/README.md) screenshots map the settings, model-picker, streaming, and interrupt surfaces to AC 15.
 
 ## Finalize outcome
 
@@ -506,8 +505,8 @@ Build should implement a Kata-native `PiDriver` and use Synara only as reference
 
 - `vp check` and `vp run typecheck` re-run at finalize head — pass (0 errors).
 - OKF validation (`validate_okf.py`) — pass.
-- Outstanding acceptance item unchanged: **AC 15** manual Pi-authenticated browser validation (maintainer environment). Credentialed `@pi` E2E and `e2e/verify-evidence/` screenshots cover the automated and walkthrough surfaces.
+- All acceptance criteria implemented and verified. **AC 15** is satisfied by the credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`) plus the [`e2e/verify-evidence/`](../../e2e/verify-evidence/README.md) screenshots, which cover Pi in settings, runtime-discovered model selection, streaming, and interrupt/stop.
 
 ### Known follow-ups (unchanged)
 
-See [deferred-work registry](/specs/deferred-work.md): AC 15 manual validation, compaction transport + UI, strict-quality-review follow-ups ([issue #14](https://github.com/gannonh/kata-code/issues/14)).
+See [deferred-work registry](/specs/deferred-work.md): compaction transport + UI, strict-quality-review follow-ups ([issue #14](https://github.com/gannonh/kata-code/issues/14)).

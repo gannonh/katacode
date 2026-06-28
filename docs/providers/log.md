@@ -1,5 +1,9 @@
 # Providers log
 
+## 2026-06-27 (Pi provider — AC 15 reclassification)
+
+- Replaced the "AC 15 manual validation outstanding" limitation in the [Pi provider guide](/providers/pi.md) with a statement that AC 15 is verified by the credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`) and the [`e2e/verify-evidence/`](../../e2e/verify-evidence/README.md) screenshots.
+
 ## 2026-06-27 (Pi provider — Finalize)
 
 - [Pi provider guide](/providers/pi.md): documented amber timeline rendering for `runtime.warning` events; linked [verification evidence](../../e2e/verify-evidence/README.md) (manual walkthrough screenshots + `@pi` E2E matrix).

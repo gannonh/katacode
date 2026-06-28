@@ -1,5 +1,10 @@
 # Specs log
 
+## 2026-06-27 (Pi coding agent provider — AC 15 reclassification)
+
+- Reclassified **AC 15** from "Outstanding" to **Implemented and verified** across the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) (acceptance-criteria status, build/finalize outcomes), [specs roadmap](/specs/index.md), [deferred-work registry](/specs/deferred-work.md), and [Pi provider guide](/providers/pi.md). Evidence: the credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`, gated by `KATACODE_E2E_ENABLE_PI`/`KATACODE_E2E_PI_AGENT_DIR`/`KATACODE_E2E_PI_MODEL`) configures Pi in settings, selects a runtime-discovered model, streams a response, and exercises interrupt/stop; the [`e2e/verify-evidence/README.md`](../../e2e/verify-evidence/README.md) screenshots map those surfaces to AC 15. The prior "AC 15 outstanding" classification was stale and self-contradictory.
+- Removed the "Pi provider manual-authenticated validation (AC 15)" deferred entry; recorded it as closed/resolved. Kept the compaction transport + UI and strict-quality-review (issue #14) deferred entries intact.
+
 ## 2026-06-27 (Pi coding agent provider — Finalize outcome)
 
 - Recorded [Finalize outcome](/specs/2026-06-25-pi-coding-agent-support-design.md#finalize-outcome) on `feat/pi-phase2` (build head `3fbeb0209`, final head `f8c2b5f5f`): simplify and strict-quality-review passes, credentialed `@pi` E2E + manual walkthrough evidence, runtime-warning amber UX, E2E harness improvements (`fileSession.ts`, `e2e:clean`, `kill-dev-ports`), `piRuntimeWarning` extraction.
