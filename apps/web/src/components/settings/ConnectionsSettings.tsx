@@ -3219,9 +3219,7 @@ export function ConnectionsSettings() {
         </SettingsSection>
       )}
 
-      <SettingsSection title="Deployment targets">
-        <SandboxDeploymentSettings />
-      </SettingsSection>
+      <SandboxDeploymentSettings />
 
       <SettingsSection
         title="Remote environments"

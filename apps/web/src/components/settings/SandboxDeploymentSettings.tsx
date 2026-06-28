@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   SandboxProviderDriverKind,
@@ -12,19 +13,25 @@ import {
 
 import { useSettings, useUpdateSettings } from "../../hooks/useSettings";
 import { getPrimaryEnvironmentConnection } from "../../environments/runtime";
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogPopup,
   DialogTitle,
+  DialogTrigger,
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
+import { Collapsible, CollapsibleContent } from "../ui/collapsible";
 import { toastManager } from "../ui/toast";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { SettingsSection } from "./settingsLayout";
 
 const DOCKER_KIND = SandboxProviderDriverKind.make("docker");
 
@@ -59,6 +66,7 @@ export function SandboxDeploymentSettings() {
   const [summaries, setSummaries] = useState<ReadonlyArray<SandboxInstanceSummary>>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [testProgress, setTestProgress] = useState<Record<string, string[]>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [activeSession, setActiveSession] = useState<
     Record<string, { environmentId: string; httpBaseUrl: string }>
   >({});
@@ -206,38 +214,67 @@ export function SandboxDeploymentSettings() {
   const instanceEntries = Object.entries(instanceMap);
 
   return (
-    <section className="flex flex-col gap-3 py-2">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold">Deployment targets</h3>
+    <SettingsSection
+      title="Deployment targets"
+      headerAction={
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <DialogTrigger
+                  render={
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      className="h-5 gap-1 rounded-sm px-1 text-[11px] font-normal text-muted-foreground/60 hover:text-muted-foreground"
+                      aria-label="Add deployment target"
+                    >
+                      <PlusIcon className="size-3" />
+                      <span>Add deployment target</span>
+                    </Button>
+                  }
+                />
+              }
+            />
+            <TooltipPopup side="top">Add deployment target</TooltipPopup>
+          </Tooltip>
+          <AddDeploymentTargetDialogBody
+            existingIds={new Set(instanceEntries.map(([id]) => id))}
+            onAdd={(id, instance) => {
+              updateSettings({
+                sandboxProviderInstances: { ...instanceMap, [id]: instance },
+              });
+              setAddOpen(false);
+            }}
+          />
+        </Dialog>
+      }
+    >
+      {instanceEntries.length === 0 ? (
+        <div className="border-t border-border/60 px-4 py-3.5 first:border-t-0 sm:px-5">
           <p className="text-xs text-muted-foreground">
-            Provision an isolated container running a Kata server, reached over localhost.
+            No deployment targets configured. Add one to provision a container.
           </p>
         </div>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          Add deployment target
-        </Button>
-      </div>
-
-      {instanceEntries.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          No deployment targets configured. Add one to provision a container.
-        </p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {instanceEntries.map(([id, config]) => {
-            const summary = summaryById[id];
-            const available = summary?.kind === "available";
-            const reason = summary?.kind === "unavailable" ? summary.reason : undefined;
-            const session = activeSession[id];
-            const progress = testProgress[id] ?? [];
-            const instanceBusy = busy[id];
-            return (
-              <li key={id} className="flex flex-col gap-2 rounded-md border border-border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium">{config.displayName ?? id}</span>
-                    <div className="flex items-center gap-2">
+        instanceEntries.map(([id, config]) => {
+          const summary = summaryById[id];
+          const available = summary?.kind === "available";
+          const reason = summary?.kind === "unavailable" ? summary.reason : undefined;
+          const session = activeSession[id];
+          const progress = testProgress[id] ?? [];
+          const instanceBusy = busy[id];
+          const isOpen = expanded[id] ?? false;
+          const displayName = config.displayName ?? id;
+          return (
+            <div key={id} className="border-t border-border/60 first:border-t-0">
+              <div className="px-4 py-3.5 sm:px-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                        {displayName}
+                      </h3>
                       <Badge variant="secondary">{config.driver}</Badge>
                       {available ? (
                         <Badge variant="default">available</Badge>
@@ -245,86 +282,92 @@ export function SandboxDeploymentSettings() {
                         <Badge variant="destructive">{reason}</Badge>
                       ) : null}
                     </div>
+                    <p className="text-xs text-muted-foreground/80">
+                      {session
+                        ? `Session ready: ${session.httpBaseUrl} (env ${session.environmentId})`
+                        : "Provision an isolated container reached over localhost."}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={instanceBusy !== undefined || !available}
-                      onClick={() => void handleTest(id)}
-                    >
-                      {instanceBusy === "test" ? "Testing…" : "Test connection"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={instanceBusy !== undefined || !available}
-                      onClick={() => void handleStart(id)}
-                    >
-                      {instanceBusy === "start" ? "Starting…" : "Start session"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={instanceBusy !== undefined || session === undefined}
-                      onClick={() => void handleDispose(id)}
-                    >
-                      {instanceBusy === "dispose" ? "Disposing…" : "Dispose"}
-                    </Button>
+                  <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:justify-end">
+                    {session ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={instanceBusy !== undefined}
+                        onClick={() => void handleDispose(id)}
+                      >
+                        {instanceBusy === "dispose" ? "Disposing…" : "Dispose"}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled={instanceBusy !== undefined || !available}
+                        onClick={() => void handleStart(id)}
+                      >
+                        {instanceBusy === "start" ? "Starting…" : "Start session"}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
-                      disabled={instanceBusy !== undefined}
-                      onClick={() => handleRemove(id)}
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setExpanded((prev) => ({ ...prev, [id]: !isOpen }))}
+                      aria-label={`Toggle ${displayName} details`}
                     >
-                      Remove
+                      <ChevronDownIcon
+                        className={cn("size-3.5 transition-transform", isOpen && "rotate-180")}
+                      />
                     </Button>
                   </div>
                 </div>
-                {progress.length > 0 || instanceBusy === "test" ? (
-                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                    {progress.join("\n")}
-                  </pre>
-                ) : null}
-                {session ? (
-                  <p className="text-xs text-muted-foreground">
-                    Session ready: {session.httpBaseUrl} (env {session.environmentId})
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+              </div>
+              <Collapsible
+                open={isOpen}
+                onOpenChange={(open) => setExpanded((prev) => ({ ...prev, [id]: open }))}
+              >
+                <CollapsibleContent>
+                  <div className="space-y-3 border-t border-border/60 px-4 py-3 sm:px-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={instanceBusy !== undefined || !available}
+                        onClick={() => void handleTest(id)}
+                      >
+                        {instanceBusy === "test" ? "Testing…" : "Test connection"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-foreground"
+                        disabled={instanceBusy !== undefined}
+                        onClick={() => handleRemove(id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    {progress.length > 0 || instanceBusy === "test" ? (
+                      <pre className="text-xs whitespace-pre-wrap text-muted-foreground">
+                        {progress.join("\n")}
+                      </pre>
+                    ) : null}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          );
+        })
       )}
-
-      <AddDeploymentTargetDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        existingIds={new Set(instanceEntries.map(([id]) => id))}
-        onAdd={(id, instance) => {
-          updateSettings({
-            sandboxProviderInstances: { ...instanceMap, [id]: instance },
-          });
-          setAddOpen(false);
-        }}
-      />
-    </section>
+    </SettingsSection>
   );
 }
 
-interface AddDeploymentTargetDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface AddDeploymentTargetDialogBodyProps {
   existingIds: Set<string>;
   onAdd: (id: string, instance: SandboxProviderInstanceConfig) => void;
 }
 
-function AddDeploymentTargetDialog({
-  open,
-  onOpenChange,
-  existingIds,
-  onAdd,
-}: AddDeploymentTargetDialogProps) {
+function AddDeploymentTargetDialogBody({ existingIds, onAdd }: AddDeploymentTargetDialogBodyProps) {
   const [label, setLabel] = useState("");
   const [image, setImage] = useState("node:22-alpine");
   const [command, setCommand] = useState("katacode serve --port 13773");
@@ -363,50 +406,46 @@ function AddDeploymentTargetDialog({
   }, [existingIds, instanceId, label, image, command, port, onAdd]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPopup className="max-w-xl overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>Add container deployment target</DialogTitle>
-          <DialogDescription>
-            Provisions an isolated Docker container running a Kata server, reached over localhost.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-3 p-4">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="sandbox-label">Label</Label>
-            <Input
-              id="sandbox-label"
-              value={label}
-              placeholder="e.g. Work"
-              onChange={(e) => setLabel(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">Instance id: {instanceId}</p>
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="sandbox-image">Image</Label>
-            <Input id="sandbox-image" value={image} onChange={(e) => setImage(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="sandbox-command">Start command</Label>
-            <Input
-              id="sandbox-command"
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="sandbox-port">Container port</Label>
-            <Input id="sandbox-port" value={port} onChange={(e) => setPort(e.target.value)} />
-          </div>
-          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    <DialogPopup className="max-w-xl overflow-hidden">
+      <DialogHeader>
+        <DialogTitle>Add container deployment target</DialogTitle>
+        <DialogDescription>
+          Provisions an isolated Docker container running a Kata server, reached over localhost.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="sandbox-label">Label</Label>
+          <Input
+            id="sandbox-label"
+            value={label}
+            placeholder="e.g. Work"
+            onChange={(e) => setLabel(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">Instance id: {instanceId}</p>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>Add target</Button>
-        </DialogFooter>
-      </DialogPopup>
-    </Dialog>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="sandbox-image">Image</Label>
+          <Input id="sandbox-image" value={image} onChange={(e) => setImage(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="sandbox-command">Start command</Label>
+          <Input
+            id="sandbox-command"
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="sandbox-port">Container port</Label>
+          <Input id="sandbox-port" value={port} onChange={(e) => setPort(e.target.value)} />
+        </div>
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      </div>
+      <DialogFooter>
+        <DialogClose render={<Button variant="ghost">Cancel</Button>} />
+        <Button onClick={handleSubmit}>Add target</Button>
+      </DialogFooter>
+    </DialogPopup>
   );
 }
