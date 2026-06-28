@@ -63,7 +63,7 @@ export const test = base.extend<E2EFixtures, { workerSessionDisposer: void }>({
     const acquired = await acquireFileSession(testInfo, { needsAuth: true });
     await use(acquired);
     // Drop this test's ref but keep the session alive for the file's other tests.
-    dropFileSessionRef(testInfo.file);
+    await dropFileSessionRef(testInfo.file);
   },
 
   // Worker-scoped: runs once when the worker (and therefore all files it ran)

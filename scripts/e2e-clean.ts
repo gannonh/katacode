@@ -105,7 +105,15 @@ if (targets.size === 0) {
 let killed = 0;
 for (const [pid, command] of targets) {
   try {
-    process.kill(pid, "SIGKILL");
+    // Try the process group first (negative PID) so detached descendants
+    // (esbuild workers, Vite children) are reaped alongside the leader. Fall
+    // back to the single PID for standalone processes that aren't group
+    // leaders.
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {
+      process.kill(pid, "SIGKILL");
+    }
     killed += 1;
     Effect.runSync(Console.log(`[e2e:clean] killed pid ${pid}: ${command.slice(0, 100)}`));
   } catch (error) {

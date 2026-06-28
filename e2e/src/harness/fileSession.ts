@@ -75,29 +75,38 @@ async function bootSession(launchTarget: LaunchTarget, fileKey: string): Promise
   });
   await writeRunManifest(runContext);
 
-  const launchedApp = await launchApp(runContext);
-  const appWindow = launchedApp.window;
+  let launchedApp: LaunchedApp | undefined;
+  try {
+    launchedApp = await launchApp(runContext);
+    const appWindow = launchedApp.window;
 
-  logHarnessPhase("Waiting for app environment (server port + app shell)...");
-  await waitForAppEnvironmentReady(appWindow, runContext);
-  logHarnessPhase("App environment is ready.");
+    logHarnessPhase("Waiting for app environment (server port + app shell)...");
+    await waitForAppEnvironmentReady(appWindow, runContext);
+    logHarnessPhase("App environment is ready.");
 
-  logHarnessPhase("Signing in with Clerk Google test user...");
-  await signInWithClerkGoogleTestUser(appWindow);
-  await expectSignedInClerkState(appWindow);
-  logHarnessPhase("Authenticated app window is ready.");
+    logHarnessPhase("Signing in with Clerk Google test user...");
+    await signInWithClerkGoogleTestUser(appWindow);
+    await expectSignedInClerkState(appWindow);
+    logHarnessPhase("Authenticated app window is ready.");
 
-  // The sign-in flow can leave the app on the Settings route (avatar fallback).
-  // Return to the threads home so every test starts from a known nav state.
-  await resetAppToHome(appWindow);
+    // The sign-in flow can leave the app on the Settings route (avatar fallback).
+    // Return to the threads home so every test starts from a known nav state.
+    await resetAppToHome(appWindow);
 
-  return {
-    runContext,
-    launchedApp,
-    electronApp: launchedApp.electronApp,
-    appWindow,
-    authenticatedAppWindow: appWindow,
-  };
+    return {
+      runContext,
+      launchedApp,
+      electronApp: launchedApp.electronApp,
+      appWindow,
+      authenticatedAppWindow: appWindow,
+    };
+  } catch (error) {
+    // Tear down the partial boot so claimed ports, spawned processes, and the
+    // isolated home don't leak and poison later specs on the same worker.
+    await launchedApp?.electronApp.close().catch(() => undefined);
+    await cleanupRunState(runContext).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function disposeSession(managed: ManagedSession): Promise<void> {
@@ -136,16 +145,24 @@ export async function acquireFileSession(
 }
 
 /**
- * Drop one reference to the file's session without disposing it. The session
- * stays cached for the next test in the file. Disposal is deferred to worker
- * teardown ({@link disposeAllSessions}) so a file's tests share one boot.
+ * Drop one reference to the file's session. When the ref count reaches zero
+ * the session is disposed immediately so its Electron/Vite stack does not
+ * linger idle until worker teardown. With `workers: 1` this prevents a
+ * per-spec-file resource leak where each completed file's stack stays alive
+ * until the entire suite ends.
  */
-export function dropFileSessionRef(fileKey: string): void {
+export async function dropFileSessionRef(fileKey: string): Promise<void> {
   const managed = sessionsByFile.get(fileKey);
   if (!managed) {
     return;
   }
   managed.refCount = Math.max(0, managed.refCount - 1);
+  if (managed.refCount > 0) {
+    return;
+  }
+
+  sessionsByFile.delete(fileKey);
+  await disposeSession(managed);
 }
 
 /**

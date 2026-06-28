@@ -265,13 +265,16 @@ export async function expectTimelineWarning(page: Page, text: string): Promise<v
 }
 
 /** Assert a tool-call work row rendered in the timeline (AC 5 tool lifecycle).
- *  Tool calls surface as `data-timeline-row-kind="work"` rows with an
- *  `aria-label` derived from the tool name + args. The work group may collapse
- *  previous tool calls, so assert the group exists and is non-empty. */
+ *  Tool calls surface as `data-timeline-row-kind="work"` rows whose group
+ *  section carries an `aria-label` of "N tool call(s)". Runtime warnings also
+ *  use `work` rows but their group label is "work log", so asserting on the
+ *  tool-call label proves an actual tool lifecycle row rendered — not a
+ *  warning. */
 export async function expectToolCallWorkRow(page: Page): Promise<void> {
   await pollWithThreadErrorGuard(
     page,
-    async () => page.locator('[data-timeline-row-kind="work"]').count(),
+    async () =>
+      page.locator('[data-timeline-row-kind="work"] section[aria-label*="tool call"]').count(),
     (count) => count >= 1,
     "Tool-call work row did not appear",
   );

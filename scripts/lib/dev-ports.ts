@@ -116,6 +116,16 @@ export async function claimAvailablePortOffset(startOffset: number): Promise<{
   readonly release: () => Promise<void>;
 }> {
   for await (const candidate of candidatePortPairs(startOffset)) {
+    // Probe all hosts for availability (sequential, non-overlapping binds
+    // that close before the next host is checked).
+    if (
+      !(await isPortAvailableOnAllHosts(candidate.serverPort)) ||
+      !(await isPortAvailableOnAllHosts(candidate.webPort))
+    ) {
+      continue;
+    }
+    // Reserve with a non-overlapping single-host claim so the placeholder
+    // sockets don't conflict with each other on the same port.
     const release = await tryClaimPortPair(candidate.serverPort, candidate.webPort);
     if (release) {
       return { ...candidate, release };
@@ -164,11 +174,16 @@ async function tryClaimPortPair(
       servers.push(server);
     });
 
-  const hosts = DEV_PORT_PROBE_HOSTS;
-  const results = await Promise.all([
-    ...hosts.map((host) => tryBind(serverPort, host)),
-    ...hosts.map((host) => tryBind(webPort, host)),
-  ]);
+  // Reserve with a single non-overlapping bind per port. Binding both
+  // `127.0.0.1` and `0.0.0.0` (or `::1` and `::`) for the same port
+  // simultaneously fails on typical Linux/macOS stacks because the wildcard
+  // address overlaps the loopback address. The wildcard `0.0.0.0` covers all
+  // IPv4 addresses (including `127.0.0.1`), so holding it is sufficient to
+  // block other workers from claiming the same port. The all-host availability
+  // probe (`isPortAvailableOnAllHosts`) still checks every host sequentially
+  // before the claim is attempted via `findAvailablePortOffset`.
+  const claimHost = "0.0.0.0";
+  const results = await Promise.all([tryBind(serverPort, claimHost), tryBind(webPort, claimHost)]);
 
   if (results.every(Boolean)) {
     return async () => {

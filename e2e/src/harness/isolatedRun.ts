@@ -78,7 +78,18 @@ export async function createIsolatedRun(input: {
     KATACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD: "0",
   } satisfies NodeJS.ProcessEnv;
 
+  // Make the port-claim release idempotent so it's safe to call both from the
+  // dev stack (before bind) and from cleanup (on failure). If the dev stack
+  // already released the claim, the cleanup call is a no-op.
+  let portClaimReleased = false;
+  const releasePortClaimIdempotent = async () => {
+    if (portClaimReleased) return;
+    portClaimReleased = true;
+    await releasePortClaim();
+  };
+
   cleanupCallbacks.push(async () => {
+    await releasePortClaimIdempotent();
     await rm(katacodeHome, { recursive: true, force: true });
     await rm(workspaceRoot, { recursive: true, force: true });
     await rm(electronRuntimeDir, { recursive: true, force: true });
@@ -96,7 +107,7 @@ export async function createIsolatedRun(input: {
     electronRuntimeDir,
     serverPort,
     webPort,
-    releasePortClaim,
+    releasePortClaim: releasePortClaimIdempotent,
     devEnv: baseEnv,
   };
 }
