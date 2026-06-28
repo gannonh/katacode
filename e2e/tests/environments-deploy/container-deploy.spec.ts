@@ -4,7 +4,6 @@ import { E2E_TAGS } from "../../src/config/tags.ts";
 import { E2E_TIMEOUTS } from "../../src/config/timeouts.ts";
 import { openConnectionsSettings } from "../../src/flows/settings.ts";
 import { dismissBlockingToasts } from "../../src/flows/navigation.ts";
-import { authorizeConnectCli, withConnectBrowser } from "../../src/flows/connect.ts";
 import { expect, test } from "../../src/harness/testFixtures.ts";
 
 /**
@@ -49,8 +48,7 @@ test.describe(`Environments/deployments container target ${E2E_TAGS.environments
 
   test("add deployment target, test connection + start session boot the real katacode image", async ({
     appWindow,
-    runContext,
-  }) => {
+  }, testInfo) => {
     // Fail loud if Docker or the katacode image isn't available — the flow
     // provisions the real Kata server, so either is a hard prerequisite.
     await assertDockerDaemonReachable();
@@ -99,16 +97,14 @@ test.describe(`Environments/deployments container target ${E2E_TAGS.environments
     await expect(progress).toContainText("done: ok", { timeout: E2E_TIMEOUTS.agentReplyMs });
 
     // Start session (AC-1.10): provision the real katacode image, auto-register
-    // with Connect, and surface the loopback endpoint + environmentId. Connect
-    // auto-registration requires the CLI OAuth token, so authorize `katacode
-    // connect login` against the dev server's isolated home first (AC-1.11).
+    // with Connect using the signed-in app user's Clerk relay token, and surface
+    // the loopback endpoint + environmentId.
     await dismissBlockingToasts(page);
-    // The OAuth flow runs on a standalone Chromium browser (Electron's context
-    // cannot open the Clerk authorize URL) in the dev server's isolated home.
-    await withConnectBrowser((connectPage) => authorizeConnectCli(runContext, connectPage));
     await card.getByRole("button", { name: "Start session" }).click();
     const sessionLine = card.getByText(/Session ready:/);
     await expect(sessionLine).toBeVisible({ timeout: E2E_TIMEOUTS.agentReplyMs });
+    await sessionLine.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath("session-ready.png"), fullPage: true });
 
     // Extract the published loopback URL and verify the in-container Kata
     // server answers over it — the loopback reachability half of AC-1.10.

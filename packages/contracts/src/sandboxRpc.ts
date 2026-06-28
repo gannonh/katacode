@@ -78,6 +78,8 @@ export type SandboxTestConnectionProgressEvent = typeof SandboxTestConnectionPro
 /** Start session: provision + Connect-register; return the endpoint to bind a thread to. */
 export const SandboxStartSessionInput = Schema.Struct({
   instanceId: SandboxProviderInstanceId,
+  /** Relay Clerk JWT from the desktop/web session; falls back to the CLI token when omitted. */
+  connectAuthToken: Schema.optional(TrimmedNonEmptyString),
 });
 export type SandboxStartSessionInput = typeof SandboxStartSessionInput.Type;
 export const SandboxStartSessionResult = Schema.Struct({

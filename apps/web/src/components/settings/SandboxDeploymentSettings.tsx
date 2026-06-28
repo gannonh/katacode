@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@clerk/react";
 import { ChevronDownIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -12,6 +13,7 @@ import {
   type SandboxTestConnectionProgressEvent,
 } from "@kata-sh/code-contracts";
 
+import { resolveRelayClerkTokenOptions, hasCloudPublicConfig } from "../../cloud/publicConfig";
 import { useSettings, useUpdateSettings } from "../../hooks/useSettings";
 import { getPrimaryEnvironmentConnection } from "../../environments/runtime";
 import { cn } from "../../lib/utils";
@@ -34,6 +36,7 @@ import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { useHostedConnectAuthPrompt } from "../clerk/useHostedConnectAuthPrompt";
 import { ProviderEnvironmentSection } from "./ProviderInstanceCard";
 import { SettingsSection } from "./settingsLayout";
 
@@ -65,6 +68,8 @@ function rpcClient() {
 export function SandboxDeploymentSettings() {
   const settings = useSettings();
   const { updateSettings } = useUpdateSettings();
+  const { getToken, isSignedIn } = useAuth();
+  const { authPrompt, openAuthPrompt } = useHostedConnectAuthPrompt();
   const instanceMap = (settings.sandboxProviderInstances ?? {}) as SandboxProviderInstanceConfigMap;
 
   const [summaries, setSummaries] = useState<ReadonlyArray<SandboxInstanceSummary>>([]);
@@ -139,38 +144,61 @@ export function SandboxDeploymentSettings() {
     }
   }, []);
 
-  const handleStart = useCallback(async (instanceId: string) => {
-    setBusy((prev) => ({ ...prev, [instanceId]: "start" }));
-    try {
-      const result = await rpcClient().sandbox.startSession({
-        instanceId: instanceId as never,
-      });
-      setActiveSession((prev) => ({
-        ...prev,
-        [instanceId]: {
-          environmentId: result.environmentId,
-          httpBaseUrl: result.endpoint.httpBaseUrl,
-        },
-      }));
-      toastManager.add({
-        type: "success",
-        title: "Sandbox session started",
-        description: `Reachable at ${result.endpoint.httpBaseUrl}.`,
-      });
-    } catch (error) {
-      toastManager.add({
-        type: "error",
-        title: "Start session failed",
-        description: error instanceof Error ? error.message : "Unknown error.",
-      });
-    } finally {
-      setBusy((prev) => {
-        const next = { ...prev };
-        delete next[instanceId];
-        return next;
-      });
-    }
-  }, []);
+  const handleStart = useCallback(
+    async (instanceId: string) => {
+      if (hasCloudPublicConfig() && !isSignedIn) {
+        openAuthPrompt();
+        return;
+      }
+      setBusy((prev) => ({ ...prev, [instanceId]: "start" }));
+      try {
+        const connectAuthToken = hasCloudPublicConfig()
+          ? await getToken(resolveRelayClerkTokenOptions())
+          : null;
+        if (hasCloudPublicConfig() && !connectAuthToken) {
+          throw new Error("Sign in to Kata Code Connect before starting a deployment session.");
+        }
+        const result = await rpcClient().sandbox.startSession({
+          instanceId: instanceId as never,
+          ...(connectAuthToken ? { connectAuthToken } : {}),
+        });
+        setActiveSession((prev) => ({
+          ...prev,
+          [instanceId]: {
+            environmentId: result.environmentId,
+            httpBaseUrl: result.endpoint.httpBaseUrl,
+          },
+        }));
+        setTestProgress((prev) => ({
+          ...prev,
+          [instanceId]: [...(prev[instanceId] ?? []), "start: ok"],
+        }));
+        toastManager.add({
+          type: "success",
+          title: "Sandbox session started",
+          description: `Reachable at ${result.endpoint.httpBaseUrl}.`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error.";
+        setTestProgress((prev) => ({
+          ...prev,
+          [instanceId]: [...(prev[instanceId] ?? []), `start: failed — ${message}`],
+        }));
+        toastManager.add({
+          type: "error",
+          title: "Start session failed",
+          description: message,
+        });
+      } finally {
+        setBusy((prev) => {
+          const next = { ...prev };
+          delete next[instanceId];
+          return next;
+        });
+      }
+    },
+    [getToken, isSignedIn, openAuthPrompt],
+  );
 
   const handleDispose = useCallback(async (instanceId: string) => {
     setBusy((prev) => ({ ...prev, [instanceId]: "dispose" }));
@@ -227,83 +255,86 @@ export function SandboxDeploymentSettings() {
   const instanceEntries = Object.entries(instanceMap);
 
   return (
-    <SettingsSection
-      title="Deployment targets"
-      headerAction={
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <DialogTrigger
-                  render={
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="h-5 gap-1 rounded-sm px-1 text-[11px] font-normal text-muted-foreground/60 hover:text-muted-foreground"
-                      aria-label="Add deployment target"
-                    >
-                      <PlusIcon className="size-3" />
-                      <span>Add deployment target</span>
-                    </Button>
-                  }
-                />
-              }
+    <>
+      <SettingsSection
+        title="Deployment targets"
+        headerAction={
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DialogTrigger
+                    render={
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="h-5 gap-1 rounded-sm px-1 text-[11px] font-normal text-muted-foreground/60 hover:text-muted-foreground"
+                        aria-label="Add deployment target"
+                      >
+                        <PlusIcon className="size-3" />
+                        <span>Add deployment target</span>
+                      </Button>
+                    }
+                  />
+                }
+              />
+              <TooltipPopup side="top">Add deployment target</TooltipPopup>
+            </Tooltip>
+            <AddDeploymentTargetDialogBody
+              existingIds={new Set(instanceEntries.map(([id]) => id))}
+              onAdd={(id, instance) => {
+                updateSettings({
+                  sandboxProviderInstances: { ...instanceMap, [id]: instance },
+                });
+                setAddOpen(false);
+              }}
             />
-            <TooltipPopup side="top">Add deployment target</TooltipPopup>
-          </Tooltip>
-          <AddDeploymentTargetDialogBody
-            existingIds={new Set(instanceEntries.map(([id]) => id))}
-            onAdd={(id, instance) => {
-              updateSettings({
-                sandboxProviderInstances: { ...instanceMap, [id]: instance },
-              });
-              setAddOpen(false);
-            }}
-          />
-        </Dialog>
-      }
-    >
-      {instanceEntries.length === 0 ? (
-        <div className="border-t border-border/60 px-4 py-3.5 first:border-t-0 sm:px-5">
-          <p className="text-xs text-muted-foreground">
-            No deployment targets configured. Add one to provision a container.
-          </p>
-        </div>
-      ) : (
-        instanceEntries.map(([id, config]) => {
-          const summary = summaryById[id];
-          const available = summary?.kind === "available";
-          const reason = summary?.kind === "unavailable" ? summary.reason : undefined;
-          const session = activeSession[id];
-          const progress = testProgress[id] ?? [];
-          const instanceBusy = busy[id];
-          const isOpen = expanded[id] ?? false;
-          const displayName = config.displayName ?? id;
-          const enabled = config.enabled ?? true;
-          return (
-            <DeploymentTargetCard
-              key={id}
-              instanceId={id}
-              instance={config}
-              displayName={displayName}
-              enabled={enabled}
-              available={available}
-              reason={reason}
-              session={session}
-              progress={progress}
-              instanceBusy={instanceBusy}
-              isExpanded={isOpen}
-              onExpandedChange={(open) => setExpanded((prev) => ({ ...prev, [id]: open }))}
-              onUpdate={(next) => updateInstance(id, next)}
-              onDelete={() => handleRemove(id)}
-              onTest={() => void handleTest(id)}
-              onStart={() => void handleStart(id)}
-              onDispose={() => void handleDispose(id)}
-            />
-          );
-        })
-      )}
-    </SettingsSection>
+          </Dialog>
+        }
+      >
+        {instanceEntries.length === 0 ? (
+          <div className="border-t border-border/60 px-4 py-3.5 first:border-t-0 sm:px-5">
+            <p className="text-xs text-muted-foreground">
+              No deployment targets configured. Add one to provision a container.
+            </p>
+          </div>
+        ) : (
+          instanceEntries.map(([id, config]) => {
+            const summary = summaryById[id];
+            const available = summary?.kind === "available";
+            const reason = summary?.kind === "unavailable" ? summary.reason : undefined;
+            const session = activeSession[id];
+            const progress = testProgress[id] ?? [];
+            const instanceBusy = busy[id];
+            const isOpen = expanded[id] ?? false;
+            const displayName = config.displayName ?? id;
+            const enabled = config.enabled ?? true;
+            return (
+              <DeploymentTargetCard
+                key={id}
+                instanceId={id}
+                instance={config}
+                displayName={displayName}
+                enabled={enabled}
+                available={available}
+                reason={reason}
+                session={session}
+                progress={progress}
+                instanceBusy={instanceBusy}
+                isExpanded={isOpen}
+                onExpandedChange={(open) => setExpanded((prev) => ({ ...prev, [id]: open }))}
+                onUpdate={(next) => updateInstance(id, next)}
+                onDelete={() => handleRemove(id)}
+                onTest={() => void handleTest(id)}
+                onStart={() => void handleStart(id)}
+                onDispose={() => void handleDispose(id)}
+              />
+            );
+          })
+        )}
+      </SettingsSection>
+      {authPrompt}
+    </>
   );
 }
 

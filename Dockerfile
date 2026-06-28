@@ -75,9 +75,28 @@ RUN CI=true pnpm install --frozen-lockfile --prod --ignore-scripts --filter @kat
 # ---------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS runtime
 
+ARG TARGETARCH
+
 # node-pty's native addon is compiled in the builder; the runtime only needs
-# the loader libs the addon links against.
-RUN apk add --no-cache libstdc++
+# the loader libs the addon links against. The sandbox image also needs
+# cloudflared on PATH so Connect relay config can start the managed tunnel
+# inside the deployed container.
+RUN set -eux; \
+    apk add --no-cache libstdc++ ca-certificates curl; \
+    case "${TARGETARCH}" in \
+      amd64) \
+        cloudflared_url="https://github.com/cloudflare/cloudflared/releases/download/2026.5.2/cloudflared-linux-amd64"; \
+        cloudflared_sha="5286698547f03df745adb2355f04c12dde52ef425491e81f433642d695521886"; \
+        ;; \
+      arm64) \
+        cloudflared_url="https://github.com/cloudflare/cloudflared/releases/download/2026.5.2/cloudflared-linux-arm64"; \
+        cloudflared_sha="5a4e8ce2701105271412059f44b6a0bf1ae4542b4d98ff3180c0c019443a5815"; \
+        ;; \
+      *) echo "Unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "$cloudflared_url" -o /usr/local/bin/cloudflared; \
+    echo "$cloudflared_sha  /usr/local/bin/cloudflared" | sha256sum -c -; \
+    chmod +x /usr/local/bin/cloudflared
 
 WORKDIR /app
 

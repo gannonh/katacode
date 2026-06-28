@@ -15,20 +15,31 @@
  */
 import * as NodeCrypto from "node:crypto";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 
 import {
+  AuthAccessTokenResult,
+  AuthAccessTokenType,
+  AuthAdministrativeScopes,
+  AuthEnvironmentBootstrapTokenType,
+  AuthTokenExchangeGrantType,
   type AdvertisedEndpoint,
   type AdvertisedEndpointProvider,
+  type ExecutionEnvironmentDescriptor,
+  ExecutionEnvironmentDescriptor as ExecutionEnvironmentDescriptorSchema,
   type ServerSettings,
 } from "@kata-sh/code-contracts";
 import { createAdvertisedEndpoint } from "@kata-sh/code-shared/advertisedEndpoint";
+import { encodeOAuthScope } from "@kata-sh/code-shared/oauthScope";
 import {
   type SandboxProviderInstanceConfigMap,
   SandboxProviderInstanceId,
 } from "@kata-sh/code-contracts/sandboxProviderInstance";
 import {
   type SandboxInstanceSummary,
+  type SandboxStartSessionInput,
   type SandboxTestConnectionProgressEvent,
   SandboxRpcError,
 } from "@kata-sh/code-contracts/sandboxRpc";
@@ -39,7 +50,15 @@ import {
   DockerSandboxProvider,
   dockerConfigDecoder,
 } from "@kata-sh/code-sandbox-docker";
-import { reconcileDesiredCloudLink } from "../cloud/http.ts";
+import {
+  type RelayEnvironmentConfigRequest,
+  RelayEnvironmentLinkChallengeResponse,
+  RelayEnvironmentLinkResponse,
+  type RelayLinkProofRequest,
+} from "@kata-sh/code-contracts/relay";
+import { WIRE_ENVIRONMENT_WELL_KNOWN_PATH } from "@kata-sh/code-contracts/wireIdentity";
+import * as CliTokenManager from "../cloud/CliTokenManager.ts";
+import { relayUrlConfig } from "../cloud/publicConfig.ts";
 
 /** A sandbox `AdvertisedEndpointProvider` (manual kind; container-sourced). */
 const SANDBOX_ENDPOINT_PROVIDER: AdvertisedEndpointProvider = {
@@ -123,6 +142,213 @@ function errorToMessage(e: unknown): string {
   return String(e);
 }
 
+async function readResponseBody(response: Response): Promise<string> {
+  const text = await response.text();
+  if (!text) return `${response.status} ${response.statusText}`;
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (typeof parsed === "object" && parsed !== null && "message" in parsed) {
+      return String((parsed as { message: unknown }).message);
+    }
+    if (typeof parsed === "object" && parsed !== null && "error" in parsed) {
+      const error = String((parsed as { error: unknown }).error);
+      const description =
+        "error_description" in parsed
+          ? String((parsed as { error_description: unknown }).error_description)
+          : "";
+      return description ? `${error}: ${description}` : error;
+    }
+  } catch {
+    // The raw response text is more useful than a JSON parse failure here.
+  }
+  return text;
+}
+
+async function fetchAndDecodeJson<S extends Schema.Decoder<unknown>>(
+  schema: S,
+  url: string,
+  init?: RequestInit,
+): Promise<S["Type"]> {
+  // @effect-diagnostics-next-line globalFetch:off - probes another Kata server endpoint from the sandbox orchestrator.
+  const response = await fetch(url, init);
+  if (!response.ok) {
+    throw new Error(`${url} failed: ${await readResponseBody(response)}`);
+  }
+  return Schema.decodeUnknownSync(schema)(await response.json());
+}
+
+function fetchJson<S extends Schema.Decoder<unknown>>(
+  schema: S,
+  url: string,
+  init?: RequestInit,
+): Effect.Effect<S["Type"], SandboxRpcError> {
+  return Effect.tryPromise({
+    try: () => fetchAndDecodeJson(schema, url, init),
+    catch: (cause) =>
+      new SandboxRpcError({
+        reason: "connect-failed",
+        message: errorToMessage(cause),
+      }),
+  });
+}
+
+function postJson<S extends Schema.Decoder<unknown>>(
+  schema: S,
+  url: string,
+  payload: unknown,
+  bearerToken?: string,
+): Effect.Effect<S["Type"], SandboxRpcError> {
+  return fetchJson(schema, url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+function exchangeBootstrapToken(input: {
+  readonly httpBaseUrl: string;
+  readonly bootstrapToken: string;
+}): Effect.Effect<AuthAccessTokenResult, SandboxRpcError> {
+  const body = new URLSearchParams({
+    grant_type: AuthTokenExchangeGrantType,
+    subject_token: input.bootstrapToken,
+    subject_token_type: AuthEnvironmentBootstrapTokenType,
+    requested_token_type: AuthAccessTokenType,
+    scope: encodeOAuthScope(AuthAdministrativeScopes),
+    client_label: "Kata Code deployment target",
+    client_device_type: "desktop",
+  });
+  return fetchJson(AuthAccessTokenResult, `${input.httpBaseUrl}/oauth/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
+}
+
+function resolveConnectAuthToken(
+  connectAuthToken: SandboxStartSessionInput["connectAuthToken"],
+): Effect.Effect<string, SandboxRpcError, CliTokenManager.CloudCliTokenManager> {
+  if (connectAuthToken) return Effect.succeed(connectAuthToken);
+  return Effect.gen(function* () {
+    const tokens = yield* CliTokenManager.CloudCliTokenManager;
+    const token = yield* tokens.getExisting.pipe(
+      Effect.mapError(
+        (cause) =>
+          new SandboxRpcError({
+            reason: "connect-failed",
+            message: `Could not read Kata Code Connect authorization: ${cause.message}`,
+          }),
+      ),
+    );
+    return yield* Option.match(token, {
+      onNone: () =>
+        Effect.fail(
+          new SandboxRpcError({
+            reason: "connect-failed",
+            message: "Sign in to Kata Code Connect before starting a deployment session.",
+          }),
+        ),
+      onSome: (value) => Effect.succeed(value.accessToken),
+    });
+  });
+}
+
+function registerSandboxWithConnect(input: {
+  readonly httpBaseUrl: string;
+  readonly bootstrapToken: string;
+  readonly connectAuthToken: SandboxStartSessionInput["connectAuthToken"];
+}): Effect.Effect<
+  ExecutionEnvironmentDescriptor,
+  SandboxRpcError,
+  CliTokenManager.CloudCliTokenManager
+> {
+  return Effect.gen(function* () {
+    const relayUrl = yield* relayUrlConfig.pipe(
+      Effect.mapError(
+        (cause) =>
+          new SandboxRpcError({
+            reason: "connect-failed",
+            message: `KATACODE_RELAY_URL is not configured for sandbox Connect registration: ${String(cause)}`,
+          }),
+      ),
+    );
+    const bearerToken = yield* resolveConnectAuthToken(input.connectAuthToken);
+    const session = yield* exchangeBootstrapToken(input);
+    const descriptor = yield* fetchJson(
+      ExecutionEnvironmentDescriptorSchema,
+      `${input.httpBaseUrl}${WIRE_ENVIRONMENT_WELL_KNOWN_PATH}`,
+    );
+    const endpoint = {
+      httpBaseUrl: input.httpBaseUrl,
+      wsBaseUrl: input.httpBaseUrl.replace(/^http/u, "ws"),
+      providerKind: "cloudflare_tunnel" as const,
+    };
+    const url = new URL(input.httpBaseUrl);
+    const challenge = yield* postJson(
+      RelayEnvironmentLinkChallengeResponse,
+      `${relayUrl}/v1/client/environment-link-challenges`,
+      {
+        notificationsEnabled: true,
+        liveActivitiesEnabled: true,
+        managedTunnelsEnabled: true,
+      },
+      bearerToken,
+    );
+    const proofRequest: RelayLinkProofRequest = {
+      challenge: challenge.challenge,
+      relayIssuer: relayUrl,
+      endpoint,
+      origin: {
+        localHttpHost: "127.0.0.1",
+        localHttpPort: Number(url.port || (url.protocol === "https:" ? 443 : 80)),
+      },
+    };
+    const proof = yield* postJson(
+      Schema.String,
+      `${input.httpBaseUrl}/api/connect/link-proof`,
+      proofRequest,
+      session.access_token,
+    );
+    const link = yield* postJson(
+      RelayEnvironmentLinkResponse,
+      `${relayUrl}/v1/client/environment-links`,
+      {
+        proof,
+        notificationsEnabled: true,
+        liveActivitiesEnabled: true,
+        managedTunnelsEnabled: true,
+      },
+      bearerToken,
+    );
+    if (link.environmentId !== descriptor.environmentId) {
+      return yield* new SandboxRpcError({
+        reason: "connect-failed",
+        message: "Relay returned credentials for a different sandbox environment.",
+      });
+    }
+    const relayConfig: RelayEnvironmentConfigRequest = {
+      relayUrl,
+      relayIssuer: link.relayIssuer,
+      cloudUserId: link.cloudUserId,
+      environmentCredential: link.environmentCredential,
+      cloudMintPublicKey: link.cloudMintPublicKey,
+      endpointRuntime: link.endpointRuntime,
+    };
+    yield* postJson(
+      RelayConfigResponse,
+      `${input.httpBaseUrl}/api/connect/relay-config`,
+      relayConfig,
+      session.access_token,
+    );
+    return descriptor;
+  });
+}
+
+const RelayConfigResponse = Schema.Struct({ ok: Schema.Boolean });
+
 /** In-memory map of running sessions (instanceId → handle). Phase 1; not durable. */
 const runningSessions = new Map<string, SandboxHandle>();
 
@@ -159,43 +385,80 @@ export const SandboxServiceLive = {
         if (inst.kind !== "available") {
           return yield* registryError(inst.reason, inst.message);
         }
-        const events: SandboxTestConnectionProgressEvent[] = [];
-        const v = yield* either(inst.driver.validate(inst.config));
-        events.push({
-          stage: "validate",
-          ok: v._tag === "Right",
-          ...(v._tag === "Left" ? { detail: v.left.message } : {}),
-        });
-        if (v._tag === "Left") return events;
+        return inst;
+      }),
+    ).pipe(
+      Stream.flatMap((inst) => {
         const image = String(
           (inst.config as { image?: string } | null)?.image ?? DEFAULT_DOCKER_CONFIG.image,
         );
-        const p = yield* either(
-          inst.driver.provision({
-            instanceId: instanceId as string,
-            config: inst.config,
-            image,
-            env: [],
+        const validate = Stream.fromEffect(
+          either(inst.driver.validate(inst.config)).pipe(
+            Effect.map(
+              (v): SandboxTestConnectionProgressEvent => ({
+                stage: "validate",
+                ok: v._tag === "Right",
+                ...(v._tag === "Left" ? { detail: v.left.message } : {}),
+              }),
+            ),
+          ),
+        );
+        return validate.pipe(
+          Stream.flatMap((validateEvent) => {
+            if (!validateEvent.ok) return Stream.make(validateEvent);
+            const provision = Stream.fromEffect(
+              either(
+                inst.driver.provision({
+                  instanceId: instanceId as string,
+                  config: inst.config,
+                  image,
+                  env: [],
+                }),
+              ).pipe(
+                Effect.map((p) => ({
+                  p,
+                  event: {
+                    stage: "provision",
+                    ok: p._tag === "Right",
+                    ...(p._tag === "Left" ? { detail: p.left.message } : {}),
+                  } satisfies SandboxTestConnectionProgressEvent,
+                })),
+              ),
+            );
+            return Stream.concat(
+              Stream.make(validateEvent),
+              provision.pipe(
+                Stream.flatMap(({ p, event }) => {
+                  if (p._tag === "Left") return Stream.make(event);
+                  const dispose = Stream.fromEffect(
+                    either(inst.driver.dispose(p.right)).pipe(
+                      Effect.map(
+                        (d): ReadonlyArray<SandboxTestConnectionProgressEvent> => [
+                          event,
+                          {
+                            stage: "dispose",
+                            ok: d._tag === "Right",
+                            ...(d._tag === "Left" ? { detail: d.left.message } : {}),
+                          },
+                          { stage: "done", ok: d._tag === "Right" },
+                        ],
+                      ),
+                    ),
+                  );
+                  return dispose.pipe(Stream.flatMap(Stream.fromIterable));
+                }),
+              ),
+            );
           }),
         );
-        events.push({
-          stage: "provision",
-          ok: p._tag === "Right",
-          ...(p._tag === "Left" ? { detail: p.left.message } : {}),
-        });
-        if (p._tag === "Left") return events;
-        const d = yield* either(inst.driver.dispose(p.right));
-        events.push({
-          stage: "dispose",
-          ok: d._tag === "Right",
-          ...(d._tag === "Left" ? { detail: d.left.message } : {}),
-        });
-        events.push({ stage: "done", ok: d._tag === "Right" });
-        return events;
       }),
-    ).pipe(Stream.flatMap(Stream.fromIterable)),
+    ),
 
-  startSession: (instanceId: SandboxProviderInstanceId, settings: ServerSettings) =>
+  startSession: (
+    instanceId: SandboxProviderInstanceId,
+    settings: ServerSettings,
+    options?: { readonly connectAuthToken?: SandboxStartSessionInput["connectAuthToken"] },
+  ) =>
     Effect.gen(function* () {
       const registry = buildRegistry();
       const config = (settings.sandboxProviderInstances as SandboxProviderInstanceConfigMap)[
@@ -237,26 +500,44 @@ export const SandboxServiceLive = {
         reachability: "loopback",
         source: "server",
       });
-      // Connect auto-registration (AC-1.11): publish the container's loopback
-      // origin to the relay via the existing `reconcileDesiredCloudLink` entry
-      // point so every paired client (mobile, hosted web, other desktops) reaches
-      // this deployment with no per-client setup. Each container has a distinct
-      // origin (ephemeral host port) so its relay link is per-deployment. Requires
-      // the deploying server to be Connect-authorized (a CLI token); a missing
-      // token or relay failure surfaces as `connect-failed` (fail-loud, no silent
-      // fallback). `apps/server/src/cloud/` is only called, not modified.
-      const reachUrl = new URL(reach.httpBaseUrl);
-      yield* reconcileDesiredCloudLink(`http://127.0.0.1:${reachUrl.port}`).pipe(
-        Effect.mapError(
-          (e) =>
-            new SandboxRpcError({
-              reason: "connect-failed",
-              message: `Connect auto-registration failed: ${errorToMessage(e)}`,
-            }),
+      // Connect auto-registration (AC-1.11): authenticate to the freshly booted
+      // container with its desktop bootstrap token, ask that container to sign
+      // the link proof for its own descriptor/keypair, then apply the returned
+      // relay config back to the container. This keeps the linked environment id
+      // and endpoint bound to the deployed container rather than the parent
+      // desktop server. A missing user/CLI Connect token or relay failure fails
+      // the RPC and tears down the just-created container.
+      const descriptor = yield* registerSandboxWithConnect({
+        httpBaseUrl: reach.httpBaseUrl.replace("localhost", "127.0.0.1"),
+        bootstrapToken,
+        connectAuthToken: options?.connectAuthToken,
+      }).pipe(
+        Effect.catch((error: SandboxRpcError) =>
+          Effect.sync(() => runningSessions.delete(instanceId as string)).pipe(
+            Effect.andThen(
+              inst.driver.dispose(handle).pipe(
+                Effect.catch((disposeError) =>
+                  Effect.logWarning(
+                    "Could not dispose sandbox after Connect registration failure",
+                    {
+                      cause: disposeError,
+                    },
+                  ),
+                ),
+              ),
+            ),
+            Effect.andThen(
+              Effect.fail(
+                new SandboxRpcError({
+                  reason: "connect-failed",
+                  message: `Connect auto-registration failed: ${error.message}`,
+                }),
+              ),
+            ),
+          ),
         ),
       );
-      const environmentId = `sandbox-${instanceId as string}`;
-      return { instanceId, environmentId, endpoint };
+      return { instanceId, environmentId: descriptor.environmentId, endpoint };
     }),
 
   disposeSession: (instanceId: SandboxProviderInstanceId) =>
