@@ -51,6 +51,7 @@ Each entry should include:
 ### Pi compaction transport + UI surface
 
 - **Status:** deferred
+- **Tracking issue:** [#16](https://github.com/gannonh/kata-code/issues/16)
 - **Area:** providers, pi, orchestration, ui
 - **Source:** [Pi coding agent provider support](/specs/2026-06-25-pi-coding-agent-support-design.md#build-completion-report)
 - **Rationale:** `ProviderService.compactConversation` is wired (mirroring `rollbackConversation`'s internal-caller pattern) but no orchestration `thread.compact` command + reactor or web/desktop UI surface invokes it yet.
@@ -60,8 +61,9 @@ Each entry should include:
 ### Pi provider strict quality review follow-ups
 
 - **Status:** deferred
+- **Tracking issue:** [#14](https://github.com/gannonh/kata-code/issues/14)
 - **Area:** providers, pi, code-quality, testing
-- **Source:** [GitHub issue #14](https://github.com/gannonh/kata-code/issues/14), strict-quality-review of `feat/pi-coding-agent-support`
+- **Source:** [GitHub issue #14](https://github.com/gannonh/kata-code/issues/14), strict-quality-review carried into `feat/pi-phase2`
 - **Rationale:** Low-severity findings from the strict quality review. Blockers (duplicate `turn.completed`, orphaned items), high-priority issues (stop/restart asymmetry, unsupervised fiber, dead `projectTrustPolicy` config, `withInstanceIdentity` duplication), and medium-priority issues (`makeEvent` type safety, `resolveModel` test-override leak, dead `turns` state) were all fixed in the same pass. These remaining items are cosmetic, pre-existing cross-cutting patterns, or forward-looking contract surface.
 - **Revisit trigger:** Before Pi is promoted out of early-access, or during the next provider-layer refactor sprint.
 - **Notes:** Branch finalize pass (`f8c2b5f5f`) extracted `piRuntimeWarning` in `PiAdapter.ts` to dedupe `runtime.warning` scaffolding. Eight low-severity items remain: L1 PiProvider timeout-branch test, L2 disabled-branch `buildServerProvider` duplication across all providers, L3 `mapPiModels` bespoke dedup, L4 `DateTime.nowUnsafe()` testability, L5 `piTurnFailure` case-sensitivity, L6 unused `TextGenerationProvider` type, L7 `"pi.sdk.event"` literal with no producer, L8 `ThreadErrorBanner.tsx` PR scope.

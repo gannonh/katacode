@@ -1,5 +1,10 @@
 # Specs log
 
+## 2026-06-27 (Pi coding agent provider — roadmap + issue capture)
+
+- Spec is complete; pointed all roadmap surfaces at a single "what's next" entry. Spec [Known follow-ups](/specs/2026-06-25-pi-coding-agent-support-design.md#known-follow-ups) and [specs roadmap](/specs/index.md) Pi row now link the [Pi roadmap section](/providers/pi.md#roadmap--whats-next-for-pi) and the two tracking issues: compaction UI [#16](https://github.com/gannonh/kata-code/issues/16), strict-review polish [#14](https://github.com/gannonh/kata-code/issues/14).
+- Added `Tracking issue` fields to the [deferred-work](/specs/deferred-work.md) compaction and strict-review entries. Filed #16 for the compaction UI deferral (previously registry-only).
+
 ## 2026-06-27 (Pi coding agent provider — AC 15 reclassification)
 
 - Reclassified **AC 15** from "Outstanding" to **Implemented and verified** across the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) (acceptance-criteria status, build/finalize outcomes), [specs roadmap](/specs/index.md), [deferred-work registry](/specs/deferred-work.md), and [Pi provider guide](/providers/pi.md). Evidence: the credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`, gated by `KATACODE_E2E_ENABLE_PI`/`KATACODE_E2E_PI_AGENT_DIR`/`KATACODE_E2E_PI_MODEL`) configures Pi in settings, selects a runtime-discovered model, streams a response, and exercises interrupt/stop; the [`e2e/verify-evidence/README.md`](../../e2e/verify-evidence/README.md) screenshots map those surfaces to AC 15. The prior "AC 15 outstanding" classification was stale and self-contradictory.

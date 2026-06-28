@@ -1,5 +1,9 @@
 # Providers log
 
+## 2026-06-27 (Pi provider — roadmap section)
+
+- Added a [Roadmap — what's next for Pi](/providers/pi.md#roadmap--whats-next-for-pi) section to the [Pi provider guide](/providers/pi.md): spec complete, next increments are compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) then strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)), in priority order with resume-cold context.
+
 ## 2026-06-27 (Pi provider — AC 15 reclassification)
 
 - Replaced the "AC 15 manual validation outstanding" limitation in the [Pi provider guide](/providers/pi.md) with a statement that AC 15 is verified by the credentialed `@pi` E2E (`e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`) and the [`e2e/verify-evidence/`](../../e2e/verify-evidence/README.md) screenshots.

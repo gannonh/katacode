@@ -1,5 +1,9 @@
 # OKF bundle log
 
+## 2026-06-27 (Pi provider — roadmap consolidation + issue capture)
+
+Made "what's next for Pi" answerable from one place. Added a [Roadmap — what's next for Pi](/providers/pi.md#roadmap--whats-next-for-pi) section to the provider guide: spec complete (17/17 ACs verified), next increments in priority order are compaction UI ([#16](https://github.com/gannonh/kata-code/issues/16)) then strict-review polish ([#14](https://github.com/gannonh/kata-code/issues/14)). Filed the previously-unfiled compaction deferral as GitHub issue #16 (created the `deferred` label) and added a branch-correction comment to #14 (carried into `feat/pi-phase2`). Wired tracking-issue links into both [deferred-work](/specs/deferred-work.md) entries, the spec [Known follow-ups](/specs/2026-06-25-pi-coding-agent-support-design.md#known-follow-ups), and the [specs roadmap](/specs/index.md) Pi row. Validation: `vp run check:okf` pass.
+
 ## 2026-06-27 (Pi provider — AC 15 reclassification correction)
 
 Corrected a stale, self-contradictory classification left by the prior finalize OKF pass (`428bacf48`): **AC 15** was marked "Outstanding"/"deferred" while the credentialed `@pi` E2E and verify-evidence screenshots already covered every AC 15 surface. Verified coverage against `e2e/tests/agent/pi-smoke.spec.ts`, `e2e/tests/settings/pi-provider.spec.ts`, and [`e2e/verify-evidence/README.md`](../../e2e/verify-evidence/README.md), then reclassified AC 15 as **Implemented and verified** in the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) (acceptance status, build/finalize outcomes), [specs roadmap](/specs/index.md), and [Pi provider guide](/providers/pi.md). Removed the "Pi provider manual-authenticated validation (AC 15)" [deferred-work](/specs/deferred-work.md) entry as resolved; kept the compaction transport + UI and strict-quality-review (issue #14) entries. Validation: `vp run check:okf` pass.

@@ -478,9 +478,12 @@ Build should implement a Kata-native `PiDriver` and use Synara only as reference
 
 ### Known follow-ups
 
-- **`thread.compact` orchestration command + UI:** the `compactConversation` service method is wired but no transport/UI surface invokes it yet (mirrors the `rollbackConversation` precedent).
-- **`ProviderRuntimeIngestion` compaction test for the `active` no-op:** suggested by the T3-FIX code-quality review as a regression lock.
-- **Pi provider strict quality review follow-ups (issue #14):** eight low-severity items remain in the deferred-work registry; revisit before Pi leaves early-access.
+The spec is complete; these are post-spec increments tracked as GitHub issues
+(see the [Pi roadmap](/providers/pi.md#roadmap--whats-next-for-pi)):
+
+- **Compaction UI — [#16](https://github.com/gannonh/kata-code/issues/16):** the `compactConversation` service method and adapter are wired but no `thread.compact` transport/UI surface invokes it yet (mirrors the `rollbackConversation` precedent). Highest-value next increment.
+- **Strict quality review follow-ups — [#14](https://github.com/gannonh/kata-code/issues/14):** eight low-severity items remain in the deferred-work registry; revisit before Pi leaves early-access.
+- **`ProviderRuntimeIngestion` compaction test for the `active` no-op:** suggested by the T3-FIX code-quality review as a regression lock; folded into #14's scope.
 
 ### Acceptance criteria status
 
