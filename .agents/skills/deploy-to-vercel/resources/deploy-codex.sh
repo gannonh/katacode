@@ -236,7 +236,7 @@ fi
 
 # Deploy
 echo "Deploying..." >&2
-RESPONSE=$(curl -s -X POST "$DEPLOY_ENDPOINT" -F "file=@$TARBALL" -F "framework=$FRAMEWORK")
+RESPONSE=$(curl -sS --connect-timeout 10 --max-time 120 -X POST "$DEPLOY_ENDPOINT" -F "file=@$TARBALL" -F "framework=$FRAMEWORK")
 
 # Check for error in response
 if echo "$RESPONSE" | grep -q '"error"'; then
@@ -263,7 +263,7 @@ MAX_ATTEMPTS=60  # 5 minutes max (60 * 5 seconds)
 ATTEMPT=0
 
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PREVIEW_URL")
+    HTTP_STATUS=$(curl -sS --connect-timeout 10 --max-time 15 -o /dev/null -w "%{http_code}" "$PREVIEW_URL" || echo "000")
 
     if [ "$HTTP_STATUS" -eq 200 ]; then
         echo "" >&2

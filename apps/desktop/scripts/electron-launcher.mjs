@@ -27,11 +27,9 @@ const repoRoot = resolve(desktopDir, "..", "..");
 // parallel worker's dev .app gets a unique CFBundleIdentifier; macOS Launch
 // Services otherwise treats same-bundle-ID apps as single-instance and the
 // second concurrent electron.launch exits before opening a window.
-const devBundleIdSuffix =
-  process.env.KATACODE_DEV_BUNDLE_ID_SUFFIX?.trim() ||
-  basename(repoRoot)
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "");
+const devBundleIdSuffix = (process.env.KATACODE_DEV_BUNDLE_ID_SUFFIX?.trim() || basename(repoRoot))
+  .toLowerCase()
+  .replaceAll(/[^a-z0-9]+/g, "");
 const devBranding = resolveAppBranding({
   isDevelopment,
   appVersion: process.env.npm_package_version ?? "0.0.0-dev",
