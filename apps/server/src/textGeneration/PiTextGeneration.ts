@@ -104,7 +104,7 @@ export const makePiTextGeneration = Effect.fn("makePiTextGeneration")(function* 
   const agentDir = resolvePiAgentDir(piSettings.agentDir);
   const { authStorage, modelRegistry } = createPiRegistries(agentDir);
   const availableModels = (options?.availableModels ??
-    (modelRegistry.getAvailable() as ReadonlyArray<PiModelShape>)) as ReadonlyArray<PiModelShape>;
+    modelRegistry.getAvailable()) as ReadonlyArray<PiModelShape>;
 
   const resolveModel = (selection: ModelSelection): PiModelShape | undefined => {
     const slug = selection.model;
@@ -207,19 +207,15 @@ export const makePiTextGeneration = Effect.fn("makePiTextGeneration")(function* 
 
         const decode = Schema.decodeEffect(Schema.fromJsonString(outputSchema));
         return yield* decode(raw).pipe(
-          Effect.matchEffect({
-            onFailure: (cause) =>
-              Effect.fail(
-                fail(
-                  operation,
-                  `Pi returned invalid structured output: ${
-                    cause instanceof Error ? cause.message : String(cause)
-                  }.`,
-                  cause,
-                ),
-              ),
-            onSuccess: (value) => Effect.succeed(value),
-          }),
+          Effect.mapError((cause) =>
+            fail(
+              operation,
+              `Pi returned invalid structured output: ${
+                cause instanceof Error ? cause.message : String(cause)
+              }.`,
+              cause,
+            ),
+          ),
         );
       }).pipe(Effect.ensuring(cleanup));
     });

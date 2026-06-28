@@ -90,23 +90,16 @@ export async function findAvailablePortOffset(startOffset: number): Promise<{
   readonly serverPort: number;
   readonly webPort: number;
 }> {
-  for (let offset = startOffset; offset < 10_000; offset += 1) {
-    const { serverPort, webPort } = portPairForOffset(offset);
-    if (serverPort > MAX_PORT || webPort > MAX_PORT) {
-      break;
-    }
-
+  for await (const candidate of candidatePortPairs(startOffset)) {
     if (
-      (await isPortAvailableOnAllHosts(serverPort)) &&
-      (await isPortAvailableOnAllHosts(webPort))
+      (await isPortAvailableOnAllHosts(candidate.serverPort)) &&
+      (await isPortAvailableOnAllHosts(candidate.webPort))
     ) {
-      return { offset, serverPort, webPort };
+      return candidate;
     }
   }
 
-  throw new Error(
-    `No available dev ports found from offset ${startOffset}. Tried server=${BASE_SERVER_PORT}+n web=${BASE_WEB_PORT}+n up to port ${MAX_PORT}. Free local ports or set KATACODE_PORT_OFFSET.`,
-  );
+  throw noAvailableDevPortsError(startOffset);
 }
 
 /**
@@ -122,19 +115,36 @@ export async function claimAvailablePortOffset(startOffset: number): Promise<{
   readonly webPort: number;
   readonly release: () => Promise<void>;
 }> {
+  for await (const candidate of candidatePortPairs(startOffset)) {
+    const release = await tryClaimPortPair(candidate.serverPort, candidate.webPort);
+    if (release) {
+      return { ...candidate, release };
+    }
+  }
+
+  throw noAvailableDevPortsError(startOffset);
+}
+
+/** Iterate candidate server/web port pairs from `startOffset`, stopping once a
+ *  pair exceeds {@link MAX_PORT}. Shared by {@link findAvailablePortOffset}
+ *  (probe-and-release) and {@link claimAvailablePortOffset} (hold-the-socket) so
+ *  the scan range and bounds check stay identical. */
+async function* candidatePortPairs(startOffset: number): AsyncGenerator<{
+  readonly offset: number;
+  readonly serverPort: number;
+  readonly webPort: number;
+}> {
   for (let offset = startOffset; offset < 10_000; offset += 1) {
     const { serverPort, webPort } = portPairForOffset(offset);
     if (serverPort > MAX_PORT || webPort > MAX_PORT) {
       break;
     }
-
-    const claimed = await tryClaimPortPair(serverPort, webPort);
-    if (claimed) {
-      return { offset, serverPort, webPort, release: claimed };
-    }
+    yield { offset, serverPort, webPort };
   }
+}
 
-  throw new Error(
+function noAvailableDevPortsError(startOffset: number): Error {
+  return new Error(
     `No available dev ports found from offset ${startOffset}. Tried server=${BASE_SERVER_PORT}+n web=${BASE_WEB_PORT}+n up to port ${MAX_PORT}. Free local ports or set KATACODE_PORT_OFFSET.`,
   );
 }

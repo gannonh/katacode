@@ -15,6 +15,11 @@ export interface DeterministicAgentTurn {
   readonly expected: string;
 }
 
+/** Hint appended to deterministic-turn failure messages so a usage/credit/
+ *  rate-limit failure points the operator at the model override env vars. */
+const RATE_LIMIT_HINT =
+  "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.";
+
 export function assertAgentProviderConfigured(phase: string): {
   readonly provider: string;
   readonly model: string;
@@ -161,7 +166,7 @@ export async function expectAssistantReply(
           `prompt=${metadata.prompt}`,
           `expected=${metadata.expected}`,
           `threadError=${JSON.stringify(threadError)}`,
-          "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
+          RATE_LIMIT_HINT,
         ].join("\n"),
       );
     }
@@ -184,7 +189,7 @@ export async function expectAssistantReply(
       `expected=${metadata.expected}`,
       `captured=${JSON.stringify(captured)}`,
       ...(threadError ? [`threadError=${JSON.stringify(threadError)}`] : []),
-      "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
+      RATE_LIMIT_HINT,
     ].join("\n"),
   );
 }
@@ -210,7 +215,7 @@ export async function pollWithThreadErrorGuard<T>(
         [
           `${timeoutMessage}: the agent turn failed first.`,
           `threadError=${JSON.stringify(threadError)}`,
-          "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
+          RATE_LIMIT_HINT,
         ].join("\n"),
       );
     }
@@ -219,12 +224,7 @@ export async function pollWithThreadErrorGuard<T>(
     }
     await page.waitForTimeout(500);
   }
-  throw new Error(
-    [
-      `${timeoutMessage} within ${timeoutMs}ms.`,
-      "If this is a usage/credit/rate-limit error, set a different KATACODE_E2E_PI_MODEL (or the deterministic-chat model) in .env and re-run.",
-    ].join("\n"),
-  );
+  throw new Error([`${timeoutMessage} within ${timeoutMs}ms.`, RATE_LIMIT_HINT].join("\n"));
 }
 
 export function normalizeAssistantText(value: string): string {

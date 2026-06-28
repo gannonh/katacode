@@ -408,7 +408,7 @@ export function makePiAdapter(
     };
 
     const availableModels = (options?.availableModels ??
-      (modelRegistry.getAvailable() as ReadonlyArray<PiModelShape>)) as ReadonlyArray<PiModelShape>;
+      modelRegistry.getAvailable()) as ReadonlyArray<PiModelShape>;
 
     const resolveModel = (
       modelSelection: ProviderSessionStartInput["modelSelection"],
