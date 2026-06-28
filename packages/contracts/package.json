@@ -34,6 +34,10 @@
     "./baseSchemas": {
       "types": "./src/baseSchemas.ts",
       "import": "./src/baseSchemas.ts"
+    },
+    "./sandboxRpc": {
+      "types": "./src/sandboxRpc.ts",
+      "import": "./src/sandboxRpc.ts"
     }
   },
   "scripts": {

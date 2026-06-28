@@ -428,6 +428,12 @@ importers:
       '@kata-sh/code-contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@kata-sh/code-sandbox':
+        specifier: workspace:*
+        version: link:../../packages/sandbox
+      '@kata-sh/code-sandbox-docker':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-docker
       '@kata-sh/code-shared':
         specifier: workspace:*
         version: link:../../packages/shared

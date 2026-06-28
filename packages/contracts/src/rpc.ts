@@ -79,6 +79,17 @@ import {
   ProjectWriteFileResult,
 } from "./project.ts";
 import {
+  SandboxDisposeSessionInput,
+  SandboxDisposeSessionResult,
+  SandboxListInstancesInput,
+  SandboxListInstancesResult,
+  SandboxRpcError,
+  SandboxStartSessionInput,
+  SandboxStartSessionResult,
+  SandboxTestConnectionInput,
+  SandboxTestConnectionProgressEvent,
+} from "./sandboxRpc.ts";
+import {
   TerminalAttachInput,
   TerminalAttachStreamEvent,
   TerminalClearInput,
@@ -230,6 +241,12 @@ export const WS_METHODS = {
   subscribeServerConfig: "subscribeServerConfig",
   subscribeServerLifecycle: "subscribeServerLifecycle",
   subscribeAuthAccess: "subscribeAuthAccess",
+
+  // Sandbox deployment methods (Phase 1: local container driver)
+  sandboxListInstances: "sandbox.listInstances",
+  sandboxTestConnection: "sandbox.testConnection",
+  sandboxStartSession: "sandbox.startSession",
+  sandboxDisposeSession: "sandbox.disposeSession",
 } as const;
 
 export const WsServerUpsertKeybindingRpc = Rpc.make(WS_METHODS.serverUpsertKeybinding, {
@@ -280,6 +297,31 @@ export const WsServerUpdateSettingsRpc = Rpc.make(WS_METHODS.serverUpdateSetting
   payload: Schema.Struct({ patch: ServerSettingsPatch }),
   success: ServerSettings,
   error: Schema.Union([ServerSettingsError, EnvironmentAuthorizationError]),
+});
+
+export const WsSandboxListInstancesRpc = Rpc.make(WS_METHODS.sandboxListInstances, {
+  payload: SandboxListInstancesInput,
+  success: SandboxListInstancesResult,
+  error: Schema.Union([SandboxRpcError, ServerSettingsError, EnvironmentAuthorizationError]),
+});
+
+export const WsSandboxTestConnectionRpc = Rpc.make(WS_METHODS.sandboxTestConnection, {
+  payload: SandboxTestConnectionInput,
+  success: SandboxTestConnectionProgressEvent,
+  error: Schema.Union([SandboxRpcError, ServerSettingsError, EnvironmentAuthorizationError]),
+  stream: true,
+});
+
+export const WsSandboxStartSessionRpc = Rpc.make(WS_METHODS.sandboxStartSession, {
+  payload: SandboxStartSessionInput,
+  success: SandboxStartSessionResult,
+  error: Schema.Union([SandboxRpcError, ServerSettingsError, EnvironmentAuthorizationError]),
+});
+
+export const WsSandboxDisposeSessionRpc = Rpc.make(WS_METHODS.sandboxDisposeSession, {
+  payload: SandboxDisposeSessionInput,
+  success: SandboxDisposeSessionResult,
+  error: Schema.Union([SandboxRpcError, EnvironmentAuthorizationError]),
 });
 
 export const WsServerDiscoverSourceControlRpc = Rpc.make(WS_METHODS.serverDiscoverSourceControl, {
@@ -686,6 +728,10 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerRemoveKeybindingRpc,
   WsServerGetSettingsRpc,
   WsServerUpdateSettingsRpc,
+  WsSandboxListInstancesRpc,
+  WsSandboxTestConnectionRpc,
+  WsSandboxStartSessionRpc,
+  WsSandboxDisposeSessionRpc,
   WsServerDiscoverSourceControlRpc,
   WsServerGetTraceDiagnosticsRpc,
   WsServerGetProcessDiagnosticsRpc,
