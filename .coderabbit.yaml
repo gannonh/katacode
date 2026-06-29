@@ -1,12 +1,7 @@
+# CodeRabbit configuration
+# Reference: https://docs.coderabbit.ai/reference/configuration
+# path_filters: glob patterns; "!" prefix excludes from review.
 reviews:
   path_filters:
+    - "!.agents/**"
     - "!**/*.md"
-issue_enrichment:
-  auto_enrich:
-    enabled: false
-  planning:
-    enabled: false
-    auto_planning:
-      enabled: false
-  labeling:
-    auto_apply_labels: false
