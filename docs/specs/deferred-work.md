@@ -3,7 +3,7 @@ type: Reference
 title: "Deferred work registry"
 description: "Review queue for work intentionally deferred from specs so future planning can revisit, promote, or close it."
 tags: [specs, roadmap, deferred-work, planning]
-timestamp: 2026-06-18T00:00:00Z
+timestamp: 2026-06-29T00:00:00Z
 ---
 
 # Deferred work registry
@@ -157,3 +157,21 @@ Each entry should include:
 - **Rationale:** Dev-target headed verification passed for starter tags; release smoke/settings against a built `.app` depends on maintainer-local `KATACODE_E2E_RELEASE_APP`.
 - **Revisit trigger:** Before nightly desktop promotion or when release artifact paths are standardized in CI/release runbooks.
 - **Notes:** Prerequisite gate verified (`KATACODE_E2E_RELEASE_APP` fails loudly when unset). Nightly commands documented in [e2e/README](../../e2e/README.md).
+
+### Sandbox: reclaim orphaned containers on server restart
+
+- **Status:** deferred
+- **Area:** sandbox, server, docker
+- **Source:** strict quality review of `feat/kata-cloud` — [#18](https://github.com/gannonh/kata-code/issues/18)
+- **Rationale:** Phase 1 session tracking is in-memory (`runningSessions` in `apps/server/src/sandbox/SandboxService.ts`). Server restart resets the map while Docker containers keep running, orphaning `kata.sandbox=true` labeled containers. `AutoRemove` and labels bound the leak but no startup sweep exists. Fixing it expands Phase 1 scope past its acceptance criteria.
+- **Revisit trigger:** Before Phase 3 extends the driver registry beyond Docker, or before any non-developer user relies on deployment sessions.
+- **Notes:** On startup, list `kata.sandbox=true` containers and re-adopt or dispose them by `kata.sandbox.instance` id.
+
+### Sandbox: share Docker config schema between web UI and driver
+
+- **Status:** deferred
+- **Area:** sandbox, web, contracts
+- **Source:** strict quality review of `feat/kata-cloud` — [#19](https://github.com/gannonh/kata-code/issues/19)
+- **Rationale:** `DockerConfigFields` in `apps/web/src/components/settings/SandboxDeploymentSettings.tsx` duplicates the `providerSettingsForm` annotations on `DockerSandboxConfig` (`packages/sandbox-docker/src/config.ts`) because the web cannot import the server-only driver package. The definitions are in sync today but will drift when a field is added. Moving the schema into `packages/sandbox-contracts` and rendering via `ProviderSettingsForm` is a contracts-boundary change out of Phase 1 scope.
+- **Revisit trigger:** Before adding a new Docker config field (e.g. `memory`, `cpus`), or during the Phase 2 sandbox config refactor.
+- **Notes:** Suggested home `packages/sandbox-contracts/src/dockerConfig.ts`; render via the existing `ProviderSettingsForm`.
