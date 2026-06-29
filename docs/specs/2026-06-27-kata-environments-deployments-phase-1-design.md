@@ -2,10 +2,10 @@
 type: Spec
 title: "Kata Environments / Deployments Phase 1 — Container driver + foundations (deep-dive)"
 description: "Deep-dive design for Phase 1: the SandboxProvider SPI substrate (Part A) and the first demoable surface, the local Docker/OrbStack container driver with Settings UI, Connect auto-registration, and an e2e-proven demo (Part B)."
-status: Draft (Part A Approved; Part B drafted, blocked on Part A + 3 open questions)
+status: Implemented (Part A approved + frozen; Part B built — single-client e2e green, two-client AC-1.11 manual UAT, strict-quality-review fixes applied)
 approved_at: 2026-06-27T20:55:20Z
 tags: [specs, phase-1, environments, deployments, sandbox, spi, contracts, docker, container-driver]
-timestamp: 2026-06-27T16:35:04Z
+timestamp: 2026-06-29T00:00:00Z
 ---
 
 # Kata Environments / Deployments Phase 1 — Container driver + foundations
@@ -15,19 +15,23 @@ timestamp: 2026-06-27T16:35:04Z
 This is the Phase 1 deep-dive (one spec per phase; see the
 [roadmap](/specs/2026-06-27-kata-environments-deployments-design.md)). It has two parts:
 
-- **Part A — Foundations (Approved).** The non-demoable substrate: contracts, the capability-based
-  `SandboxProvider` SPI, registry, `sandboxProviderInstances` settings field, test-only stub, and
-  the container-feasibility spike. Part A freezes the SPI before the driver ships.
-- **Part B — Container driver + demo (Drafted; blocked on Part A + open questions).** The
-  `packages/sandbox-docker` driver, generalized secret redaction, `sandbox.*` RPCs, server
-  provision + Connect auto-registration, the Settings → Environments UI, and the Phase 1 demo
-  (AC-1.13) proven by walkthrough then encoded as `@environments-deploy` e2e. The deep-dive
-  below is complete; three open questions (driver kind slug, image-pull behavior, per-deployment
-  tunnel) are flagged for resolution before implementation. Part B cannot start until Part A is
-  merged and the AC-1.7 spike finding is recorded.
+- **Part A — Foundations (Approved + frozen).** The non-demoable substrate: contracts, the
+  capability-based `SandboxProvider` SPI, registry, `sandboxProviderInstances` settings field,
+  test-only stub, and the container-feasibility spike. Part A freezes the SPI before the driver
+  ships.
+- **Part B — Container driver + demo (Implemented).** The `packages/sandbox-docker` driver,
+  generalized secret redaction, `sandbox.*` RPCs, server provision + Connect auto-registration,
+  the Settings → Environments UI, and the Phase 1 demo (AC-1.13). The single-client demo flow is
+  e2e-automated under `@environments-deploy`; the two-client reachability slice (AC-1.11) is
+  recorded as manual UAT per the roadmap standing rule. A strict quality review pass landed
+  driver-routing, idempotency, and fail-loud fixes (see the [Build completion
+  report](#build-completion-report-2026-06-29)).
 
 Phase 1 is complete only when its demo (AC-1.13) passes. Part A and Part B ship together as one
-phase; Part A is an internal checkpoint (SPI freeze), not a standalone deliverable.
+phase; Part A is an internal checkpoint (SPI freeze), not a standalone deliverable. The three
+Part B open questions were resolved during implementation: one `docker` kind (works against
+Docker Desktop or OrbStack via `$DOCKER_HOST`), `validate` pulls a missing image, and the relay
+managed endpoint fronts the loopback origin (no per-container `cloudflared` tunnel in Phase 1).
 
 ## Goal
 
@@ -732,3 +736,62 @@ desktop-dev --grep @environments-deploy`. _(AC-1.1 gate still applies)_
 - **Blocked on:** Part A merged + AC-1.7 spike finding recorded.
 - **Required verification:** AC-1.8 … AC-1.13 + CI parity + `vp run e2e --project desktop-dev
 --grep @environments-deploy` (single-client) + manual UAT (two-client reachability).
+
+## Build completion report (2026-06-29)
+
+Part B is implemented on `feat/kata-cloud` (Part A foundations + Part B driver/RPC/UI/e2e).
+
+**Delivered:**
+
+- `packages/sandbox-contracts` — `reachability`, `sessionState`, `environmentConfig` schemas
+  plus re-exports of the contracts-layer sandbox-instance schemas (cycle-avoidance documented in
+  `packages/contracts/src/sandboxProviderInstance.ts`).
+- `packages/sandbox` — the frozen `SandboxProvider` SPI (`SandboxProviderDriver.ts`),
+  `SandboxProviderRegistry` with graceful unknown-driver degradation, and a test stub driver.
+- `packages/sandbox-docker` — `DockerSandboxProvider` over the raw Docker Engine HTTP API
+  (`dockerEngine.ts`, no `dockerode`), config schema, and a smoke script.
+- `apps/server/src/sandbox/SandboxService.ts` — `sandbox.listInstances` /
+  `testConnection` (streaming) / `startSession` (provision + Connect auto-registration) /
+  `disposeSession` RPC handlers, wired into `apps/server/src/ws.ts`.
+- `apps/web/src/components/settings/SandboxDeploymentSettings.tsx` — Settings → Environments
+  deployment-target UI (add dialog, target card, Test connection / Start session / Dispose).
+- `e2e/tests/environments-deploy/container-deploy.spec.ts` tagged `@environments-deploy`, with
+  flow helpers in `e2e/src/flows/settings.ts` and the `environmentsDeploy` tag in
+  `e2e/src/config/tags.ts`.
+- Generalized `ServerSecretStore` redaction to `sandboxProviderInstances` (AC-1.8).
+
+**Open questions resolved during implementation:** one `docker` kind (OrbStack via
+`$DOCKER_HOST`); `validate` pulls a missing image (404 → `images/create`); the relay managed
+endpoint fronts the loopback origin, so no per-container `cloudflared` tunnel in Phase 1.
+
+**Strict quality review pass (2026-06-29).** An adversarial two-reviewer review of the
+`feat/kata-cloud` diff landed fixes on `b3b7f25bc` / `8af7d6bf9` / `5fa629c89`:
+
+- `disposeSession` now routes through the driver stored alongside the handle in
+  `runningSessions` instead of hardcoding `DockerSandboxProvider` (correctness for future
+  non-Docker drivers).
+- `startSession` guards against concurrent calls for the same `instanceId` (double-click during
+  the up-to-60s provision window) that would orphan containers.
+- `registryError` passes the reason through verbatim; a disabled instance surfaces as
+  `disabled`, not coerced to `invalid-config`.
+- `resolveConfig` dropped the silent try/catch fallback so malformed config fails loudly
+  (AGENTS.md fail-loud) instead of running the wrong container.
+- `DockerSandboxProvider.provision` uses `req.image` as the authoritative image (SPI contract),
+  removing the driver-specific image cast from the service layer.
+- `dispose` logs a warning on daemon errors instead of silently swallowing them.
+- The settings UI deduped busy-state cleanup behind a `withBusy` helper and inlined the RPC
+  client consistently with `ConnectionsSettings.tsx`.
+- `scripts/release-smoke.ts` was missing the three new sandbox packages from its manifest
+  fixture (broke `release:smoke` with `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND`); added them.
+
+**Deferred work filed:** [#18](https://github.com/gannonh/kata-code/issues/18) reclaim orphaned
+containers on server restart, [#19](https://github.com/gannonh/kata-code/issues/19) share the
+Docker config schema between the web UI and driver. Both recorded in the
+[deferred-work registry](/specs/deferred-work.md).
+
+**Verification:** `vp run typecheck` 0 errors, `vp check` 0 errors, `vp run test` repo-green
+across all packages, `vp run release:smoke` passed. The two-client AC-1.11 slice remains manual
+UAT per the spec standing rule.
+
+**Known follow-ups:** the deferred-work items above; a dedicated architecture note for the
+sandbox SPI / deployment-target layer is not yet in `docs/architecture/` (future OKF pass).

@@ -1,5 +1,12 @@
 # Specs log
 
+## 2026-06-29 (Environments / Deployments Phase 1 — Part B built, strict-quality-review fixes)
+
+- Flipped the [Phase 1 deep-dive](/specs/2026-06-27-kata-environments-deployments-phase-1-design.md) status from Draft (blocked) to **Implemented** (frontmatter + `## Status`): Part A foundations approved and frozen, Part B container driver + Settings UI + `@environments-deploy` e2e built. Resolved the three Part B open questions in the status text (one `docker` kind; `validate` pulls a missing image; relay managed endpoint fronts loopback, no per-container tunnel).
+- Appended a [Build completion report](/specs/2026-06-27-kata-environments-deployments-phase-1-design.md#build-completion-report-2026-06-29) covering delivered packages, the strict-quality-review fix pass (`b3b7f25bc` / `8af7d6bf9` / `5fa629c89`), deferred work filed ([#18](https://github.com/gannonh/kata-code/issues/18), [#19](https://github.com/gannonh/kata-code/issues/19)), and verification results.
+- Updated the [specs roadmap](/specs/index.md) Environments/Deployments row to Implemented with a link to the build completion report.
+- Recorded the two sandbox deferred-work items in the [deferred-work registry](/specs/deferred-work.md): reclaim orphaned containers on server restart, share the Docker config schema between web UI and driver.
+
 ## 2026-06-28 (Pi coding agent provider — spec closed as Verified)
 
 - Marked the [Pi spec](/specs/2026-06-25-pi-coding-agent-support-design.md) `status: Verified` (frontmatter + `## Status`) and removed the inline "Resume here — what's next" roadmap block added the prior day. The spec is now a closed record; the Build completion report and Finalize outcome remain as evidence.
