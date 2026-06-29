@@ -8,16 +8,17 @@
 import * as Schema from "effect/Schema";
 
 import { makeProviderSettingsSchema } from "@kata-sh/code-contracts/settings";
+import { PortSchema, TrimmedNonEmptyString } from "@kata-sh/code-contracts/baseSchemas";
 
 export const DockerSandboxConfig = makeProviderSettingsSchema({
-  image: Schema.String.pipe(
+  image: TrimmedNonEmptyString.pipe(
     Schema.annotateKey({
       title: "Image",
       description: "Container image (must contain your start command's runtime).",
       providerSettingsForm: { placeholder: "katacode:local", clearWhenEmpty: "omit" },
     }),
   ),
-  command: Schema.String.pipe(
+  command: TrimmedNonEmptyString.pipe(
     Schema.annotateKey({
       title: "Start command",
       description:
@@ -25,7 +26,7 @@ export const DockerSandboxConfig = makeProviderSettingsSchema({
       providerSettingsForm: { placeholder: "katacode serve --port 13773", clearWhenEmpty: "omit" },
     }),
   ),
-  port: Schema.Number.pipe(
+  port: PortSchema.pipe(
     Schema.annotateKey({
       title: "Container port",
       description: "In-container port the Kata server listens on.",

@@ -86,7 +86,7 @@ export class SandboxProviderRegistry {
         message: `No sandbox driver registered for kind "${config.driver as string}".`,
       };
     }
-    if (registration.configDecoder !== undefined && config.config !== undefined) {
+    if (registration.configDecoder !== undefined) {
       try {
         const decoded = registration.configDecoder(config.config);
         return {

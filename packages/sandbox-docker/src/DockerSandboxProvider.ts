@@ -154,12 +154,23 @@ export const DockerSandboxProvider: SandboxProvider = {
         "image inspect",
       );
       if (img.status === 404) {
-        yield* engine(
+        const pull = yield* engine(
           `/images/create?fromImage=${encodeURIComponent(image)}`,
           { method: "POST" },
           "unreachable",
           "image pull",
         );
+        if (pull.status >= 300) {
+          return yield* new SandboxProviderError({
+            reason: "unreachable",
+            message: `image pull ${pull.status}: ${pull.body.slice(0, 200)}`,
+          });
+        }
+      } else if (img.status >= 300) {
+        return yield* new SandboxProviderError({
+          reason: "unreachable",
+          message: `image inspect ${img.status}: ${img.body.slice(0, 200)}`,
+        });
       }
     }),
 
@@ -222,6 +233,12 @@ export const DockerSandboxProvider: SandboxProvider = {
         "provision-failed",
         "inspect",
       );
+      if (inspect.status >= 400) {
+        return yield* new SandboxProviderError({
+          reason: "provision-failed",
+          message: `container inspect ${inspect.status}: ${inspect.body.slice(0, 200)}`,
+        });
+      }
       const info = parseJson(inspect.body) as {
         State: {
           Status: string;
@@ -304,7 +321,19 @@ export const DockerSandboxProvider: SandboxProvider = {
         "exec-failed",
         "exec start",
       );
+      if (startRes.status >= 300) {
+        return yield* new SandboxProviderError({
+          reason: "exec-failed",
+          message: `exec start: ${startRes.status} ${startRes.body.slice(0, 200)}`,
+        });
+      }
       const exitRes = yield* engine(`/exec/${execId}/json`, {}, "exec-failed", "exec inspect");
+      if (exitRes.status >= 300) {
+        return yield* new SandboxProviderError({
+          reason: "exec-failed",
+          message: `exec inspect: ${exitRes.status} ${exitRes.body.slice(0, 200)}`,
+        });
+      }
       const exitCode = Number((parseJson(exitRes.body) as { ExitCode?: number }).ExitCode ?? 0);
       return { exitCode, stdout: startRes.body, stderr: "" } satisfies SandboxExecResult;
     }),

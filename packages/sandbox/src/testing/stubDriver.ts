@@ -34,6 +34,9 @@ export const StubSandboxConfig = Schema.Struct({
 });
 export type StubSandboxConfig = typeof StubSandboxConfig.Type;
 
+// Hoist compiled schema function to module scope (kata-code/no-inline-schema-compile).
+const decodeStubConfig = Schema.decodeUnknownSync(StubSandboxConfig);
+
 export interface StubDriverOptions {
   readonly withSnapshot?: boolean;
   readonly withRenewTimeout?: boolean;
@@ -70,11 +73,18 @@ export function createStubSandboxProvider(options: StubDriverOptions = {}): Sand
     kind,
     validate: (config) =>
       Effect.gen(function* () {
-        if (
-          typeof config === "object" &&
-          config !== null &&
-          (config as StubSandboxConfig).failValidate === true
-        ) {
+        // Decode against StubSandboxConfig so malformed configs trigger the
+        // SPI's invalid-config path (the registry surfaces this as an
+        // unavailable instance). The stub's `validate` is a no-op otherwise.
+        const decoded = yield* Effect.try({
+          try: () => decodeStubConfig(config),
+          catch: (e) =>
+            new SandboxProviderError({
+              reason: "invalid-config",
+              message: e instanceof Error ? e.message : String(e),
+            }),
+        });
+        if (decoded.failValidate === true) {
           return yield* new SandboxProviderError({
             reason: "unreachable",
             message: "stub validate forced failure",

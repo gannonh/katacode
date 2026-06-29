@@ -129,9 +129,14 @@ export function SandboxDeploymentSettings() {
       withBusy(instanceId, "test", async () => {
         setTestProgress((prev) => ({ ...prev, [instanceId]: [] }));
         try {
+          let failedDetail: string | null = null;
           await getPrimaryEnvironmentConnection().client.sandbox.testConnection(
             instanceId as never,
             (event: SandboxTestConnectionProgressEvent) => {
+              if (!event.ok) {
+                failedDetail =
+                  "detail" in event && event.detail ? event.detail : `${event.stage} failed.`;
+              }
               setTestProgress((prev) => ({
                 ...prev,
                 [instanceId]: [
@@ -143,6 +148,9 @@ export function SandboxDeploymentSettings() {
               }));
             },
           );
+          if (failedDetail) {
+            throw new Error(failedDetail);
+          }
           toastManager.add({
             type: "success",
             title: "Test connection complete",
@@ -239,6 +247,14 @@ export function SandboxDeploymentSettings() {
 
   const handleRemove = useCallback(
     (instanceId: string) => {
+      if (activeSession[instanceId]) {
+        toastManager.add({
+          type: "error",
+          title: "Cannot remove deployment target",
+          description: `Dispose the active session for '${instanceId}' before removing it.`,
+        });
+        return;
+      }
       const nextMap = { ...instanceMap };
       delete nextMap[instanceId as keyof typeof nextMap];
       updateSettings({ sandboxProviderInstances: nextMap });
@@ -248,7 +264,7 @@ export function SandboxDeploymentSettings() {
         description: `'${instanceId}' removed from Environments.`,
       });
     },
-    [instanceMap, updateSettings],
+    [activeSession, instanceMap, updateSettings],
   );
 
   const updateInstance = useCallback(
@@ -594,6 +610,33 @@ function setConfigField(
   return Object.keys(base).length > 0 ? base : undefined;
 }
 
+/** Parse a container port string into a validated integer in 1..65535, or null. */
+function parseContainerPort(value: string): number | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/u.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 65_535 ? parsed : null;
+}
+
+/** Set a numeric container port field, rejecting non-integer/out-of-range values.
+ * An empty input clears the field. */
+function setContainerPort(
+  config: unknown,
+  key: string,
+  value: string,
+): Record<string, unknown> | undefined {
+  const base: Record<string, unknown> =
+    config !== null && typeof config === "object" ? { ...(config as Record<string, unknown>) } : {};
+  if (value.trim().length === 0) {
+    delete base[key];
+  } else {
+    const parsed = parseContainerPort(value);
+    if (parsed === null) return base;
+    base[key] = parsed;
+  }
+  return Object.keys(base).length > 0 ? base : undefined;
+}
+
 /**
  * Inline editor for the docker driver config (image, command, port), mirroring
  * `ProviderSettingsForm`'s card variant layout. The web app cannot import the
@@ -648,7 +691,7 @@ function DockerConfigFields({ config, idPrefix, onChange }: DockerConfigFieldsPr
               onCommit={(next) =>
                 onChange(
                   field.kind === "port"
-                    ? setConfigField(config, field.key, next, "persist")
+                    ? setContainerPort(config, field.key, next)
                     : setConfigField(config, field.key, next),
                 )
               }
@@ -690,9 +733,9 @@ function AddDeploymentTargetDialogBody({ existingIds, onAdd }: AddDeploymentTarg
       setError(`Instance id '${instanceId}' already exists. Choose a different label.`);
       return;
     }
-    const portNumber = Number(port);
-    if (!Number.isFinite(portNumber) || portNumber <= 0) {
-      setError("Container port must be a positive number.");
+    const portNumber = parseContainerPort(port);
+    if (portNumber === null) {
+      setError("Container port must be an integer from 1 to 65535.");
       return;
     }
     try {

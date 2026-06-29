@@ -149,10 +149,30 @@ export async function authorizeConnectCli(runContext: E2ERunContext, page: Page)
 
   logHarnessPhase("Starting `katacode connect login` and capturing the authorize URL...");
   const handle = spawnConnectLogin(runContext);
-  const authorizeUrl = await handle.authorizeUrl.catch((error) => {
-    handle.cancel();
-    throw error;
-  });
+  let authorizeUrlTimeout: ReturnType<typeof setTimeout> | undefined;
+  const authorizeUrl = await Promise.race([
+    handle.authorizeUrl,
+    handle.done.then(() => {
+      throw new Error("`katacode connect login` exited before printing the OAuth authorize URL.");
+    }),
+    new Promise<never>((_, reject) => {
+      authorizeUrlTimeout = setTimeout(() => {
+        handle.cancel();
+        reject(
+          new Error(
+            "`katacode connect login` did not print the OAuth authorize URL before timing out.",
+          ),
+        );
+      }, E2E_TIMEOUTS.authMs);
+    }),
+  ])
+    .catch((error) => {
+      handle.cancel();
+      throw error;
+    })
+    .finally(() => {
+      if (authorizeUrlTimeout) clearTimeout(authorizeUrlTimeout);
+    });
 
   logHarnessPhase(`Opening Clerk authorize URL and signing in the Google test user (${email})...`);
   await page.goto(authorizeUrl, { waitUntil: "domcontentloaded", timeout: E2E_TIMEOUTS.authMs });

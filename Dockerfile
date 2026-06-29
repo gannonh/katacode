@@ -124,6 +124,16 @@ ENV KATACODE_MODE=desktop \
 RUN printf '#!/bin/sh\nexec node /app/apps/server/dist/bin.mjs "$@"\n' > /usr/local/bin/katacode \
     && chmod +x /usr/local/bin/katacode
 
+# Run the server and cloudflared as an unprivileged user instead of root.
+# A writable HOME is required for the Node server's config/cache dirs.
+RUN addgroup -S katacode \
+    && adduser -S -D -G katacode -h /home/katacode katacode \
+    && mkdir -p /home/katacode \
+    && chown -R katacode:katacode /home/katacode
+ENV HOME=/home/katacode
+
 EXPOSE 13773
+
+USER katacode
 
 ENTRYPOINT ["node", "/app/apps/server/dist/bin.mjs"]

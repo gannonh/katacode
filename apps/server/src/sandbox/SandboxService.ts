@@ -377,6 +377,11 @@ interface RunningSession {
 /** In-memory map of running sessions (instanceId → handle + driver). Phase 1; not durable. */
 const runningSessions = new Map<string, RunningSession>();
 
+/** In-flight provisioning reservations (instanceId). Prevents concurrent startSession
+ * calls from racing past the runningSessions check and booting duplicate containers.
+ * Cleared in an ensuring block after provision completes (success or failure). */
+const startingSessions = new Set<string>();
+
 /**
  * The live sandbox service. `startSession` requires the Kata Code Connect
  * service environment (read by `reconcileDesiredCloudLink`) in its context; the
@@ -495,87 +500,105 @@ export const SandboxServiceLive = {
       // (e.g. a double-click during the up-to-60s provision window) would
       // boot a second container and orphan the first one with no handle to
       // dispose. Fail fast instead.
-      if (runningSessions.has(instanceId as string)) {
+      const sessionKey = instanceId as string;
+      if (runningSessions.has(sessionKey) || startingSessions.has(sessionKey)) {
         return yield* new SandboxRpcError({
           reason: "provision-failed",
           message: "A session is already running for this deployment target.",
         });
       }
-      const registry = buildRegistry();
-      const config = (settings.sandboxProviderInstances as SandboxProviderInstanceConfigMap)[
-        instanceId as SandboxProviderInstanceId
-      ];
-      if (config === undefined) {
-        return yield* new SandboxRpcError({
-          reason: "invalid-config",
-          message: "instance not found",
-        });
-      }
-      const inst = registry.materializeOne(instanceId, config);
-      if (inst.kind !== "available") {
-        return yield* registryError(inst.reason, inst.message);
-      }
-      // Per-session Kata WebSocket auth token (required for non-loopback clients).
-      // @effect-diagnostics-next-line effect(globalDateInEffect):off - random token, not a clock read.
-      const bootstrapToken = NodeCrypto.randomBytes(24).toString("hex");
-      const handle = yield* inst.driver
-        .provision({
-          instanceId: instanceId as string,
-          config: inst.config,
-          image: DEFAULT_DOCKER_CONFIG.image,
-          env: [["KATACODE_DESKTOP_BOOTSTRAP_TOKEN", bootstrapToken]],
-        })
-        .pipe(Effect.mapError(mapDriverError));
-      runningSessions.set(instanceId as string, { handle, driver: inst.driver });
-      const reach = yield* inst.driver
-        .reachability(handle, 13773)
-        .pipe(Effect.mapError(mapDriverError));
-      const endpoint: AdvertisedEndpoint = createAdvertisedEndpoint({
-        id: `sandbox-${instanceId as string}`,
-        label: config.displayName ?? `Container ${instanceId as string}`,
-        provider: SANDBOX_ENDPOINT_PROVIDER,
-        httpBaseUrl: reach.httpBaseUrl,
-        reachability: "loopback",
-        source: "server",
-      });
-      // Connect auto-registration (AC-1.11): authenticate to the freshly booted
-      // container with its desktop bootstrap token, ask that container to sign
-      // the link proof for its own descriptor/keypair, then apply the returned
-      // relay config back to the container. This keeps the linked environment id
-      // and endpoint bound to the deployed container rather than the parent
-      // desktop server. A missing user/CLI Connect token or relay failure fails
-      // the RPC and tears down the just-created container.
-      const descriptor = yield* registerSandboxWithConnect({
-        httpBaseUrl: reach.httpBaseUrl.replace("localhost", "127.0.0.1"),
-        bootstrapToken,
-        connectAuthToken: options?.connectAuthToken,
-      }).pipe(
-        Effect.catch((error: SandboxRpcError) =>
-          Effect.sync(() => runningSessions.delete(instanceId as string)).pipe(
-            Effect.andThen(
-              inst.driver.dispose(handle).pipe(
-                Effect.catch((disposeError) =>
-                  Effect.logWarning(
-                    "Could not dispose sandbox after Connect registration failure",
-                    {
+      startingSessions.add(sessionKey);
+      return yield* Effect.gen(function* () {
+        const registry = buildRegistry();
+        const config = (settings.sandboxProviderInstances as SandboxProviderInstanceConfigMap)[
+          instanceId as SandboxProviderInstanceId
+        ];
+        if (config === undefined) {
+          return yield* new SandboxRpcError({
+            reason: "invalid-config",
+            message: "instance not found",
+          });
+        }
+        const inst = registry.materializeOne(instanceId, config);
+        if (inst.kind !== "available") {
+          return yield* registryError(inst.reason, inst.message);
+        }
+        // Per-session Kata WebSocket auth token (required for non-loopback clients).
+        // @effect-diagnostics-next-line effect(globalDateInEffect):off - random token, not a clock read.
+        const bootstrapToken = NodeCrypto.randomBytes(24).toString("hex");
+        const handle = yield* inst.driver
+          .provision({
+            instanceId: instanceId as string,
+            config: inst.config,
+            image: DEFAULT_DOCKER_CONFIG.image,
+            env: [["KATACODE_DESKTOP_BOOTSTRAP_TOKEN", bootstrapToken]],
+          })
+          .pipe(Effect.mapError(mapDriverError));
+        runningSessions.set(sessionKey, { handle, driver: inst.driver });
+        const reach = yield* inst.driver.reachability(handle, 13773).pipe(
+          Effect.mapError(mapDriverError),
+          Effect.catch((error: SandboxRpcError) =>
+            Effect.sync(() => runningSessions.delete(sessionKey)).pipe(
+              Effect.andThen(
+                inst.driver.dispose(handle).pipe(
+                  Effect.catch((disposeError) =>
+                    Effect.logWarning("Could not dispose sandbox after reachability failure", {
                       cause: disposeError,
-                    },
+                    }),
                   ),
                 ),
               ),
+              Effect.andThen(Effect.fail(error)),
             ),
-            Effect.andThen(
-              Effect.fail(
-                new SandboxRpcError({
-                  reason: "connect-failed",
-                  message: `Connect auto-registration failed: ${error.message}`,
-                }),
+          ),
+        );
+        const endpoint: AdvertisedEndpoint = createAdvertisedEndpoint({
+          id: `sandbox-${instanceId as string}`,
+          label: config.displayName ?? `Container ${instanceId as string}`,
+          provider: SANDBOX_ENDPOINT_PROVIDER,
+          httpBaseUrl: reach.httpBaseUrl,
+          reachability: "loopback",
+          source: "server",
+        });
+        // Connect auto-registration (AC-1.11): authenticate to the freshly booted
+        // container with its desktop bootstrap token, ask that container to sign
+        // the link proof for its own descriptor/keypair, then apply the returned
+        // relay config back to the container. This keeps the linked environment id
+        // and endpoint bound to the deployed container rather than the parent
+        // desktop server. A missing user/CLI Connect token or relay failure fails
+        // the RPC and tears down the just-created container.
+        const descriptor = yield* registerSandboxWithConnect({
+          httpBaseUrl: reach.httpBaseUrl.replace("localhost", "127.0.0.1"),
+          bootstrapToken,
+          connectAuthToken: options?.connectAuthToken,
+        }).pipe(
+          Effect.catch((error: SandboxRpcError) =>
+            Effect.sync(() => runningSessions.delete(sessionKey)).pipe(
+              Effect.andThen(
+                inst.driver.dispose(handle).pipe(
+                  Effect.catch((disposeError) =>
+                    Effect.logWarning(
+                      "Could not dispose sandbox after Connect registration failure",
+                      {
+                        cause: disposeError,
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              Effect.andThen(
+                Effect.fail(
+                  new SandboxRpcError({
+                    reason: "connect-failed",
+                    message: `Connect auto-registration failed: ${error.message}`,
+                  }),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      return { instanceId, environmentId: descriptor.environmentId, endpoint };
+        );
+        return { instanceId, environmentId: descriptor.environmentId, endpoint };
+      }).pipe(Effect.ensuring(Effect.sync(() => startingSessions.delete(sessionKey))));
     }),
 
   disposeSession: (instanceId: SandboxProviderInstanceId) =>

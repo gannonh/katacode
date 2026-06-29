@@ -17,6 +17,11 @@ export class DockerEngineError extends Error {
 
 const DEFAULT_SOCKET = "/var/run/docker.sock";
 
+/** Default per-request deadline for raw Docker Engine calls (ms). If the daemon
+ * accepts the connection but never finishes the response, the request is
+ * aborted so callers surface a typed `DockerEngineError` instead of hanging. */
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
 /** Resolve the Docker socket path from `$DOCKER_HOST` (unix://…) or the default. */
 export function resolveDockerSocket(env: NodeJS.ProcessEnv = process.env): string {
   const host = env.DOCKER_HOST;
@@ -32,9 +37,10 @@ export interface DockerResponse {
 /** Issue a Docker Engine API request over the Unix socket. */
 export function dockerRequest(
   path: string,
-  init: { method?: string; body?: string; socketPath?: string } = {},
+  init: { method?: string; body?: string; socketPath?: string; timeoutMs?: number } = {},
 ): Effect.Effect<DockerResponse, DockerEngineError> {
   const socketPath = init.socketPath ?? resolveDockerSocket();
+  const timeoutMs = init.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
   return Effect.tryPromise({
     try: () =>
       new Promise<DockerResponse>((resolve, reject) => {
@@ -49,6 +55,7 @@ export function dockerRequest(
                   "Content-Length": Buffer.byteLength(init.body),
                 }
               : {},
+            timeout: timeoutMs,
           },
           (res) => {
             let body = "";
@@ -57,7 +64,16 @@ export function dockerRequest(
             res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
           },
         );
-        req.on("error", (err) => reject(new DockerEngineError(err.message)));
+        // `timeout` fires when the socket is inactive for `timeoutMs`; abort the
+        // request and surface a typed error rather than waiting forever.
+        req.on("timeout", () => {
+          req.destroy(
+            new DockerEngineError(`Docker request to ${path} timed out after ${timeoutMs}ms`),
+          );
+        });
+        req.on("error", (err) =>
+          reject(err instanceof DockerEngineError ? err : new DockerEngineError(err.message)),
+        );
         if (init.body) req.write(init.body);
         req.end();
       }),
