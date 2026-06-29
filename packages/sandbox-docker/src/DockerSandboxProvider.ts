@@ -39,9 +39,12 @@ import { DockerSandboxConfig, DEFAULT_DOCKER_CONFIG } from "./config.ts";
 
 export const DOCKER_KIND = SandboxProviderDriverKind.make("docker");
 
+// Hoist compiled schema functions to module scope (kata-code/no-inline-schema-compile).
+const decodeDockerSandboxConfig = Schema.decodeUnknownSync(DockerSandboxConfig);
+
 /** Decoded config the registry feeds the driver. */
 export const dockerConfigDecoder: SandboxProviderConfigDecoder<DockerSandboxConfig> = (input) =>
-  Schema.decodeUnknownSync(DockerSandboxConfig)(input);
+  decodeDockerSandboxConfig(input);
 
 export interface DockerSandboxHandleState {
   readonly containerId: string;
@@ -70,7 +73,7 @@ function engine(
 function resolveConfig(raw: unknown): DockerSandboxConfig {
   if (raw === undefined || raw === null) return { ...DEFAULT_DOCKER_CONFIG };
   try {
-    return { ...DEFAULT_DOCKER_CONFIG, ...Schema.decodeUnknownSync(DockerSandboxConfig)(raw) };
+    return { ...DEFAULT_DOCKER_CONFIG, ...decodeDockerSandboxConfig(raw) };
   } catch {
     return { ...DEFAULT_DOCKER_CONFIG };
   }
@@ -293,15 +296,14 @@ export const DockerSandboxProvider: SandboxProvider = {
       return { exitCode, stdout: startRes.body, stderr: "" } satisfies SandboxExecResult;
     }),
 
-  reachability: (handle) =>
-    Effect.gen(function* () {
-      const state = handle.handle as DockerSandboxHandleState;
-      return {
-        reachabilityKind: SandboxReachabilityKind.make("loopback"),
-        httpBaseUrl: `http://localhost:${state.hostPort}`,
-        wsBaseUrl: `ws://localhost:${state.hostPort}`,
-      } satisfies SandboxReachability;
-    }),
+  reachability: (handle) => {
+    const state = handle.handle as DockerSandboxHandleState;
+    return Effect.succeed({
+      reachabilityKind: SandboxReachabilityKind.make("loopback"),
+      httpBaseUrl: `http://localhost:${state.hostPort}`,
+      wsBaseUrl: `ws://localhost:${state.hostPort}`,
+    } satisfies SandboxReachability);
+  },
 
   dispose: (handle) =>
     Effect.gen(function* () {

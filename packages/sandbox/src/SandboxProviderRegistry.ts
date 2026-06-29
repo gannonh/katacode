@@ -16,7 +16,6 @@ import {
 
 import {
   type SandboxProvider,
-  SandboxProviderError,
   type SandboxProviderConfigDecoder,
 } from "./SandboxProviderDriver.ts";
 
@@ -131,11 +130,4 @@ export class SandboxProviderRegistry {
     if (config === undefined) return undefined;
     return this.materializeOne(instanceId, config);
   }
-
-  /** All materialized instances (available + unavailable) for UI/diagnostics. */
-  list(map: SandboxProviderInstanceConfigMap): ReadonlyArray<MaterializedSandboxInstance> {
-    return this.materialize(map);
-  }
 }
-
-export { SandboxProviderError };

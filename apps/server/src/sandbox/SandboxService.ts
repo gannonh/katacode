@@ -110,16 +110,22 @@ function either<A, E>(
 
 /** Map a driver `SandboxProviderError` to the RPC `SandboxRpcError`. */
 function mapDriverError(e: SandboxProviderError): SandboxRpcError {
-  const reason =
-    e.reason === "invalid-config"
-      ? "invalid-config"
-      : e.reason === "unreachable"
-        ? "unreachable"
-        : e.reason === "provision-failed" ||
-            e.reason === "dispose-failed" ||
-            e.reason === "exec-failed"
-          ? "provision-failed"
-          : "internal";
+  let reason: SandboxRpcError["reason"];
+  switch (e.reason) {
+    case "invalid-config":
+      reason = "invalid-config";
+      break;
+    case "unreachable":
+      reason = "unreachable";
+      break;
+    case "provision-failed":
+    case "dispose-failed":
+    case "exec-failed":
+      reason = "provision-failed";
+      break;
+    default:
+      reason = "internal";
+  }
   return new SandboxRpcError({ reason, message: e.message });
 }
 
