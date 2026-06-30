@@ -2,7 +2,8 @@
 type: Spec
 title: "Kata Environments / Deployments Phase 2 — Manual environment configuration & execution (deep-dive)"
 description: "Deep-dive design for Phase 2: a host-side `.kata/environment.json` resolver, repo seeding into the sandbox, execution of install/start/terminals, Kata-stored secret injection with log redaction, and a saved-environment editor on the deployment-target card."
-status: Draft
+status: Approved
+approved_at: 2026-06-30T00:00:00Z
 tags: [specs, phase-2, environments, deployments, sandbox, environment-config, resolver, secrets]
 timestamp: 2026-06-30T00:00:00Z
 ---
@@ -11,7 +12,7 @@ timestamp: 2026-06-30T00:00:00Z
 
 ## Status
 
-Draft.
+Approved.
 
 This is the Phase 2 deep-dive (one spec per phase; see the
 [roadmap](/specs/2026-06-27-kata-environments-deployments-design.md)). It implements roadmap
