@@ -9,7 +9,7 @@
 # Repo setup happens at container create in .devbox/provision.sh so dependency
 # installs, Electron runtime setup, and agent extension rebuilds stay idempotent.
 # =============================================================================
-FROM mcr.microsoft.com/devcontainers/typescript-node:24
+FROM mcr.microsoft.com/devcontainers/typescript-node:24-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 

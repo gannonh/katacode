@@ -22,7 +22,7 @@ non-root `node` user.
 
 ## Kata Code defaults
 
-- Node: `24.x` from the devcontainers TypeScript/Node image.
+- Node: `24.x` from the devcontainers TypeScript/Node Bookworm image.
 - Package manager: Corepack activates the `packageManager` from `package.json`
   (`pnpm@11.8.0` at the time this file was written).
 - Dependency install: `.devbox/provision.sh` runs `pnpm install --frozen-lockfile`.
