@@ -22,10 +22,10 @@
   // No host port publishing needed: OrbStack exposes every container port at
   // <container-name>.orb.local:<port>, so concurrent worktrees never collide.
   // (forwardPorts is only used by VS Code/Codespaces attach, kept for that path.)
-  "forwardPorts": [5173, 9100, 6080],
+  "forwardPorts": [5733, 13773, 6080],
   "portsAttributes": {
-    "5173": { "label": "Vite dev server" },
-    "9100": { "label": "RPC server" },
+    "5733": { "label": "Kata web dev server" },
+    "13773": { "label": "Kata server" },
     "6080": { "label": "noVNC (headed GUI)" }
   },
 
@@ -46,11 +46,8 @@
     "DISPLAY": ":99",
     "NOVNC_PORT": "6080",
     "VNC_PORT": "5900",
-    // Electron's Chromium SUID sandbox can't run with host-owned node_modules
-    // bind-mounted in; the container is the isolation boundary, so disable it.
-    // Set DEVBOX_ELECTRON_NO_SANDBOX=1 to make Electron launch with --no-sandbox
-    // in the container. Your repo's Electron dev script should read this env var
-    // and pass --no-sandbox when it's set.
+    // The desktop launcher detects Linux sandbox support and adds --no-sandbox
+    // when Electron cannot use its setuid sandbox inside the container.
     "DEVBOX_ELECTRON_NO_SANDBOX": "1"
   },
 

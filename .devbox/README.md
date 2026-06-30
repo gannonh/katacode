@@ -1,92 +1,96 @@
-# devbox
+# Kata Code devbox
 
-Isolated worktree dev containers with a headed display (noVNC), Pi agent,
-Chromium for OAuth flows, and GitHub-token forwarding. One command per branch.
+Isolated worktree dev containers for Kata Code. Each box includes Node 24, pnpm,
+vite-plus (`vp`), the Electron runtime, Chromium for OAuth flows, a headed
+noVNC display, GitHub-token forwarding, and the Pi coding agent.
 
 ## Quickstart
 
 ```bash
-# 1. Initialize devbox in your repo (creates .devbox/ + .devcontainer/)
+# 1. Initialize devbox in your repo if .devbox/ and .devcontainer/ are absent
 npx @gannonh/devbox init
 
 # 2. Boot a box for a branch
 npx @gannonh/devbox my-feature
 
-# 3. View the headed display in your browser
-#    The CLI prints the noVNC URL, or use:
+# 3. Open the headed display
 npx @gannonh/devbox my-feature --url --open
 ```
 
-Each branch gets its own isolated container with its own network namespace
-(no port collisions). The worktree is bind-mounted at `/workspace` inside the
-box, and you drop into a shell as the non-root `node` user.
+The worktree is mounted at `/workspace` inside the box. The shell runs as the
+non-root `node` user.
+
+## Kata Code defaults
+
+- Node: `24.x` from the devcontainers TypeScript/Node image.
+- Package manager: Corepack activates the `packageManager` from `package.json`
+  (`pnpm@11.8.0` at the time this file was written).
+- Dependency install: `.devbox/provision.sh` runs `pnpm install --frozen-lockfile`.
+- Repo CLIs: `/workspace/node_modules/.bin` is added to shell `PATH`, so `vp`
+  works after install.
+- Electron setup: `.devbox/post-create.sh` runs
+  `vp run --filter @kata-sh/code-desktop ensure:electron`.
+- Default app ports: web `5733`, server `13773`, noVNC `6080`, VNC `5900`.
 
 ## Prerequisites
 
-- **Docker / OrbStack** — [OrbStack](https://orbstack.dev) recommended on
-  macOS (auto-exposes container ports at `<container>.orb.local:<port>`).
-  Any Docker runtime works; non-OrbStack falls back to container IPs.
-- **@devcontainers/cli** — the CLI that drives `devcontainer up`:
+- **Docker / OrbStack**. OrbStack is recommended on macOS because it exposes
+  container ports at `<container>.orb.local:<port>`. Other Docker runtimes work
+  with container IPs.
+- **@devcontainers/cli**:
   ```bash
   npm install -g @devcontainers/cli
   ```
-- **gh (GitHub CLI)** — for GitHub token forwarding into the box. Auth it on
-  your host:
+- **gh (GitHub CLI)** authenticated on the host:
   ```bash
   gh auth login
   ```
-  The launcher pulls `gh auth token` from your host keyring and forwards it
-  into the box so `gh` and `git push` work without re-auth.
-- **~/.pi (optional)** — if you use the Pi coding agent, your `~/.pi` config
-  is copied into the box (excluding sessions/npm/cache) and extensions are
-  rebuilt Linux-native. If you use Claude Code or Codex instead, see
-  [Agent switching](#agent-switching) below.
+  The launcher forwards `gh auth token` into the box so `gh` and `git push`
+  work without re-auth inside the container.
+- **~/.pi (optional)**. If you use Pi, the host config is copied into the box
+  excluding sessions, npm, and cache directories. Extensions are reinstalled so
+  native packages build for Linux.
 
 ## Files
 
-| File                              | Purpose                                                                                                                                                                  |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.devbox/Dockerfile`              | The container image: TypeScript-Node base + bun, gh, ripgrep/fd/fzf/tmux, display stack (Xvfb/x11vnc/noVNC/fluxbox), Chromium, and the Pi agent. Built locally per repo. |
-| `.devbox/provision.sh`            | Runs once at container create: installs repo deps (auto-detects bun/pnpm/npm from lockfile), links `.env`, sets up the agent (Pi by default), and starts the display.    |
-| `.devbox/start-display.sh`        | Starts Xvfb, fluxbox, x11vnc, and noVNC. Runs on every container start via `postStartCommand`. Idempotent.                                                               |
-| `.devbox/post-create.sh`          | Repo-specific hook. Add custom setup here (migrations, native builds, etc.). Runs after provision.sh. No-op by default.                                                  |
-| `.devcontainer/devcontainer.json` | Standard devcontainer config read by `@devcontainers/cli`, Codespaces, and Cursor. Defines mounts, env vars, lifecycle hooks, and ports.                                 |
+| File                              | Purpose                                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.devbox/Dockerfile`              | Builds the dev image: Node 24, pnpm baseline, dev CLIs, display stack, Electron/Chromium runtime libs, Chromium, GitHub CLI, and Pi.                   |
+| `.devbox/provision.sh`            | Runs once at create: activates the package manager, installs dependencies, links `.env`, copies Pi config, runs the repo hook, and starts the display. |
+| `.devbox/post-create.sh`          | Kata Code hook that ensures the Electron runtime after dependencies are installed.                                                                     |
+| `.devbox/start-display.sh`        | Starts Xvfb, fluxbox, x11vnc, and noVNC. Runs on every container start.                                                                                |
+| `.devcontainer/devcontainer.json` | Devcontainer config used by `@devcontainers/cli`, Codespaces, and Cursor. Defines mounts, env vars, lifecycle hooks, and forwarded ports.              |
 
 ## Agent switching
 
-The box ships with the **Pi agent** active by default. To switch to **Claude
-Code** or **Codex**:
+The box ships with **Pi** active by default. To switch to **Claude Code** or
+**Codex**:
 
 1. Edit `.devbox/provision.sh`:
-   - Comment out the Pi block (section 4a).
-   - Uncomment the Claude Code block (4b) or Codex block (4c).
-
+   - Comment out the Pi block.
+   - Uncomment the Claude Code or Codex block.
 2. Edit `.devcontainer/devcontainer.json`:
-   - Remove the `~/.pi` mount line. It is inert for non-Pi agents and `~/.pi`
-     is ~1.3GB, so removing it avoids a wasteful mount.
+   - Remove the `~/.pi` mount line.
 
 ### Claude Code
 
-- Package: `@anthropic-ai/claude-code` (installed via `npm install -g`)
-- Auth: set `ANTHROPIC_API_KEY` in your `.env` file or
-  `devcontainer.json` `containerEnv`
-- No config-dir copy needed — Claude Code reads the env var directly
+- Package: `@anthropic-ai/claude-code`
+- Auth: set `ANTHROPIC_API_KEY` in `.env` or `devcontainer.json` `containerEnv`
 
 ### Codex
 
-- Package: `@openai/codex` (installed via `npm install -g`)
-- Auth: set `OPENAI_API_KEY` in your `.env`, or run `codex --login` inside
-  the box (opens Chromium via the display stack)
+- Package: `@openai/codex`
+- Auth: set `OPENAI_API_KEY` in `.env`, or run `codex --login` inside the box
+  and complete the browser flow through noVNC.
 
 ## Notes
 
-- Electron renders against software Xvfb (no GPU). Fine for dev work; not
-  pixel-accurate vs. a native build.
-- `DEVBOX_ELECTRON_NO_SANDBOX=1` is set in `devcontainer.json` so Electron
-  launches with `--no-sandbox` in the container. Your repo's Electron dev
-  script should read this env var and pass `--no-sandbox` when it's set.
-- For a native VNC client instead of the browser, point it at
-  `<container-name>.orb.local:5900`.
-- Template drift: if you want to pick up changes from a newer version of
-  `@gannonh/devbox`, re-run `npx @gannonh/devbox init --force`. An `update`
-  command is planned for a future release.
+- Electron renders against software Xvfb. Use native local builds for
+  pixel-sensitive checks.
+- The Kata desktop launcher detects Linux Electron sandbox support and adds
+  `--no-sandbox` when the container cannot use Electron's setuid sandbox.
+- For a native VNC client, connect to `<container-name>.orb.local:5900` on
+  OrbStack or the container IP on other Docker runtimes.
+- To pick up newer generic template changes from `@gannonh/devbox`, run
+  `npx @gannonh/devbox init --force`, then reapply the Kata Code-specific
+  Node, pnpm, port, and Electron setup from these files.

@@ -1,28 +1,26 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# Kata Agents — headed dev box (devcontainer)
+# Kata Code headed dev box (devcontainer)
 #
-# Built on the official Microsoft TypeScript-Node devcontainer base — the same
-# generic Node/TS image family Codespaces and Cursor build on. We layer the
-# dev CLIs (bun, gh, ripgrep/fd/fzf/tmux), the headed display stack
-# (Xvfb/x11vnc/noVNC/fluxbox), and the Pi coding agent on top.
+# Provides the repo's Linux development baseline: Node 24, pnpm, vite-plus,
+# Electron runtime libraries, Chromium for OAuth flows, noVNC for headed UI work,
+# GitHub CLI, and the Pi coding agent.
 #
-# This image is intentionally generic. Repo-specific setup (deps, build,
-# Electron, Pi config) happens at container start via the devcontainer.json
-# postCreateCommand -> .devbox/provision.sh, not baked into the image.
+# Repo setup happens at container create in .devbox/provision.sh so dependency
+# installs, Electron runtime setup, and agent extension rebuilds stay idempotent.
 # =============================================================================
-FROM mcr.microsoft.com/devcontainers/typescript-node:22
+FROM mcr.microsoft.com/devcontainers/typescript-node:24
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # -----------------------------------------------------------------------------
-# System packages: dev CLIs + headed display stack.
-#
-# Display: Xvfb (virtual framebuffer), x11vnc (VNC server), novnc + websockify
-# (browser viewer at :6080), fluxbox (window manager so Electron windows paint).
-# Electron runtime libs: gtk/nss/xss/etc. so the GUI launches under Xvfb.
+# System packages: dev CLIs + headed display stack + Electron/Chromium runtime.
 # -----------------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      jq \
+      rsync \
       ripgrep \
       fd-find \
       fzf \
@@ -34,26 +32,35 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       fluxbox \
       x11-utils \
       x11-xserver-utils \
+      dbus-x11 \
       libgtk-3-0 \
       libnotify4 \
       libnss3 \
       libxss1 \
       libxtst6 \
-      xdg-utils \
+      libxkbcommon0 \
+      libxshmfence1 \
+      libxcomposite1 \
+      libxdamage1 \
+      libxrandr2 \
+      libatk1.0-0 \
+      libatk-bridge2.0-0 \
       libatspi2.0-0 \
+      libcairo2 \
+      libpango-1.0-0 \
+      libpangocairo-1.0-0 \
       libdrm2 \
       libgbm1 \
       libasound2 \
+      libcups2 \
+      xdg-utils \
       fonts-liberation \
       chromium \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf "$(command -v fdfind)" /usr/local/bin/fd
 
-# Make the newer /usr/local/bin/git (2.54, from the base image) the git every
-# caller sees — PATH-independent. The apt /usr/bin/git is 2.47, too old for the
-# `relativeWorktrees` extension that --relative-paths worktrees use; agents and
-# subprocesses hitting /usr/bin/git fail on commit. Done after apt install so
-# the apt git binary isn't reinstated over the symlink.
+# Make the newer /usr/local/bin/git from the base image the git every caller
+# sees. The apt git binary can be too old for relative worktree config.
 RUN ln -sf /usr/local/bin/git /usr/bin/git
 
 # -----------------------------------------------------------------------------
@@ -68,13 +75,16 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# Bun (primary runtime + package manager for this repo). Installed to /opt so
-# every user sees the same binary.
+# Package manager baseline. The provision script activates the exact package
+# manager from package.json; this baked version keeps pnpm available before the
+# workspace is mounted.
 # -----------------------------------------------------------------------------
-RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/opt/bun bash \
-    && ln -s /opt/bun/bin/bun /usr/local/bin/bun \
-    && printf 'export BUN_INSTALL=/opt/bun\nexport PATH=$BUN_INSTALL/bin:$PATH\n' \
-      > /etc/profile.d/bun.sh
+RUN corepack enable \
+    && corepack prepare pnpm@11.8.0 --activate
+
+# Make repo-local CLIs like vp available in interactive shells after install.
+RUN printf '\nexport PATH=/workspace/node_modules/.bin:$PATH\n' >> /etc/bash.bashrc \
+    && printf 'export PATH=/workspace/node_modules/.bin:$PATH\n' > /etc/profile.d/workspace-bin.sh
 
 # -----------------------------------------------------------------------------
 # Pi coding agent (global). Extensions are reinstalled per-box from the user's
@@ -82,18 +92,14 @@ RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/opt/bun bash \
 # -----------------------------------------------------------------------------
 RUN npm install -g @earendil-works/pi-coding-agent
 
-# Chromium needs --no-sandbox under Xvfb in a container (same SUID issue as
-# Electron). Wrap the real binary in place so EVERY caller — xdg-open (via the
-# chromium.desktop entry that hardcodes /usr/bin/chromium), Electron's
-# shell.openExternal, and direct `chromium` invocations — launches a working
-# browser.
+# Chromium needs --no-sandbox under Xvfb in a container. Wrap the real binary so
+# xdg-open, Electron shell.openExternal, and direct chromium invocations work.
 RUN mv /usr/bin/chromium /usr/bin/chromium.real \
     && printf '#!/bin/sh\nexec /usr/bin/chromium.real --no-sandbox --disable-gpu --test-type "$@"\n' \
        > /usr/bin/chromium \
     && chmod +x /usr/bin/chromium
 
 # Display defaults (overridable via devcontainer.json containerEnv).
-# BROWSER makes xdg-open (and thus Electron's shell.openExternal) launch Chromium.
 ENV DISPLAY=:99 \
     VNC_PORT=5900 \
     NOVNC_PORT=6080 \
@@ -102,8 +108,6 @@ ENV DISPLAY=:99 \
     SCREEN_DEPTH=24 \
     BROWSER=chromium
 
-# The display launcher runs as a postStartCommand (see devcontainer.json), so it
-# does not need to be the entrypoint. Copy it where provision can find it.
 COPY .devbox/start-display.sh /usr/local/bin/devbox-start-display
 RUN chmod +x /usr/local/bin/devbox-start-display
 
