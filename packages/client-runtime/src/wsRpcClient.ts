@@ -6,6 +6,7 @@ import {
   ORCHESTRATION_WS_METHODS,
   type RelayClientInstallProgressEvent,
   type RelayClientStatus,
+  type SandboxTestConnectionProgressEvent,
   type ServerSettingsPatch,
   type VcsStatusResult,
   type VcsStatusStreamEvent,
@@ -178,6 +179,15 @@ export interface WsRpcClient {
     readonly installRelayClient: (
       onProgress?: (event: RelayClientInstallProgressEvent) => void,
     ) => Promise<RelayClientStatus>;
+  };
+  readonly sandbox: {
+    readonly listInstances: RpcUnaryNoArgMethod<typeof WS_METHODS.sandboxListInstances>;
+    readonly testConnection: (
+      instanceId: RpcInput<typeof WS_METHODS.sandboxTestConnection>["instanceId"],
+      onProgress: (event: SandboxTestConnectionProgressEvent) => void,
+    ) => Promise<void>;
+    readonly startSession: RpcUnaryMethod<typeof WS_METHODS.sandboxStartSession>;
+    readonly disposeSession: RpcUnaryMethod<typeof WS_METHODS.sandboxDisposeSession>;
   };
   readonly orchestration: {
     readonly dispatchCommand: RpcUnaryMethod<typeof ORCHESTRATION_WS_METHODS.dispatchCommand>;
@@ -411,6 +421,20 @@ export function createWsRpcClient(
         }
         throw new Error("Relay client install stream completed without a final status.");
       },
+    },
+    sandbox: {
+      listInstances: () =>
+        transport.request((client) => client[WS_METHODS.sandboxListInstances]({})),
+      testConnection: async (instanceId, onProgress) => {
+        await transport.requestStream(
+          (client) => client[WS_METHODS.sandboxTestConnection]({ instanceId }),
+          (event) => onProgress(event),
+        );
+      },
+      startSession: (input) =>
+        transport.request((client) => client[WS_METHODS.sandboxStartSession](input)),
+      disposeSession: (input) =>
+        transport.request((client) => client[WS_METHODS.sandboxDisposeSession](input)),
     },
     orchestration: {
       dispatchCommand: (input) =>

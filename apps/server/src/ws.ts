@@ -73,6 +73,7 @@ import * as ProviderMaintenanceRunner from "./provider/providerMaintenanceRunner
 import { ServerLifecycleEvents } from "./serverLifecycleEvents.ts";
 import { ServerRuntimeStartup } from "./serverRuntimeStartup.ts";
 import { redactServerSettingsForClient, ServerSettingsService } from "./serverSettings.ts";
+import { SandboxServiceLive } from "./sandbox/SandboxService.ts";
 import { TerminalManager } from "./terminal/Services/Manager.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
 import * as PreviewManager from "./preview/Manager.ts";
@@ -206,6 +207,10 @@ const RPC_REQUIRED_SCOPE = new Map<string, AuthEnvironmentScope>([
   [WS_METHODS.subscribeServerConfig, AuthOrchestrationReadScope],
   [WS_METHODS.subscribeServerLifecycle, AuthOrchestrationReadScope],
   [WS_METHODS.subscribeAuthAccess, AuthAccessReadScope],
+  [WS_METHODS.sandboxListInstances, AuthOrchestrationReadScope],
+  [WS_METHODS.sandboxTestConnection, AuthOrchestrationOperateScope],
+  [WS_METHODS.sandboxStartSession, AuthOrchestrationOperateScope],
+  [WS_METHODS.sandboxDisposeSession, AuthOrchestrationOperateScope],
 ]);
 
 function toAuthAccessStreamEvent(
@@ -1067,6 +1072,41 @@ const makeWsRpcLayer = (currentSession: AuthenticatedSession) =>
             {
               "rpc.aggregate": "server",
             },
+          ),
+        [WS_METHODS.sandboxListInstances]: (_input) =>
+          observeRpcEffect(
+            WS_METHODS.sandboxListInstances,
+            serverSettings.getSettings.pipe(
+              Effect.flatMap((settings) => SandboxServiceLive.listInstances(settings)),
+              Effect.map((instances) => ({ instances })),
+            ),
+            { "rpc.aggregate": "sandbox" },
+          ),
+        [WS_METHODS.sandboxTestConnection]: ({ instanceId }) =>
+          observeRpcStream(
+            WS_METHODS.sandboxTestConnection,
+            Stream.fromEffect(serverSettings.getSettings).pipe(
+              Stream.flatMap((settings) => SandboxServiceLive.testConnection(instanceId, settings)),
+            ),
+            { "rpc.aggregate": "sandbox" },
+          ),
+        [WS_METHODS.sandboxStartSession]: ({ instanceId, connectAuthToken }) =>
+          observeRpcEffect(
+            WS_METHODS.sandboxStartSession,
+            serverSettings.getSettings.pipe(
+              Effect.flatMap((settings) =>
+                SandboxServiceLive.startSession(instanceId, settings, { connectAuthToken }),
+              ),
+            ),
+            { "rpc.aggregate": "sandbox" },
+          ),
+        [WS_METHODS.sandboxDisposeSession]: ({ instanceId }) =>
+          observeRpcEffect(
+            WS_METHODS.sandboxDisposeSession,
+            SandboxServiceLive.disposeSession(instanceId).pipe(
+              Effect.map((disposed) => ({ instanceId, disposed })),
+            ),
+            { "rpc.aggregate": "sandbox" },
           ),
         [WS_METHODS.serverDiscoverSourceControl]: (_input) =>
           observeRpcEffect(

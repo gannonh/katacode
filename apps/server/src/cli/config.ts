@@ -127,6 +127,10 @@ const EnvServerConfig = Config.all({
     Config.option,
     Config.map(Option.getOrUndefined),
   ),
+  desktopBootstrapToken: Config.string("KATACODE_DESKTOP_BOOTSTRAP_TOKEN").pipe(
+    Config.option,
+    Config.map(Option.getOrUndefined),
+  ),
   autoBootstrapProjectFromCwd: Config.boolean("KATACODE_AUTO_BOOTSTRAP_PROJECT_FROM_CWD").pipe(
     Config.option,
     Config.map(Option.getOrUndefined),
@@ -301,7 +305,11 @@ export const resolveServerConfig = (
       ),
       () => mode === "desktop",
     );
-    const desktopBootstrapToken = bootstrap?.desktopBootstrapToken;
+    // The desktop normally passes the bootstrap token via a pipe fd
+    // (KATACODE_BOOTSTRAP_FD). A containerized Kata server cannot receive the
+    // fd, so the sandbox driver passes the token as KATACODE_DESKTOP_BOOTSTRAP_TOKEN;
+    // fall back to it when no fd bootstrap was provided.
+    const desktopBootstrapToken = bootstrap?.desktopBootstrapToken ?? env.desktopBootstrapToken;
     const autoBootstrapProjectFromCwd = Option.getOrElse(
       resolveOptionPrecedence(
         Option.fromUndefinedOr(options?.forceAutoBootstrapProjectFromCwd),

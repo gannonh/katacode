@@ -153,7 +153,7 @@ function ProviderAuthEmail(props: {
   );
 }
 
-function ProviderEnvironmentSection(props: {
+export function ProviderEnvironmentSection(props: {
   readonly environment: ReadonlyArray<ProviderInstanceEnvironmentVariable>;
   readonly onChange: (environment: ReadonlyArray<ProviderInstanceEnvironmentVariable>) => void;
 }) {

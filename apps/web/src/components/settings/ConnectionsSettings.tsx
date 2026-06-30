@@ -37,6 +37,7 @@ import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { cn } from "../../lib/utils";
 import { formatElapsedDurationLabel, formatExpiresInLabel } from "../../timestampFormat";
 import { resolveDesktopPairingUrl, resolveHostedPairingUrl } from "./pairingUrls";
+import { SandboxDeploymentSettings } from "./SandboxDeploymentSettings";
 import { resolveRelayClerkTokenOptions } from "../../cloud/publicConfig";
 import {
   SettingsPageContainer,
@@ -3217,6 +3218,8 @@ export function ConnectionsSettings() {
           <CloudLinkRow canManageRelay={canManageRelay} />
         </SettingsSection>
       )}
+
+      <SandboxDeploymentSettings />
 
       <SettingsSection
         title="Remote environments"

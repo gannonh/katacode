@@ -2,6 +2,8 @@ import {
   DEFAULT_SERVER_SETTINGS,
   ProviderDriverKind,
   ProviderInstanceId,
+  SandboxProviderDriverKind,
+  SandboxProviderInstanceId,
 } from "@kata-sh/code-contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { createModelSelection } from "./model.ts";
@@ -193,5 +195,25 @@ describe("serverSettings helpers", () => {
       enabled: true,
       config: { homePath: "~/.codex" },
     });
+  });
+
+  it("replaces sandboxProviderInstances maps so removed instances are cleared", () => {
+    const dockerId = SandboxProviderInstanceId.make("docker_work");
+    const current = {
+      ...DEFAULT_SERVER_SETTINGS,
+      sandboxProviderInstances: {
+        [dockerId]: {
+          driver: SandboxProviderDriverKind.make("docker"),
+          displayName: "Work",
+          enabled: true,
+          config: { image: "node:22-alpine", command: "katacode serve", port: 13773 },
+        },
+      },
+    };
+
+    // Removing the instance by sending an empty map clears it (no deep-merge keep).
+    expect(
+      applyServerSettingsPatch(current, { sandboxProviderInstances: {} }).sandboxProviderInstances,
+    ).toEqual({});
   });
 });

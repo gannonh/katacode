@@ -26,6 +26,18 @@
     "./productIdentity": {
       "types": "./src/productIdentity.ts",
       "import": "./src/productIdentity.ts"
+    },
+    "./sandboxProviderInstance": {
+      "types": "./src/sandboxProviderInstance.ts",
+      "import": "./src/sandboxProviderInstance.ts"
+    },
+    "./baseSchemas": {
+      "types": "./src/baseSchemas.ts",
+      "import": "./src/baseSchemas.ts"
+    },
+    "./sandboxRpc": {
+      "types": "./src/sandboxRpc.ts",
+      "import": "./src/sandboxRpc.ts"
     }
   },
   "scripts": {
