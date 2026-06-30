@@ -7,6 +7,7 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { type ServerProviderSkill } from "@kata-sh/code-contracts";
 import { serializeComposerFileLink } from "@kata-sh/code-shared/composerTrigger";
+import { makeProviderSkillInvocationToken } from "@kata-sh/code-shared/providerSkills";
 import {
   $applyNodeReplacement,
   $createRangeSelection,
@@ -227,13 +228,16 @@ function skillMetadataByName(
   skills: ReadonlyArray<ServerProviderSkill>,
 ): ReadonlyMap<string, ComposerSkillMetadata> {
   return new Map(
-    skills.map((skill) => [
-      skill.name,
-      {
+    skills.flatMap((skill) => {
+      const metadata = {
         label: formatProviderSkillDisplayName(skill),
         description: resolveSkillDescription(skill),
-      },
-    ]),
+      };
+      return [
+        [skill.name, metadata],
+        [makeProviderSkillInvocationToken(skill), metadata],
+      ] as const;
+    }),
   );
 }
 

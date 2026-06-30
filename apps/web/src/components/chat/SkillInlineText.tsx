@@ -1,5 +1,6 @@
 import { Children, cloneElement, isValidElement, type ReactNode } from "react";
 import type { ServerProviderSkill } from "@kata-sh/code-contracts";
+import { makeProviderSkillInvocationToken } from "@kata-sh/code-shared/providerSkills";
 
 import { formatProviderSkillDisplayName } from "../../providerSkillPresentation";
 import {
@@ -12,7 +13,8 @@ import { cn } from "~/lib/utils";
 
 const SKILL_TOKEN_REGEX = /(^|\s)\$([a-zA-Z][a-zA-Z0-9:_-]*)(?=\s|$)/g;
 
-type InlineSkill = Pick<ServerProviderSkill, "name" | "displayName">;
+type InlineSkill = Pick<ServerProviderSkill, "name" | "displayName"> &
+  Partial<Pick<ServerProviderSkill, "path">>;
 
 export function SkillInlineText(props: { text: string; skills: ReadonlyArray<InlineSkill> }) {
   const nodes: ReactNode[] = [];
@@ -23,7 +25,14 @@ export function SkillInlineText(props: { text: string; skills: ReadonlyArray<Inl
     const name = match[2] ?? "";
     const start = (match.index ?? 0) + prefix.length;
     const rawText = `$${name}`;
-    const skill = props.skills.find((candidate) => candidate.name === name);
+    const skill = props.skills.find(
+      (candidate) =>
+        candidate.name === name ||
+        (candidate.path
+          ? makeProviderSkillInvocationToken({ name: candidate.name, path: candidate.path }) ===
+            name
+          : false),
+    );
     if (!skill) {
       continue;
     }

@@ -45,6 +45,7 @@ import {
 } from "../providerMaintenance.ts";
 import { AcpSessionRuntime } from "../acp/AcpSessionRuntime.ts";
 import { CursorListAvailableModelsResponse } from "../acp/CursorAcpExtension.ts";
+import { discoverCursorFilesystemSkills } from "../skills/filesystemSkills.ts";
 
 const decodeCursorListAvailableModelsResponse = Schema.decodeUnknownEffect(
   CursorListAvailableModelsResponse,
@@ -610,6 +611,7 @@ export function buildCursorProviderSnapshot(input: {
   readonly cursorSettings: CursorSettings;
   readonly parsed: CursorAboutResult;
   readonly discoveredModels?: ReadonlyArray<ServerProviderModel>;
+  readonly discoveredSkills?: ReturnType<typeof discoverCursorFilesystemSkills>["skills"];
   readonly discoveryWarning?: string;
 }): ServerProviderDraft {
   const message = joinProviderMessages(input.parsed.message, input.discoveryWarning);
@@ -623,6 +625,7 @@ export function buildCursorProviderSnapshot(input: {
       input.cursorSettings.customModels,
       EMPTY_CAPABILITIES,
     ),
+    skills: [...(input.discoveredSkills ?? [])],
     probe: {
       installed: true,
       version: input.parsed.version,
@@ -1082,6 +1085,7 @@ export const checkCursorProviderStatus = Effect.fn("checkCursorProviderStatus")(
       discoveredModels = discoveryExit.value;
     }
   }
+  const { skills: discoveredSkills } = discoverCursorFilesystemSkills({ cwd: process.cwd() });
   return buildCursorProviderSnapshot({
     checkedAt,
     cursorSettings,
@@ -1090,6 +1094,7 @@ export const checkCursorProviderStatus = Effect.fn("checkCursorProviderStatus")(
       Option.filter(discoveredModels, (models) => models.length > 0),
       () => [] as const,
     ),
+    discoveredSkills,
     ...(discoveryWarning ? { discoveryWarning } : {}),
   });
 });
