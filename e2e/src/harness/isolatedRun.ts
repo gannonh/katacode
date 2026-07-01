@@ -64,6 +64,8 @@ export async function createIsolatedRun(input: {
   const baseEnv = {
     ...process.env,
     KATACODE_HOME: katacodeHome,
+    HOME: katacodeHome,
+    USERPROFILE: katacodeHome,
     KATACODE_PORT_OFFSET: String(offset),
     KATACODE_ELECTRON_RUNTIME_DIR: electronRuntimeDir,
     // Unique per-worker dev app bundle ID so macOS Launch Services treats each
