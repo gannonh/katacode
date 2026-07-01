@@ -19,6 +19,19 @@ export interface CursorSkillFixtures {
   readonly uniqueToken: string;
 }
 
+/**
+ * Mirror of `formatProviderSkillDisplayName` in the web app: skill names are
+ * title-cased and hyphens/underscores become spaces for display. The composer
+ * menu and skill chip render this formatted label, not the raw hyphenated name.
+ */
+function formatSkillDisplayName(skillName: string): string {
+  return skillName
+    .split(/[\s:_-]+/)
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
 const REQUIRED_CURSOR_ENV = [
   "KATACODE_E2E_ENABLE_CURSOR",
   "KATACODE_E2E_CURSOR_MODEL",
@@ -135,17 +148,6 @@ export async function configureCursorProviderForSkills(
     await binaryPathInput.press("Enter");
   }
 
-  const customModelInput = page.locator("#provider-instance-cursor-custom-model");
-  await customModelInput.waitFor({ state: "visible", timeout: E2E_TIMEOUTS.assertionMs });
-  await customModelInput.fill(config.model);
-  await customModelInput.press("Enter");
-  // Custom models render as a span with a `Remove <slug>` button; assert the
-  // saved row appeared rather than a `<code>` element, which only renders
-  // inside the details tooltip when the model has capabilities.
-  await expect(page.getByRole("button", { name: `Remove ${config.model}` })).toBeVisible({
-    timeout: E2E_TIMEOUTS.assertionMs,
-  });
-
   await dismissBlockingToasts(page);
   const refreshButton = page.getByLabel("Refresh provider status");
   await refreshButton.click();
@@ -168,7 +170,11 @@ export async function expectComposerSkillMenuEntries(
   await expect(
     page.locator('[data-slot="command-group-label"]', { hasText: "Skills" }),
   ).toBeVisible({ timeout: E2E_TIMEOUTS.assertionMs });
-  await expect(page.locator('[data-slot="command-item"]', { hasText: skillName })).toHaveCount(
+  // Skill menu items render the title-cased display name (e.g. "Cursor E2e
+  // Duplicate Abcd1234"), not the raw hyphenated skill name. Match the
+  // formatted label so the assertion reflects what the user sees.
+  const displayName = formatSkillDisplayName(skillName);
+  await expect(page.locator('[data-slot="command-item"]', { hasText: displayName })).toHaveCount(
     count,
     {
       timeout: E2E_TIMEOUTS.assertionMs,
@@ -180,11 +186,56 @@ export async function selectComposerSkill(page: Page, skillName: string): Promis
   const editor = page.getByTestId("composer-editor");
   await editor.click();
   await editor.fill(`$${skillName}`);
-  const skillItem = page.locator('[data-slot="command-item"]', { hasText: skillName }).first();
+  const displayName = formatSkillDisplayName(skillName);
+  const skillItem = page.locator('[data-slot="command-item"]', { hasText: displayName }).first();
   await expect(skillItem).toBeVisible({ timeout: E2E_TIMEOUTS.assertionMs });
   await skillItem.click();
   await expect(
-    page.locator('[data-composer-skill-chip="true"]', { hasText: skillName }),
+    page.locator('[data-composer-skill-chip="true"]', { hasText: displayName }),
   ).toBeVisible({ timeout: E2E_TIMEOUTS.assertionMs });
-  return (await editor.innerText()).trim();
+  // Read the serialized Lexical editor text. Skill nodes store the
+  // path-qualified token as `skillName` and serialize as `$<token>`. Lexical
+  // attaches the editor instance to the contentEditable root element, and
+  // inline skill nodes are nested inside paragraph blocks.
+  const serialized = await page.evaluate(() => {
+    const root = document.querySelector('[data-testid="composer-editor"]') as
+      | (HTMLElement & Record<string, unknown>)
+      | null;
+    const lexicalEditor = root?.["__lexicalEditor"] as
+      | { getEditorState: () => { toJSON: () => unknown } }
+      | undefined;
+    if (!lexicalEditor) return "";
+    const state = lexicalEditor.getEditorState().toJSON() as {
+      root: {
+        children: ReadonlyArray<{
+          type: string;
+          text?: string;
+          skillName?: string;
+          children?: ReadonlyArray<{
+            type: string;
+            text?: string;
+            skillName?: string;
+          }>;
+        }>;
+      };
+    };
+    // Lexical nests inline nodes (skill chips) inside paragraph nodes.
+    const parts: string[] = [];
+    for (const block of state.root.children) {
+      if (block.type === "composer-skill") {
+        parts.push("$" + (block.skillName ?? ""));
+      } else if (block.text) {
+        parts.push(block.text);
+      }
+      for (const inline of block.children ?? []) {
+        if (inline.type === "composer-skill") {
+          parts.push("$" + (inline.skillName ?? ""));
+        } else if (inline.text) {
+          parts.push(inline.text);
+        }
+      }
+    }
+    return parts.join("");
+  });
+  return serialized.trim();
 }

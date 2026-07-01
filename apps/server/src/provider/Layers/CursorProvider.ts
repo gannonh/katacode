@@ -1014,7 +1014,10 @@ export const checkCursorProviderStatus = Effect.fn("checkCursorProviderStatus")(
 > {
   const checkedAt = DateTime.formatIso(yield* DateTime.now);
   const fallbackModels = getCursorFallbackModels(cursorSettings);
-  const { skills: discoveredSkills } = discoverCursorFilesystemSkills({ cwd: process.cwd() });
+  const { skills: discoveredSkills } = discoverCursorFilesystemSkills({
+    cwd: process.cwd(),
+    ...(process.env.HOME ? { homeDir: process.env.HOME } : {}),
+  });
 
   if (!cursorSettings.enabled) {
     return buildServerProvider({
